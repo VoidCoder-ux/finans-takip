@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Finans Takip</title>
+  <style>
+    /* ─── CSS Custom Properties ─────────────────────────────── */
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #1e293b;
+      --bg-input: #0f172a;
+      --border: #334155;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --income-color: #22c55e;
+      --expense-color: #ef4444;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0,0,0,0.3);
+      --transition: 0.2s ease;
+    }
+    [data-theme="light"] {
+      --bg-primary: #f1f5f9;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --bg-input: #f8fafc;
+      --border: #e2e8f0;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    /* ─── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      transition: background var(--transition), color var(--transition);
+    }
+    button { cursor: pointer; font-family: inherit; border: none; outline: none; }
+    input, select, textarea { font-family: inherit; outline: none; }
+    a { text-decoration: none; }
+
+    /* ─── Header ───────────────────────────────────────────── */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .header-logo span { color: var(--accent); }
+    .theme-btn {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--transition);
+    }
+    .theme-btn:hover { background: var(--border); }
+
+    /* ─── Tab Navigation ───────────────────────────────────── */
+    .tab-bar {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex: 1;
+      min-width: 100px;
+      padding: 14px 8px;
+      background: none;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      transition: color var(--transition), border-color var(--transition);
+      white-space: nowrap;
+    }
+    .tab-btn:hover { color: var(--text-secondary); }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* ─── Main Content ─────────────────────────────────────── */
+    .main { padding: 20px; max-width: 900px; margin: 0 auto; padding-bottom: 40px; }
+    .tab-section { display: none; }
+    .tab-section.active { display: block; }
+
+    /* ─── Cards & Layout ───────────────────────────────────── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 16px;
+    }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* ─── Summary Cards ─────────────────────────────────────── */
+    .summary-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+    }
+    .summary-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .summary-value {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+    .summary-value.income { color: var(--income-color); }
+    .summary-value.expense { color: var(--expense-color); }
+    .summary-value.net { color: var(--text-primary); }
+
+    /* ─── Forms ─────────────────────────────────────────────── */
+    .form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+    .form-group { flex: 1; min-width: 140px; display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 0.8rem; color: var(--text-secondary); font-weight: 500; }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      padding: 9px 12px;
+      font-size: 0.9rem;
+      transition: border-color var(--transition);
+      width: 100%;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus { border-color: var(--accent); }
+    .form-group select option { background: var(--bg-secondary); }
+
+    /* Type Toggle */
+    .type-toggle {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .type-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-weight: 600;
+      border: 2px solid var(--border);
+      background: var(--bg-input);
+      color: var(--text-muted);
+      transition: all var(--transition);
+    }
+    .type-btn.active-income {
+      border-color: var(--income-color);
+      color: var(--income-color);
+      background: rgba(34, 197, 94, 0.1);
+    }
+    .type-btn.active-expense {
+      border-color: var(--expense-color);
+      color: var(--expense-color);
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all var(--transition);
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid var(--danger);
+      padding: 6px 12px;
+      font-size: 0.8rem;
+    }
+    .btn-danger:hover { background: rgba(239,68,68,0.1); }
+    .btn-sm {
+      padding: 6px 14px;
+      font-size: 0.82rem;
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ─── Filter Bar ─────────────────────────────────────────── */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .filter-bar select,
+    .filter-bar input {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      padding: 7px 10px;
+      font-size: 0.82rem;
+      flex: 1;
+      min-width: 100px;
+    }
+    .filter-bar select:focus,
+    .filter-bar input:focus { border-color: var(--accent); }
+
+    /* ─── Transaction List ───────────────────────────────────── */
+    .txn-list { display: flex; flex-direction: column; gap: 8px; }
+    .txn-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      border-left: 3px solid var(--border);
+      transition: border-color var(--transition);
+    }
+    .txn-item.income { border-left-color: var(--income-color); }
+    .txn-item.expense { border-left-color: var(--expense-color); }
+    .txn-icon { font-size: 1.3rem; width: 32px; text-align: center; flex-shrink: 0; }
+    .txn-info { flex: 1; min-width: 0; }
+    .txn-category { font-size: 0.9rem; font-weight: 600; }
+    .txn-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+    .txn-amount { font-size: 1rem; font-weight: 700; flex-shrink: 0; }
+    .txn-amount.income { color: var(--income-color); }
+    .txn-amount.expense { color: var(--expense-color); }
+    .txn-delete {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1rem;
+      padding: 4px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      transition: color var(--transition);
+    }
+    .txn-delete:hover { color: var(--danger); }
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 8px; }
+
+    /* ─── Budget ─────────────────────────────────────────────── */
+    .budget-item {
+      margin-bottom: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .budget-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .budget-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .budget-label { font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .budget-amounts { font-size: 0.82rem; color: var(--text-muted); }
+    .budget-status-badge {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+    .badge-ok { background: rgba(34,197,94,0.15); color: var(--success); }
+    .badge-warning { background: rgba(245,158,11,0.15); color: var(--warning); }
+    .badge-exceeded { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .progress-track {
+      height: 8px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.4s ease;
+    }
+    .progress-fill.ok { background: var(--success); }
+    .progress-fill.warning { background: var(--warning); }
+    .progress-fill.exceeded { background: var(--danger); }
+    .budget-actions { display: flex; gap: 8px; margin-top: 6px; }
+    .budget-edit-input {
+      background: var(--bg-input);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      padding: 4px 8px;
+      font-size: 0.85rem;
+      width: 100px;
+    }
+
+    /* Add Budget Form */
+    .add-budget-form {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      margin-bottom: 16px;
+    }
+    .add-budget-form .form-group { min-width: 120px; }
+
+    /* ─── Charts ─────────────────────────────────────────────── */
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .chart-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .chart-card h3 { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .chart-canvas-wrap { position: relative; height: 220px; }
+
+    /* Stats Table */
+    .stats-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .stats-table th {
+      text-align: left;
+      padding: 8px 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+    .stats-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    .stats-table tr:last-child td { border-bottom: none; }
+    .stats-table tr:hover td { background: var(--bg-input); }
+
+    /* Month Picker */
+    .month-picker {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .month-picker label { font-size: 0.82rem; color: var(--text-muted); }
+    .month-picker input[type="month"] {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      padding: 7px 10px;
+      font-size: 0.85rem;
+    }
+
+    /* ─── Goals ──────────────────────────────────────────────── */
+    .goal-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 14px;
+    }
+    .goal-card.completed { opacity: 0.7; border-color: var(--success); }
+    .goal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+    .goal-name { font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .goal-meta { font-size: 0.82rem; color: var(--text-muted); margin-top: 2px; }
+    .goal-progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      margin-bottom: 6px;
+      color: var(--text-secondary);
+    }
+    .goal-progress-label span { font-weight: 600; }
+    .goal-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .contrib-section { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; display: none; }
+    .contrib-section.open { display: block; }
+    .contrib-form { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+    .contrib-form input {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      padding: 7px 10px;
+      font-size: 0.85rem;
+      flex: 1;
+      min-width: 100px;
+    }
+    .contrib-form input:focus { border-color: var(--accent); }
+    .contrib-list { display: flex; flex-direction: column; gap: 6px; }
+    .contrib-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      background: var(--bg-input);
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+    }
+    .contrib-item-left { display: flex; flex-direction: column; gap: 2px; }
+    .contrib-amount { font-weight: 700; color: var(--success); }
+    .contrib-date { color: var(--text-muted); font-size: 0.75rem; }
+
+    /* ─── Toast ──────────────────────────────────────────────── */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toast {
+      padding: 12px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: 500;
+      box-shadow: var(--shadow);
+      animation: slideIn 0.3s ease, fadeOut 0.4s ease 2.6s forwards;
+      max-width: 300px;
+    }
+    .toast.success { background: var(--success); color: #fff; }
+    .toast.error { background: var(--danger); color: #fff; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+    /* ─── Divider / Section spacing ─────────────────────────── */
+    .section-gap { margin-top: 20px; }
+
+    /* ─── Responsive ─────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .main { padding: 12px; }
+      .grid-3 { grid-template-columns: 1fr; gap: 8px; }
+      .chart-grid { grid-template-columns: 1fr; }
+      .chart-canvas-wrap { height: 200px; }
+      .form-row { flex-direction: column; gap: 8px; }
+      .filter-bar { gap: 6px; }
+      .add-budget-form { flex-direction: column; }
+      .tab-btn { font-size: 0.75rem; padding: 12px 6px; min-width: 80px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── Header ──────────────────────────────────────────────── -->
+<header class="header">
+  <div class="header-logo">💰 <span>Finans</span>Takip</div>
+  <button class="theme-btn" id="themeBtn" title="Tema değiştir">🌙</button>
+</header>
+
+<!-- ─── Tab Bar ──────────────────────────────────────────────── -->
+<nav class="tab-bar">
+  <button class="tab-btn active" data-tab="islemler">📊 İşlemler</button>
+  <button class="tab-btn" data-tab="butce">🎯 Bütçe</button>
+  <button class="tab-btn" data-tab="istatistikler">📈 İstatistikler</button>
+  <button class="tab-btn" data-tab="hedefler">⭐ Hedefler</button>
+</nav>
+
+<!-- ─── Main ─────────────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- ══════════ TAB: İŞLEMLER ════════════ -->
+  <section class="tab-section active" id="tab-islemler">
+
+    <!-- Summary Cards -->
+    <div class="grid-3" id="summaryCards">
+      <div class="summary-card">
+        <div class="summary-label">Bu Ay Gelir</div>
+        <div class="summary-value income" id="sumIncome">₺0</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Bu Ay Gider</div>
+        <div class="summary-value expense" id="sumExpense">₺0</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Net Bakiye</div>
+        <div class="summary-value net" id="sumNet">₺0</div>
+      </div>
+    </div>
+
+    <!-- Add Transaction Form -->
+    <div class="card">
+      <div class="card-title">Yeni İşlem Ekle</div>
+      <div class="type-toggle">
+        <button class="type-btn active-income" id="typeIncome" onclick="App.UI.setTxnType('income')">+ Gelir</button>
+        <button class="type-btn" id="typeExpense" onclick="App.UI.setTxnType('expense')">− Gider</button>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tutar (₺)</label>
+          <input type="number" id="txnAmount" placeholder="0.00" min="0" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label>Tarih</label>
+          <input type="date" id="txnDate" />
+        </div>
+        <div class="form-group">
+          <label>Kategori</label>
+          <select id="txnCategory"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex:1">
+          <label>Not (isteğe bağlı)</label>
+          <input type="text" id="txnNote" placeholder="Açıklama ekle..." />
+        </div>
+        <div class="form-group" style="flex:0">
+          <label>&nbsp;</label>
+          <button class="btn btn-primary" onclick="App.Transactions.add()">Ekle</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transaction List -->
+    <div class="card">
+      <div class="card-title">İşlem Geçmişi</div>
+      <div class="filter-bar">
+        <select id="filterType" onchange="App.Transactions.renderList()">
+          <option value="">Tümü</option>
+          <option value="income">Gelir</option>
+          <option value="expense">Gider</option>
+        </select>
+        <select id="filterCategory" onchange="App.Transactions.renderList()">
+          <option value="">Tüm Kategoriler</option>
+        </select>
+        <select id="filterMonth" onchange="App.Transactions.renderList()">
+          <option value="">Tüm Aylar</option>
+        </select>
+        <input type="text" id="filterSearch" placeholder="🔍 Ara..." oninput="App.Transactions.renderList()" />
+      </div>
+      <div id="txnList" class="txn-list"></div>
+    </div>
+  </section>
+
+  <!-- ══════════ TAB: BÜTÇE ════════════ -->
+  <section class="tab-section" id="tab-butce">
+
+    <!-- Add Budget Form -->
+    <div class="card">
+      <div class="card-title">Yeni Bütçe Limiti Ekle</div>
+      <div class="add-budget-form">
+        <div class="form-group">
+          <label>Kategori</label>
+          <select id="budgetCategory"></select>
+        </div>
+        <div class="form-group">
+          <label>Aylık Limit (₺)</label>
+          <input type="number" id="budgetLimit" placeholder="0.00" min="0" step="0.01" />
+        </div>
+        <div class="form-group" style="flex:0">
+          <label>&nbsp;</label>
+          <button class="btn btn-primary" onclick="App.Budget.addOrUpdate()">Kaydet</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Budget Items -->
+    <div class="card" id="budgetList">
+      <div class="card-title">Bu Ayki Harcama Durumu</div>
+      <div id="budgetItems"></div>
+    </div>
+  </section>
+
+  <!-- ══════════ TAB: İSTATİSTİKLER ════════════ -->
+  <section class="tab-section" id="tab-istatistikler">
+
+    <div class="month-picker">
+      <label>Dönem:</label>
+      <input type="month" id="statMonth" onchange="App.Charts.refresh()" />
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h3>Harcama Dağılımı</h3>
+        <div class="chart-canvas-wrap">
+          <canvas id="chartDonut"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>Gelir / Gider Trendi (6 Ay)</h3>
+        <div class="chart-canvas-wrap">
+          <canvas id="chartBar"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Kategori Özeti</div>
+      <div id="statsTable"></div>
+    </div>
+  </section>
+
+  <!-- ══════════ TAB: HEDEFLER ════════════ -->
+  <section class="tab-section" id="tab-hedefler">
+
+    <!-- Add Goal Form -->
+    <div class="card">
+      <div class="card-title">Yeni Hedef Ekle</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Hedef Adı</label>
+          <input type="text" id="goalName" placeholder="Örn: Tatil Fonu" />
+        </div>
+        <div class="form-group">
+          <label>Hedef Tutar (₺)</label>
+          <input type="number" id="goalTarget" placeholder="0.00" min="0" step="0.01" />
+        </div>
+        <div class="form-group" style="flex:0">
+          <label>&nbsp;</label>
+          <button class="btn btn-primary" onclick="App.Goals.add()">Ekle</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Goals List -->
+    <div id="goalsList"></div>
+  </section>
+
+</main>
+
+<!-- ─── Toast Container ──────────────────────────────────────── -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ─── Chart.js ─────────────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   APP — Kişisel Finans Takip
+   Tüm modüller App namespace altında organize edilmiştir.
+═══════════════════════════════════════════════════════════════ */
+var App = {};
+
+/* ─────────────────────────────────────────────────────────────
+   STATE — localStorage okuma / yazma
+───────────────────────────────────────────────────────────── */
+App.State = (function() {
+  var KEYS = {
+    transactions: 'pf_transactions',
+    budgets: 'pf_budgets',
+    goals: 'pf_goals',
+    settings: 'pf_settings'
+  };
+
+  var DEFAULT_SETTINGS = {
+    theme: 'dark',
+    currency: 'TRY',
+    expenseCategories: ['Yiyecek', 'Ulaşım', 'Faturalar', 'Eğlence', 'Sağlık', 'Giyim', 'Eğitim', 'Market', 'Diğer'],
+    incomeCategories: ['Maaş', 'Freelance', 'Kira Geliri', 'Yatırım', 'Diğer']
+  };
+
+  var data = {
+    transactions: [],
+    budgets: {},
+    goals: [],
+    settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS))
+  };
+
+  function load() {
+    try {
+      var t = localStorage.getItem(KEYS.transactions);
+      data.transactions = t ? JSON.parse(t) : [];
+    } catch(e) { data.transactions = []; }
+    try {
+      var b = localStorage.getItem(KEYS.budgets);
+      data.budgets = b ? JSON.parse(b) : {};
+    } catch(e) { data.budgets = {}; }
+    try {
+      var g = localStorage.getItem(KEYS.goals);
+      data.goals = g ? JSON.parse(g) : [];
+    } catch(e) { data.goals = []; }
+    try {
+      var s = localStorage.getItem(KEYS.settings);
+      if (s) {
+        var parsed = JSON.parse(s);
+        data.settings = Object.assign({}, DEFAULT_SETTINGS, parsed);
+      }
+    } catch(e) { data.settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS)); }
+  }
+
+  function save(key) {
+    try {
+      localStorage.setItem(KEYS[key], JSON.stringify(data[key]));
+    } catch(e) { console.error('LocalStorage save error:', e); }
+  }
+
+  function getTransactions() {
+    return data.transactions.slice().sort(function(a, b) {
+      if (b.date !== a.date) return b.date.localeCompare(a.date);
+      return b.createdAt - a.createdAt;
+    });
+  }
+  function getBudgets() { return data.budgets; }
+  function getGoals() { return data.goals; }
+  function getSettings() { return data.settings; }
+
+  function setTransactions(arr) { data.transactions = arr; save('transactions'); }
+  function setBudgets(obj) { data.budgets = obj; save('budgets'); }
+  function setGoals(arr) { data.goals = arr; save('goals'); }
+  function setSetting(key, value) { data.settings[key] = value; save('settings'); }
+
+  return { load, getTransactions, getBudgets, getGoals, getSettings,
+           setTransactions, setBudgets, setGoals, setSetting };
+})();
+
+/* ─────────────────────────────────────────────────────────────
+   UI UTILS — format, tema, tab, toast
+───────────────────────────────────────────────────────────── */
+App.UI = (function() {
+  var _txnType = 'income';
+
+  var CATEGORY_ICONS = {
+    'Yiyecek': '🍽', 'Ulaşım': '🚌', 'Faturalar': '🧾', 'Eğlence': '🎬',
+    'Sağlık': '💊', 'Giyim': '👕', 'Eğitim': '📚', 'Market': '🛒',
+    'Maaş': '💼', 'Freelance': '💻', 'Kira Geliri': '🏠', 'Yatırım': '📈',
+    'Diğer': '📦'
+  };
+
+  var MONTH_NAMES = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+  var MONTH_FULL = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran',
+                    'Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+
+  function formatCurrency(amount) {
+    return '₺' + Number(amount).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function formatDate(iso) {
+    var parts = iso.split('-');
+    return parts[2] + ' ' + MONTH_FULL[parseInt(parts[1], 10) - 1] + ' ' + parts[0];
+  }
+
+  function getCategoryIcon(cat) {
+    return CATEGORY_ICONS[cat] || '💰';
+  }
+
+  function getMonthShort(iso) {
+    var parts = iso.split('-');
+    return MONTH_NAMES[parseInt(parts[1], 10) - 1];
+  }
+
+  function showToast(msg, type) {
+    var container = document.getElementById('toastContainer');
+    var el = document.createElement('div');
+    el.className = 'toast ' + (type || 'success');
+    el.textContent = msg;
+    container.appendChild(el);
+    setTimeout(function() { el.remove(); }, 3100);
+  }
+
+  function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.getElementById('themeBtn').textContent = theme === 'dark' ? '☀️' : '🌙';
+    App.State.setSetting('theme', theme);
+  }
+
+  function switchTab(tabName) {
+    document.querySelectorAll('.tab-section').forEach(function(s) { s.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.getElementById('tab-' + tabName).classList.add('active');
+    document.querySelector('[data-tab="' + tabName + '"]').classList.add('active');
+    if (tabName === 'istatistikler') {
+      App.Charts.refresh();
+    }
+  }
+
+  function setTxnType(type) {
+    _txnType = type;
+    var incomeBtn = document.getElementById('typeIncome');
+    var expenseBtn = document.getElementById('typeExpense');
+    if (type === 'income') {
+      incomeBtn.className = 'type-btn active-income';
+      expenseBtn.className = 'type-btn';
+    } else {
+      incomeBtn.className = 'type-btn';
+      expenseBtn.className = 'type-btn active-expense';
+    }
+    populateCategoryDropdown();
+  }
+
+  function getTxnType() { return _txnType; }
+
+  function populateCategoryDropdown() {
+    var settings = App.State.getSettings();
+    var cats = _txnType === 'income' ? settings.incomeCategories : settings.expenseCategories;
+    var sel = document.getElementById('txnCategory');
+    sel.innerHTML = cats.map(function(c) { return '<option value="' + c + '">' + c + '</option>'; }).join('');
+
+    var budgetCatSel = document.getElementById('budgetCategory');
+    if (budgetCatSel) {
+      budgetCatSel.innerHTML = settings.expenseCategories.map(function(c) {
+        return '<option value="' + c + '">' + c + '</option>';
+      }).join('');
+    }
+  }
+
+  function populateFilterDropdowns() {
+    var settings = App.State.getSettings();
+    var allCats = settings.expenseCategories.concat(settings.incomeCategories);
+    var uniqueCats = allCats.filter(function(c, i) { return allCats.indexOf(c) === i; });
+
+    var filterCat = document.getElementById('filterCategory');
+    filterCat.innerHTML = '<option value="">Tüm Kategoriler</option>' +
+      uniqueCats.map(function(c) { return '<option value="' + c + '">' + c + '</option>'; }).join('');
+
+    // Populate month filter
+    var txns = App.State.getTransactions();
+    var months = [];
+    txns.forEach(function(t) {
+      var m = t.date.substring(0, 7);
+      if (months.indexOf(m) === -1) months.push(m);
+    });
+    months.sort().reverse();
+    var filterMonth = document.getElementById('filterMonth');
+    filterMonth.innerHTML = '<option value="">Tüm Aylar</option>' +
+      months.map(function(m) {
+        var parts = m.split('-');
+        return '<option value="' + m + '">' + MONTH_FULL[parseInt(parts[1], 10) - 1] + ' ' + parts[0] + '</option>';
+      }).join('');
+  }
+
+  function bindEvents() {
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        switchTab(btn.getAttribute('data-tab'));
+      });
+    });
+
+    // Theme toggle
+    document.getElementById('themeBtn').addEventListener('click', function() {
+      var current = document.documentElement.getAttribute('data-theme');
+      setTheme(current === 'dark' ? 'light' : 'dark');
+      if (document.getElementById('tab-istatistikler').classList.contains('active')) {
+        App.Charts.refresh();
+      }
+    });
+
+    // Set today as default date
+    var today = new Date().toISOString().split('T')[0];
+    document.getElementById('txnDate').value = today;
+
+    // Set current month for stats
+    var statMonth = document.getElementById('statMonth');
+    statMonth.value = today.substring(0, 7);
+
+    // Enter key on forms
+    document.getElementById('txnAmount').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') App.Transactions.add();
+    });
+    document.getElementById('goalName').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') document.getElementById('goalTarget').focus();
+    });
+    document.getElementById('goalTarget').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') App.Goals.add();
+    });
+  }
+
+  return {
+    formatCurrency, formatDate, getCategoryIcon, getMonthShort, showToast,
+    setTheme, switchTab, setTxnType, getTxnType, populateCategoryDropdown,
+    populateFilterDropdowns, bindEvents
+  };
+})();
+
+/* ─────────────────────────────────────────────────────────────
+   TRANSACTIONS
+───────────────────────────────────────────────────────────── */
+App.Transactions = (function() {
+
+  function add() {
+    var amount = parseFloat(document.getElementById('txnAmount').value);
+    var date = document.getElementById('txnDate').value;
+    var category = document.getElementById('txnCategory').value;
+    var note = document.getElementById('txnNote').value.trim();
+    var type = App.UI.getTxnType();
+
+    if (!amount || amount <= 0) { App.UI.showToast('Geçerli bir tutar girin.', 'error'); return; }
+    if (!date) { App.UI.showToast('Tarih seçin.', 'error'); return; }
+    if (!category) { App.UI.showToast('Kategori seçin.', 'error'); return; }
+
+    var txns = App.State.getTransactions();
+    txns.unshift({
+      id: 'txn_' + Date.now(),
+      type: type,
+      amount: amount,
+      category: category,
+      date: date,
+      note: note,
+      createdAt: Date.now()
+    });
+    App.State.setTransactions(txns);
+
+    // Reset form
+    document.getElementById('txnAmount').value = '';
+    document.getElementById('txnNote').value = '';
+
+    App.UI.populateFilterDropdowns();
+    renderSummaryCards();
+    renderList();
+    App.Budget.renderAll();
+    App.UI.showToast('İşlem eklendi.', 'success');
+  }
+
+  function remove(id) {
+    var txns = App.State.getTransactions().filter(function(t) { return t.id !== id; });
+    App.State.setTransactions(txns);
+    App.UI.populateFilterDropdowns();
+    renderSummaryCards();
+    renderList();
+    App.Budget.renderAll();
+    App.UI.showToast('İşlem silindi.', 'success');
+  }
+
+  function getMonthlyTotals(month) {
+    var txns = App.State.getTransactions();
+    var income = 0, expense = 0;
+    txns.forEach(function(t) {
+      if (t.date.startsWith(month)) {
+        if (t.type === 'income') income += t.amount;
+        else expense += t.amount;
+      }
+    });
+    return { income, expense };
+  }
+
+  function getCategoryTotals(month) {
+    var txns = App.State.getTransactions();
+    var totals = {};
+    txns.forEach(function(t) {
+      if (t.type === 'expense' && t.date.startsWith(month)) {
+        totals[t.category] = (totals[t.category] || 0) + t.amount;
+      }
+    });
+    return totals;
+  }
+
+  function getLast6MonthsData() {
+    var result = [];
+    var now = new Date();
+    for (var i = 5; i >= 0; i--) {
+      var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      var monthStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      var totals = getMonthlyTotals(monthStr);
+      var MONTH_NAMES = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+      result.push({
+        month: MONTH_NAMES[d.getMonth()],
+        income: totals.income,
+        expense: totals.expense
+      });
+    }
+    return result;
+  }
+
+  function renderSummaryCards() {
+    var today = new Date();
+    var month = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+    var totals = getMonthlyTotals(month);
+    var net = totals.income - totals.expense;
+
+    document.getElementById('sumIncome').textContent = App.UI.formatCurrency(totals.income);
+    document.getElementById('sumExpense').textContent = App.UI.formatCurrency(totals.expense);
+    var netEl = document.getElementById('sumNet');
+    netEl.textContent = App.UI.formatCurrency(net);
+    netEl.style.color = net >= 0 ? 'var(--success)' : 'var(--danger)';
+  }
+
+  function renderList() {
+    var typeFilter = document.getElementById('filterType').value;
+    var catFilter = document.getElementById('filterCategory').value;
+    var monthFilter = document.getElementById('filterMonth').value;
+    var searchFilter = document.getElementById('filterSearch').value.toLowerCase().trim();
+
+    var txns = App.State.getTransactions().filter(function(t) {
+      if (typeFilter && t.type !== typeFilter) return false;
+      if (catFilter && t.category !== catFilter) return false;
+      if (monthFilter && !t.date.startsWith(monthFilter)) return false;
+      if (searchFilter) {
+        var haystack = (t.category + ' ' + t.note + ' ' + App.UI.formatCurrency(t.amount)).toLowerCase();
+        if (haystack.indexOf(searchFilter) === -1) return false;
+      }
+      return true;
+    });
+
+    var container = document.getElementById('txnList');
+    if (txns.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>Hiç işlem yok.</div>';
+      return;
+    }
+
+    container.innerHTML = txns.map(function(t) {
+      var sign = t.type === 'income' ? '+' : '-';
+      return '<div class="txn-item ' + t.type + '">' +
+        '<div class="txn-icon">' + App.UI.getCategoryIcon(t.category) + '</div>' +
+        '<div class="txn-info">' +
+          '<div class="txn-category">' + escapeHtml(t.category) + '</div>' +
+          '<div class="txn-meta">' + App.UI.formatDate(t.date) + (t.note ? ' · ' + escapeHtml(t.note) : '') + '</div>' +
+        '</div>' +
+        '<div class="txn-amount ' + t.type + '">' + sign + App.UI.formatCurrency(t.amount) + '</div>' +
+        '<button class="txn-delete" onclick="App.Transactions.remove(\'' + t.id + '\')" title="Sil">✕</button>' +
+      '</div>';
+    }).join('');
+  }
+
+  return { add, remove, getMonthlyTotals, getCategoryTotals, getLast6MonthsData,
+           renderSummaryCards, renderList };
+})();
+
+/* ─────────────────────────────────────────────────────────────
+   BUDGET
+───────────────────────────────────────────────────────────── */
+App.Budget = (function() {
+
+  function addOrUpdate() {
+    var cat = document.getElementById('budgetCategory').value;
+    var limit = parseFloat(document.getElementById('budgetLimit').value);
+    if (!cat) { App.UI.showToast('Kategori seçin.', 'error'); return; }
+    if (!limit || limit <= 0) { App.UI.showToast('Geçerli bir limit girin.', 'error'); return; }
+
+    var budgets = App.State.getBudgets();
+    budgets[cat] = limit;
+    App.State.setBudgets(budgets);
+    document.getElementById('budgetLimit').value = '';
+    renderAll();
+    App.UI.showToast('Bütçe limiti kaydedildi.', 'success');
+  }
+
+  function remove(cat) {
+    var budgets = App.State.getBudgets();
+    delete budgets[cat];
+    App.State.setBudgets(budgets);
+    renderAll();
+    App.UI.showToast('Bütçe limiti silindi.', 'success');
+  }
+
+  function getStatus(cat, spent, limit) {
+    var pct = limit > 0 ? (spent / limit) * 100 : 0;
+    var status = pct >= 100 ? 'exceeded' : pct >= 75 ? 'warning' : 'ok';
+    return { spent, limit, pct, status };
+  }
+
+  function renderAll() {
+    var budgets = App.State.getBudgets();
+    var today = new Date();
+    var month = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+    var categoryTotals = App.Transactions.getCategoryTotals(month);
+
+    var container = document.getElementById('budgetItems');
+    var keys = Object.keys(budgets);
+
+    if (keys.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-icon">🎯</div>Henüz bütçe limiti eklenmedi.</div>';
+      return;
+    }
+
+    container.innerHTML = keys.map(function(cat) {
+      var spent = categoryTotals[cat] || 0;
+      var limit = budgets[cat];
+      var s = getStatus(cat, spent, limit);
+      var pctDisplay = Math.min(s.pct, 100).toFixed(0);
+      var badgeClass = s.status === 'exceeded' ? 'badge-exceeded' : s.status === 'warning' ? 'badge-warning' : 'badge-ok';
+      var badgeText = s.status === 'exceeded' ? '⚠ Aşıldı' : s.status === 'warning' ? '⚠ Yaklaşıyor' : '✓ İyi';
+
+      return '<div class="budget-item">' +
+        '<div class="budget-header">' +
+          '<div class="budget-label">' + App.UI.getCategoryIcon(cat) + ' ' + escapeHtml(cat) + '</div>' +
+          '<span class="budget-status-badge ' + badgeClass + '">' + badgeText + '</span>' +
+        '</div>' +
+        '<div class="budget-header" style="margin-bottom:8px">' +
+          '<div class="budget-amounts">' + App.UI.formatCurrency(spent) + ' / ' + App.UI.formatCurrency(limit) + '</div>' +
+          '<div class="budget-amounts">' + pctDisplay + '%</div>' +
+        '</div>' +
+        '<div class="progress-track">' +
+          '<div class="progress-fill ' + s.status + '" style="width:' + Math.min(s.pct, 100) + '%"></div>' +
+        '</div>' +
+        '<div class="budget-actions">' +
+          '<button class="btn btn-danger btn-sm" onclick="App.Budget.remove(\'' + escapeHtml(cat) + '\')">Sil</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  return { addOrUpdate, remove, getStatus, renderAll };
+})();
+
+/* ─────────────────────────────────────────────────────────────
+   GOALS
+───────────────────────────────────────────────────────────── */
+App.Goals = (function() {
+
+  function add() {
+    var name = document.getElementById('goalName').value.trim();
+    var target = parseFloat(document.getElementById('goalTarget').value);
+    if (!name) { App.UI.showToast('Hedef adı girin.', 'error'); return; }
+    if (!target || target <= 0) { App.UI.showToast('Geçerli bir hedef tutarı girin.', 'error'); return; }
+
+    var goals = App.State.getGoals();
+    goals.push({
+      id: 'goal_' + Date.now(),
+      name: name,
+      targetAmount: target,
+      contributions: [],
+      createdAt: Date.now(),
+      completedAt: null
+    });
+    App.State.setGoals(goals);
+    document.getElementById('goalName').value = '';
+    document.getElementById('goalTarget').value = '';
+    renderAll();
+    App.UI.showToast('Hedef eklendi.', 'success');
+  }
+
+  function remove(id) {
+    var goals = App.State.getGoals().filter(function(g) { return g.id !== id; });
+    App.State.setGoals(goals);
+    renderAll();
+    App.UI.showToast('Hedef silindi.', 'success');
+  }
+
+  function addContribution(goalId) {
+    var amountEl = document.getElementById('contrib-amount-' + goalId);
+    var dateEl = document.getElementById('contrib-date-' + goalId);
+    var noteEl = document.getElementById('contrib-note-' + goalId);
+    var amount = parseFloat(amountEl.value);
+    var date = dateEl.value;
+    var note = noteEl.value.trim();
+
+    if (!amount || amount <= 0) { App.UI.showToast('Geçerli bir tutar girin.', 'error'); return; }
+    if (!date) { App.UI.showToast('Tarih seçin.', 'error'); return; }
+
+    var goals = App.State.getGoals();
+    var goal = goals.find(function(g) { return g.id === goalId; });
+    if (!goal) return;
+
+    goal.contributions.push({
+      id: 'contrib_' + Date.now(),
+      amount: amount,
+      date: date,
+      note: note
+    });
+
+    // Check completion
+    var total = goal.contributions.reduce(function(s, c) { return s + c.amount; }, 0);
+    if (total >= goal.targetAmount && !goal.completedAt) {
+      goal.completedAt = Date.now();
+      App.UI.showToast('Tebrikler! "' + goal.name + '" hedefine ulaştınız! 🎉', 'success');
+    } else {
+      App.UI.showToast('Katkı eklendi.', 'success');
+    }
+
+    App.State.setGoals(goals);
+    amountEl.value = '';
+    noteEl.value = '';
+    renderAll();
+  }
+
+  function removeContribution(goalId, contribId) {
+    var goals = App.State.getGoals();
+    var goal = goals.find(function(g) { return g.id === goalId; });
+    if (!goal) return;
+    goal.contributions = goal.contributions.filter(function(c) { return c.id !== contribId; });
+    var total = goal.contributions.reduce(function(s, c) { return s + c.amount; }, 0);
+    if (total < goal.targetAmount) goal.completedAt = null;
+    App.State.setGoals(goals);
+    renderAll();
+    App.UI.showToast('Katkı silindi.', 'success');
+  }
+
+  function getProgress(goal) {
+    var total = goal.contributions.reduce(function(s, c) { return s + c.amount; }, 0);
+    var pct = goal.targetAmount > 0 ? Math.min((total / goal.targetAmount) * 100, 100) : 0;
+    var remaining = Math.max(goal.targetAmount - total, 0);
+    return { total, pct, remaining, isComplete: !!goal.completedAt };
+  }
+
+  function toggleContrib(goalId) {
+    var el = document.getElementById('contrib-section-' + goalId);
+    el.classList.toggle('open');
+  }
+
+  function renderAll() {
+    var goals = App.State.getGoals();
+    var container = document.getElementById('goalsList');
+
+    if (goals.length === 0) {
+      container.innerHTML = '<div class="card"><div class="empty-state"><div class="empty-icon">⭐</div>Henüz hedef eklenmedi.</div></div>';
+      return;
+    }
+
+    var active = goals.filter(function(g) { return !g.completedAt; });
+    var completed = goals.filter(function(g) { return g.completedAt; });
+    var all = active.concat(completed);
+    var today = new Date().toISOString().split('T')[0];
+
+    container.innerHTML = all.map(function(goal) {
+      var p = getProgress(goal);
+      var pctDisplay = p.pct.toFixed(0);
+
+      var contribsHtml = goal.contributions.length > 0
+        ? goal.contributions.slice().reverse().map(function(c) {
+            return '<div class="contrib-item">' +
+              '<div class="contrib-item-left">' +
+                '<span class="contrib-amount">+' + App.UI.formatCurrency(c.amount) + '</span>' +
+                '<span class="contrib-date">' + App.UI.formatDate(c.date) + (c.note ? ' · ' + escapeHtml(c.note) : '') + '</span>' +
+              '</div>' +
+              '<button class="txn-delete" onclick="App.Goals.removeContribution(\'' + goal.id + '\',\'' + c.id + '\')" title="Sil">✕</button>' +
+            '</div>';
+          }).join('')
+        : '<div style="font-size:0.82rem;color:var(--text-muted);padding:8px 0">Henüz katkı yok.</div>';
+
+      return '<div class="goal-card' + (goal.completedAt ? ' completed' : '') + '">' +
+        '<div class="goal-header">' +
+          '<div>' +
+            '<div class="goal-name">' + (goal.completedAt ? '✅' : '🎯') + ' ' + escapeHtml(goal.name) + '</div>' +
+            '<div class="goal-meta">Hedef: ' + App.UI.formatCurrency(goal.targetAmount) + (goal.completedAt ? ' · Tamamlandı 🎉' : ' · Kalan: ' + App.UI.formatCurrency(p.remaining)) + '</div>' +
+          '</div>' +
+          '<button class="btn btn-danger btn-sm" onclick="App.Goals.remove(\'' + goal.id + '\')">Sil</button>' +
+        '</div>' +
+        '<div class="goal-progress-label">' +
+          '<span>' + App.UI.formatCurrency(p.total) + ' biriktirildi</span>' +
+          '<span>' + pctDisplay + '%</span>' +
+        '</div>' +
+        '<div class="progress-track">' +
+          '<div class="progress-fill ' + (goal.completedAt ? 'ok' : p.pct >= 75 ? 'warning' : 'ok') + '" style="width:' + p.pct + '%"></div>' +
+        '</div>' +
+        '<div class="goal-actions">' +
+          (!goal.completedAt ? '<button class="btn btn-outline btn-sm" onclick="App.Goals.toggleContrib(\'' + goal.id + '\')">+ Katkı Ekle</button>' : '') +
+          '<button class="btn btn-outline btn-sm" onclick="App.Goals.toggleContrib(\'' + goal.id + '\')">📋 Geçmiş (' + goal.contributions.length + ')</button>' +
+        '</div>' +
+        '<div class="contrib-section" id="contrib-section-' + goal.id + '">' +
+          (!goal.completedAt
+            ? '<div class="contrib-form">' +
+                '<input type="number" id="contrib-amount-' + goal.id + '" placeholder="Tutar (₺)" min="0" step="0.01" />' +
+                '<input type="date" id="contrib-date-' + goal.id + '" value="' + today + '" />' +
+                '<input type="text" id="contrib-note-' + goal.id + '" placeholder="Not..." />' +
+                '<button class="btn btn-primary btn-sm" onclick="App.Goals.addContribution(\'' + goal.id + '\')">Ekle</button>' +
+              '</div>'
+            : '') +
+          '<div class="contrib-list">' + contribsHtml + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  return { add, remove, addContribution, removeContribution, getProgress, toggleContrib, renderAll };
+})();
+
+/* ─────────────────────────────────────────────────────────────
+   CHARTS — Chart.js entegrasyonu
+───────────────────────────────────────────────────────────── */
+App.Charts = (function() {
+  var donutChart = null;
+  var barChart = null;
+
+  var PALETTE = [
+    '#3b82f6','#22c55e','#f59e0b','#ef4444','#8b5cf6',
+    '#ec4899','#14b8a6','#f97316','#06b6d4','#a855f7'
+  ];
+
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function renderDonut(categoryTotals) {
+    if (donutChart) { donutChart.destroy(); donutChart = null; }
+    var labels = Object.keys(categoryTotals);
+    var values = Object.values(categoryTotals);
+
+    if (labels.length === 0) {
+      var ctx = document.getElementById('chartDonut').getContext('2d');
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.fillStyle = cssVar('--text-muted');
+      ctx.font = '14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Bu ay için veri yok', ctx.canvas.width / 2, ctx.canvas.height / 2);
+      return;
+    }
+
+    var ctx = document.getElementById('chartDonut').getContext('2d');
+    donutChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: values,
+          backgroundColor: PALETTE.slice(0, labels.length),
+          borderWidth: 0,
+          hoverOffset: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: cssVar('--text-primary'), boxWidth: 12, padding: 12, font: { size: 11 } }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                return ' ' + App.UI.formatCurrency(ctx.parsed);
+              }
+            }
+          }
+        },
+        cutout: '60%'
+      }
+    });
+  }
+
+  function renderBar(last6) {
+    if (barChart) { barChart.destroy(); barChart = null; }
+    var ctx = document.getElementById('chartBar').getContext('2d');
+    barChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: last6.map(function(m) { return m.month; }),
+        datasets: [
+          {
+            label: 'Gelir',
+            data: last6.map(function(m) { return m.income; }),
+            backgroundColor: 'rgba(34,197,94,0.75)',
+            borderRadius: 4
+          },
+          {
+            label: 'Gider',
+            data: last6.map(function(m) { return m.expense; }),
+            backgroundColor: 'rgba(239,68,68,0.75)',
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            labels: { color: cssVar('--text-primary'), font: { size: 11 } }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                return ' ' + ctx.dataset.label + ': ' + App.UI.formatCurrency(ctx.parsed.y);
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: cssVar('--text-secondary') },
+            grid: { display: false }
+          },
+          y: {
+            ticks: {
+              color: cssVar('--text-secondary'),
+              callback: function(v) { return '₺' + v.toLocaleString('tr-TR'); }
+            },
+            grid: { color: cssVar('--border') }
+          }
+        }
+      }
+    });
+  }
+
+  function renderStatsTable(month, categoryTotals) {
+    var budgets = App.State.getBudgets();
+    var container = document.getElementById('statsTable');
+    var cats = Object.keys(categoryTotals);
+
+    if (cats.length === 0) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div>Bu ay için harcama verisi yok.</div>';
+      return;
+    }
+
+    var rows = cats.map(function(cat) {
+      var spent = categoryTotals[cat];
+      var limit = budgets[cat];
+      var statusHtml = '';
+      if (limit) {
+        var pct = (spent / limit) * 100;
+        if (pct >= 100) statusHtml = '<span style="color:var(--danger)">⚠ Aşıldı</span>';
+        else if (pct >= 75) statusHtml = '<span style="color:var(--warning)">⚠ Yaklaşıyor</span>';
+        else statusHtml = '<span style="color:var(--success)">✓</span>';
+      } else {
+        statusHtml = '<span style="color:var(--text-muted)">—</span>';
+      }
+      return '<tr>' +
+        '<td>' + App.UI.getCategoryIcon(cat) + ' ' + escapeHtml(cat) + '</td>' +
+        '<td style="font-weight:600;color:var(--expense-color)">' + App.UI.formatCurrency(spent) + '</td>' +
+        '<td>' + (limit ? App.UI.formatCurrency(limit) : '<span style="color:var(--text-muted)">—</span>') + '</td>' +
+        '<td>' + statusHtml + '</td>' +
+      '</tr>';
+    }).join('');
+
+    container.innerHTML = '<table class="stats-table">' +
+      '<thead><tr><th>Kategori</th><th>Harcama</th><th>Limit</th><th>Durum</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody>' +
+    '</table>';
+  }
+
+  function refresh() {
+    var month = document.getElementById('statMonth').value;
+    if (!month) {
+      var today = new Date();
+      month = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+    }
+    var categoryTotals = App.Transactions.getCategoryTotals(month);
+    var last6 = App.Transactions.getLast6MonthsData();
+    renderDonut(categoryTotals);
+    renderBar(last6);
+    renderStatsTable(month, categoryTotals);
+  }
+
+  return { refresh };
+})();
+
+/* ─────────────────────────────────────────────────────────────
+   UTILS
+───────────────────────────────────────────────────────────── */
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/* ─────────────────────────────────────────────────────────────
+   INIT
+───────────────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', function() {
+  App.State.load();
+
+  var settings = App.State.getSettings();
+  App.UI.setTheme(settings.theme);
+  App.UI.bindEvents();
+  App.UI.populateCategoryDropdown();
+  App.UI.populateFilterDropdowns();
+
+  App.Transactions.renderSummaryCards();
+  App.Transactions.renderList();
+  App.Budget.renderAll();
+  App.Goals.renderAll();
+
+  App.UI.switchTab('islemler');
+});
+</script>
+</body>
+</html>
