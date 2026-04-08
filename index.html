@@ -4,6 +4,12 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Finans Takip</title>
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#14b8a6"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Finans"/>
+<meta name="mobile-web-app-capable" content="yes"/>
 <style>
 :root{
   --teal:#14b8a6;--teal-d:#0d9488;--blue:#3b82f6;--purple:#8b5cf6;
@@ -685,6 +691,8 @@ App.Charts=(function(){
   }
   return{refresh}
 })();
+
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js')}
 
 document.addEventListener('DOMContentLoaded',function(){
   S.load();App.UI.bindEvents();App.UI.initDates();App.UI.setTheme(S.settings().theme||'dark');App.UI.initSelects();
