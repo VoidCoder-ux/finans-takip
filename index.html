@@ -650,6 +650,10 @@ input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none}
         <div class="toggle-thumb"></div>
       </div>
     </button>
+    <button class="theme-toggle" id="currencyBtn" style="margin-top:12px;">
+      <span id="currencyIcon">💱</span>
+      <span id="currencyLabel">TRY - ₺</span>
+    </button>
   </div>
 </aside>
 
@@ -871,6 +875,7 @@ input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none}
    CONFIG
 ═══════════════════════════════════════════════════ */
 var CAT_CONFIG = {
+  // Gider Kategorileri
   'Yiyecek':    {icon:'🍽', color:'cc-orange'},
   'Market':     {icon:'🛒', color:'cc-teal'},
   'Ulaşım':     {icon:'🚌', color:'cc-blue'},
@@ -879,23 +884,54 @@ var CAT_CONFIG = {
   'Sağlık':     {icon:'💊', color:'cc-red'},
   'Giyim':      {icon:'👕', color:'cc-yellow'},
   'Eğitim':     {icon:'📚', color:'cc-blue'},
+  'Alışveriş':  {icon:'🛍', color:'cc-pink'},
+  'Spor':       {icon:'⚽', color:'cc-green'},
+  'Ev':         {icon:'🏠', color:'cc-orange'},
+  'Bakım':      {icon:'💇', color:'cc-purple'},
+  'Hediye':     {icon:'🎁', color:'cc-pink'},
+  'Bağış':      {icon:'❤️', color:'cc-red'},
+  'Sigorta':    {icon:'🛡', color:'cc-blue'},
+  'Vergi':      {icon:'📋', color:'cc-yellow'},
+  'Abonelik':   {icon:'📺', color:'cc-purple'},
+  'Kredi':      {icon:'💳', color:'cc-red'},
+  'Yakıt':      {icon:'⛽', color:'cc-orange'},
+  'Otopark':    {icon:'🅿', color:'cc-blue'},
+  'Diğer':      {icon:'📦', color:'cc-blue'},
+  // Gelir Kategorileri
   'Maaş':       {icon:'💼', color:'cc-green'},
   'Freelance':  {icon:'💻', color:'cc-teal'},
   'Kira Geliri':{icon:'🏠', color:'cc-orange'},
   'Yatırım':    {icon:'📈', color:'cc-purple'},
-  'Diğer':      {icon:'📦', color:'cc-blue'}
+  'Kariyer':    {icon:'🎯', color:'cc-blue'},
+  'Satış':      {icon:'💰', color:'cc-green'},
+  'İade':       {icon:'↩️', color:'cc-teal'},
+  'Prim':       {icon:'🏆', color:'cc-yellow'},
+  'Bahşiş':     {icon:'💵', color:'cc-green'},
+  'Faiz':       {icon:'📊', color:'cc-blue'}
 };
 var COLORS = ['#14b8a6','#3b82f6','#8b5cf6','#ec4899','#f97316','#eab308','#22c55e','#ef4444','#06b6d4','#a855f7'];
-var EXPENSE_CATS = ['Yiyecek','Market','Ulaşım','Faturalar','Eğlence','Sağlık','Giyim','Eğitim','Diğer'];
-var INCOME_CATS  = ['Maaş','Freelance','Kira Geliri','Yatırım','Diğer'];
+var EXPENSE_CATS = ['Yiyecek','Market','Ulaşım','Faturalar','Eğlence','Sağlık','Giyim','Eğitim','Alışveriş','Spor','Ev','Bakım','Hediye','Bağış','Sigorta','Vergi','Abonelik','Kredi','Yakıt','Otopark','Diğer'];
+var INCOME_CATS  = ['Maaş','Freelance','Kira Geliri','Yatırım','Kariyer','Satış','İade','Prim','Bahşiş','Faiz'];
 var MONTH_TR     = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
 var MONTH_FULL   = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+var CURRENCIES = {
+  'TRY': {symbol:'₺', name:'Türk Lirası', locale:'tr-TR'},
+  'USD': {symbol:'$', name:'Amerikan Doları', locale:'en-US'},
+  'EUR': {symbol:'€', name:'Euro', locale:'de-DE'},
+  'GBP': {symbol:'£', name:'İngiliz Sterlini', locale:'en-GB'},
+  'JPY': {symbol:'¥', name:'Japon Yeni', locale:'ja-JP'},
+  'CHF': {symbol:'CHF', name:'İsviçre Frangı', locale:'de-CH'}
+};
 
 /* ═══════════════════════════════════════════════════
    UTILS
 ═══════════════════════════════════════════════════ */
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function fmt(n){ return '₺'+Number(n).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmt(n,curr){ 
+  curr = curr || (S.get().currency) || 'TRY';
+  var c = CURRENCIES[curr] || CURRENCIES['TRY'];
+  return c.symbol + Number(n).toLocaleString(c.locale,{minimumFractionDigits:2,maximumFractionDigits:2});
+}
 function fmtDate(iso){
   var p=iso.split('-');
   return p[2]+' '+MONTH_FULL[+p[1]-1]+' '+p[0];
@@ -919,7 +955,7 @@ var S = (function(){
     _t=get('pf_t',[]);
     _b=get('pf_b',{});
     _g=get('pf_g',[]);
-    _s=get('pf_s',{theme:'dark'});
+    _s=get('pf_s',{theme:'dark',currency:'TRY'});
   }
   function txns(){ return _t.slice().sort(function(a,b){ return a.date===b.date?b.ts-a.ts:b.date.localeCompare(a.date); }); }
   function budgets(){ return _b; }
@@ -1013,6 +1049,19 @@ App.UI = (function(){
     S.saveSetting('theme',t);
   }
 
+  function setCurrency(curr){
+    S.saveSetting('currency',curr);
+    var c = CURRENCIES[curr] || CURRENCIES['TRY'];
+    document.getElementById('currencyLabel').textContent = curr+' - '+c.symbol;
+    App.UI.toast('Para birimi '+curr+' olarak değiştirildi');
+    App.Transactions.renderSummary();
+    App.Transactions.renderRecent();
+    App.Transactions.renderList();
+    App.Budget.renderAll();
+    App.Goals.renderAll();
+    if(document.getElementById('page-istatistikler').classList.contains('active')) App.Charts.refresh();
+  }
+
   function bindEvents(){
     // Nav clicks
     document.querySelectorAll('[data-nav]').forEach(function(el){
@@ -1023,6 +1072,14 @@ App.UI = (function(){
       var cur=document.documentElement.getAttribute('data-theme');
       setTheme(cur==='dark'?'light':'dark');
       if(document.getElementById('page-istatistikler').classList.contains('active')) App.Charts.refresh();
+    });
+    // Currency
+    document.getElementById('currencyBtn').addEventListener('click',function(){
+      var cur = S.settings().currency || 'TRY';
+      var keys = Object.keys(CURRENCIES);
+      var idx = keys.indexOf(cur);
+      var next = keys[(idx+1)%keys.length];
+      setCurrency(next);
     });
     // Enter keys
     document.getElementById('txnAmt').addEventListener('keydown',function(e){ if(e.key==='Enter') App.Transactions.add(); });
@@ -1040,7 +1097,7 @@ App.UI = (function(){
       ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'][d.getDay()];
   }
 
-  return {nav,setType,getType,initSelects,refreshFilterCats,toast,setTheme,bindEvents,initDates};
+  return {nav,setType,getType,initSelects,refreshFilterCats,toast,setTheme,setCurrency,bindEvents,initDates};
 })();
 
 /* ── TRANSACTIONS ─────────────────────────────── */
@@ -1500,6 +1557,7 @@ document.addEventListener('DOMContentLoaded',function(){
   App.UI.bindEvents();
   App.UI.initDates();
   App.UI.setTheme(S.settings().theme||'dark');
+  App.UI.setCurrency(S.settings().currency||'TRY');
   App.UI.initSelects();
   App.Transactions.renderSummary();
   App.Transactions.renderRecent();
