@@ -664,7 +664,19 @@ App.Accounts=(function(){
     document.getElementById('accName').value='';document.getElementById('accBal').value='';document.getElementById('accStmtDay').value='';
     App.UI.refreshAccSelects();renderAll();renderSummary();App.UI.toast('Hesap eklendi.');
   }
-  function remove(id){S.saveAccounts(S.accounts().filter(function(a){return a.id!==id}));App.UI.refreshAccSelects();renderAll();renderSummary();App.UI.toast('Hesap silindi.')}
+  function remove(id){
+    var acc=S.accounts().find(function(a){return a.id===id});if(!acc)return;
+    var txns=S.txns(),touched=0;
+    txns.forEach(function(t){if(t.accountId===id){t.accountId='';touched++}});
+    if(touched)S.saveTxns(txns);
+    var recs=S.recurring(),rtouched=0;
+    recs.forEach(function(r){if(r.accountId===id){r.accountId='';rtouched++}});
+    if(rtouched)S.saveRecurring(recs);
+    S.saveAccounts(S.accounts().filter(function(a){return a.id!==id}));
+    App.UI.refreshAccSelects();renderAll();renderSummary();
+    if(touched||rtouched){App.Transactions.renderList();App.Transactions.renderRecent();App.Recurring.renderList();App.Recurring.renderOzet();App.UI.toast('Hesap silindi. '+touched+' işlem, '+rtouched+' tekrarlayan hesapsız bırakıldı.','info')}
+    else App.UI.toast('Hesap silindi.');
+  }
   function adjustBalance(id,delta){var a=S.accounts();var x=a.find(function(x){return x.id===id});if(x)x.balance+=delta;S.saveAccounts(a);renderAll();renderSummary()}
   function getName(id){var x=S.accounts().find(function(a){return a.id===id});return x?x.name:''}
   function get(id){return S.accounts().find(function(a){return a.id===id})}
@@ -694,7 +706,7 @@ App.Accounts=(function(){
 })();
 
 App.Transactions=(function(){
-  function addMonths(iso,n){var p=iso.split('-');var d=new Date(+p[0],+p[1]-1+n,Math.min(+p[2],28));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+  function addMonths(iso,n){var p=iso.split('-'),y=+p[0],m=+p[1]-1+n,day=+p[2];var lastOfTarget=new Date(y,m+1,0).getDate();var d=new Date(y,m,Math.min(day,lastOfTarget));return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
   function statementPeriod(accId,date){
     var acc=App.Accounts.get(accId);if(!acc||!acc.statementDay)return null;
     var p=date.split('-'),y=+p[0],m=+p[1],d=+p[2],sd=acc.statementDay;
@@ -713,12 +725,15 @@ App.Transactions=(function(){
     var arr=S.txns();
     if(type==='expense'&&insCount>=2&&insCount<=36){
       var per=Math.round((amt/insCount)*100)/100,planId=gid('p'),now=Date.now();
+      var lastPer=Math.round((amt-per*(insCount-1))*100)/100;
+      var today=td(),pastTotal=0;
       for(var i=0;i<insCount;i++){
-        var d=addMonths(insStart,i);
-        arr.unshift({id:gid('t'),type:'expense',amount:per,category:cat,date:d,note:(note||cat)+' ('+(i+1)+'/'+insCount+')',accountId:accId,userId,ts:now+i,installment:{planId,index:i+1,total:insCount,totalAmount:amt,name:note||cat,startDate:insStart}});
+        var d=addMonths(insStart,i);var thisAmt=(i===insCount-1)?lastPer:per;
+        arr.unshift({id:gid('t'),type:'expense',amount:thisAmt,category:cat,date:d,note:(note||cat)+' ('+(i+1)+'/'+insCount+')',accountId:accId,userId,ts:now+i,installment:{planId,index:i+1,total:insCount,totalAmount:amt,name:note||cat,startDate:insStart}});
+        if(d<=today)pastTotal+=thisAmt;
       }
       S.saveTxns(arr);
-      if(accId){var firstD=addMonths(insStart,0);if(firstD<=td())App.Accounts.adjustBalance(accId,-per)}
+      if(accId&&pastTotal>0)App.Accounts.adjustBalance(accId,-pastTotal);
       App.UI.toast(insCount+' taksit planlandı.');
     }else{
       arr.unshift({id:gid('t'),type,amount:amt,category:cat,date,note,accountId:accId,userId,ts:Date.now()});S.saveTxns(arr);
@@ -799,7 +814,7 @@ App.Recurring=(function(){
   function remove(id){S.saveRecurring(S.recurring().filter(function(r){return r.id!==id}));renderList();renderOzet();App.UI.toast('Silindi.')}
   function log(id){
     var rec=S.recurring().find(function(r){return r.id===id});if(!rec)return;
-    var arr=S.txns();arr.unshift({id:gid('t'),type:rec.type,amount:rec.amount,category:rec.category,date:td(),note:rec.note||'Tekrarlayan',accountId:rec.accountId,ts:Date.now()});S.saveTxns(arr);
+    var arr=S.txns();arr.unshift({id:gid('t'),type:rec.type,amount:rec.amount,category:rec.category,date:td(),note:rec.note||'Tekrarlayan',accountId:rec.accountId,userId:S.settings().activeUser,ts:Date.now()});S.saveTxns(arr);
     if(rec.accountId)App.Accounts.adjustBalance(rec.accountId,rec.type==='income'?rec.amount:-rec.amount);
     App.UI.refreshFilterDropdowns();App.Transactions.renderList();App.Transactions.renderRecent();App.Transactions.renderSummaryMetrics();App.Accounts.renderSummary();App.Budget.renderAll();
     App.UI.toast('"'+(rec.note||rec.category)+'" kaydedildi.','info');
