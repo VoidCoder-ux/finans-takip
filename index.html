@@ -2,9 +2,10 @@
 <html lang="tr" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <title>Finans Takip</title>
 <link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='36' fill='%230d9488'/%3E%3Ctext y='122' x='30' font-size='112'%3E💰%3C/text%3E%3C/svg%3E"/>
 <meta name="theme-color" content="#14b8a6"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
@@ -27,13 +28,13 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-tap-highlight-color:transparent;overflow-x:hidden;max-width:100vw}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;transition:background var(--tr),color var(--tr);overflow-x:hidden;max-width:100vw}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;min-height:100dvh;transition:background var(--tr),color var(--tr);overflow-x:hidden;max-width:100vw;-webkit-font-smoothing:antialiased}
 button{cursor:pointer;font-family:inherit;border:none;background:none;outline:none;color:inherit}
 input,select{font-family:inherit;outline:none;color:var(--txt)}
 input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:99px}
-.shell{display:flex;min-height:100vh;max-width:100vw;overflow-x:hidden}
-.sidebar{width:220px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 0;position:sticky;top:0;height:100vh;overflow-y:auto}
+.shell{display:flex;min-height:100vh;min-height:100dvh;max-width:100vw;overflow-x:hidden}
+.sidebar{width:220px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 0;position:sticky;top:0;height:100vh;height:100dvh;overflow-y:auto}
 .logo{display:flex;align-items:center;gap:10px;padding:0 18px 20px;border-bottom:1px solid var(--border);margin-bottom:12px}
 .logo-icon{width:36px;height:36px;border-radius:10px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
 .logo-text{font-size:.95rem;font-weight:700}.logo-text span{color:var(--teal)}
@@ -51,8 +52,8 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .toggle-track.on .toggle-thumb{transform:translateX(16px)}
 .content{flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;max-width:100%}
 .page{display:none;padding:24px 24px 80px}.page.active{display:block}
-.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);padding:6px 0 max(6px,env(safe-area-inset-bottom));z-index:100;justify-content:space-around;overflow-x:auto}
-.bnav-item{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.6rem;color:var(--txt3);font-weight:500;padding:3px 10px;transition:color var(--tr);cursor:pointer;white-space:nowrap}
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);padding:6px env(safe-area-inset-right) max(8px,env(safe-area-inset-bottom)) env(safe-area-inset-left);z-index:100;justify-content:space-around;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.bnav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:.62rem;color:var(--txt3);font-weight:500;padding:6px 10px;min-width:48px;min-height:44px;transition:color var(--tr);cursor:pointer;white-space:nowrap}
 .bnav-item.active{color:var(--teal)}.bnav-icon{font-size:1.2rem}
 .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
 .ph-title{font-size:1.4rem;font-weight:700;letter-spacing:-.03em}.ph-sub{font-size:.78rem;color:var(--txt2);margin-top:2px}
@@ -75,14 +76,14 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:20px;margin-bottom:16px}
 .card.dashed{border-style:dashed;border-color:var(--border2)}
 .type-pills{display:flex;gap:8px;margin-bottom:16px}
-.tp{flex:1;padding:10px;border-radius:99px;font-size:.85rem;font-weight:600;border:2px solid var(--border2);color:var(--txt2);transition:all var(--tr);text-align:center}
+.tp{flex:1;padding:13px;border-radius:99px;font-size:.9rem;font-weight:600;border:2px solid var(--border2);color:var(--txt2);transition:all var(--tr);text-align:center;min-height:44px}
 .tp.ti{border-color:var(--green);color:var(--green);background:rgba(34,197,94,.1)}
 .tp.te{border-color:var(--red);color:var(--red);background:rgba(239,68,68,.1)}
 .fg{display:grid;gap:11px;margin-bottom:11px}
 .fg.c2{grid-template-columns:1fr 1fr}.fg.c3{grid-template-columns:1fr 1fr 1fr}.fg.c4{grid-template-columns:1fr 1fr 1fr 1fr}
 .f{display:flex;flex-direction:column;gap:5px}
 .f label{font-size:.72rem;font-weight:700;color:var(--txt2);letter-spacing:.03em;text-transform:uppercase}
-.f input,.f select{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;font-size:.88rem;color:var(--txt);transition:border-color var(--tr);width:100%}
+.f input,.f select{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:11px 12px;font-size:16px;color:var(--txt);transition:border-color var(--tr);width:100%;min-height:44px}
 .f input:focus,.f select:focus{border-color:var(--teal)}.f select option{background:var(--bg2)}
 .btn{padding:11px 20px;border-radius:var(--r);font-size:.88rem;font-weight:700;transition:all var(--tr);cursor:pointer}
 .btn-primary{background:var(--grad);color:#fff;border:none;width:100%;margin-top:4px}
@@ -97,7 +98,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .btn-sm{padding:7px 14px;font-size:.78rem;border-radius:var(--r)}
 .btn-ghost{background:transparent;border:1.5px solid var(--border2);color:var(--txt2);transition:all var(--tr)}
 .btn-ghost:hover{border-color:var(--teal);color:var(--teal)}
-.btn-del{background:transparent;border:none;color:var(--txt3);padding:4px 8px;border-radius:6px;font-size:.82rem;transition:all var(--tr)}
+.btn-del{background:transparent;border:none;color:var(--txt3);padding:8px 12px;border-radius:6px;font-size:.85rem;min-height:36px;min-width:36px;transition:all var(--tr)}
 .btn-del:hover{color:var(--red);background:rgba(239,68,68,.1)}
 .btn-teal{background:var(--teal);color:#fff;border:none}.btn-teal:hover{background:var(--teal-d)}
 .filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
@@ -140,7 +141,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .rec-body{flex:1;min-width:0}.rec-name{font-size:.9rem;font-weight:600}.rec-meta{font-size:.72rem;color:var(--txt2);margin-top:2px}
 .rec-right{text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
 .rec-amt{font-size:.95rem;font-weight:700}.rec-amt.income{color:var(--green)}.rec-amt.expense{color:var(--red)}
-.btn-log{padding:5px 12px;border-radius:var(--r);font-size:.72rem;font-weight:700;background:rgba(20,184,166,.15);color:var(--teal);border:1px solid rgba(20,184,166,.3);transition:all var(--tr)}
+.btn-log{padding:8px 14px;border-radius:var(--r);font-size:.78rem;font-weight:700;background:rgba(20,184,166,.15);color:var(--teal);border:1px solid rgba(20,184,166,.3);min-height:36px;transition:all var(--tr)}
 .btn-log:hover{background:rgba(20,184,166,.25)}
 .debt-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .debt-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:18px;transition:transform var(--tr),box-shadow var(--tr)}
@@ -264,8 +265,9 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .wallet-row .wr-meta{font-size:.7rem;color:var(--txt2);margin-top:1px}
 .wallet-row .wr-bal{font-size:1rem;font-weight:800;letter-spacing:-.02em}
 .wallet-row .wr-bal.pos{color:var(--green)}.wallet-row .wr-bal.neg{color:var(--red)}
-@media(max-width:768px){.sidebar{display:none}.bottom-nav{display:flex}.page{padding:14px 12px 88px}.metrics{grid-template-columns:1fr 1fr}.budget-grid,.goals-grid,.debt-grid,.stats-grid,.port-grid{grid-template-columns:1fr 1fr}.wb-label{flex:0 0 70px;font-size:.72rem}.fg.c3,.fg.c4{grid-template-columns:1fr 1fr}.filter-row{flex-wrap:wrap}.fs,.fi{min-width:0;width:100%;flex:1 1 auto}.acc-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}.hero-chips{flex-wrap:wrap}.ti-amt{font-size:.85rem}.rec-body{min-width:0;overflow:hidden}.rec-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.debt-person{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.goal-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.acc-bal{font-size:clamp(.9rem,3vw,1.2rem);word-break:break-all}}
+@media(max-width:768px){.sidebar{display:none}.bottom-nav{display:flex}.page{padding:14px 12px calc(96px + env(safe-area-inset-bottom))}.metrics{grid-template-columns:1fr 1fr}.budget-grid,.goals-grid,.debt-grid,.stats-grid,.port-grid{grid-template-columns:1fr 1fr}.wb-label{flex:0 0 70px;font-size:.72rem}.fg.c3,.fg.c4{grid-template-columns:1fr 1fr}.filter-row{flex-wrap:wrap}.fs,.fi{min-width:0;width:100%;flex:1 1 auto}.acc-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}.hero-chips{flex-wrap:wrap}.ti-amt{font-size:.85rem}.rec-body{min-width:0;overflow:hidden}.rec-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.debt-person{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.goal-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.acc-bal{font-size:clamp(.9rem,3vw,1.2rem);word-break:break-all}}
 @media(max-width:480px){.metrics{grid-template-columns:1fr 1fr}.fg.c2,.fg.c3,.fg.c4{grid-template-columns:1fr}.acc-grid{grid-template-columns:1fr 1fr}.mc{padding:12px}.mc-val{font-size:.9rem}.hero{padding:18px}.chip{font-size:.72rem;padding:5px 10px}.ph-title{font-size:1.1rem}.card{padding:14px}.bc-head{flex-wrap:wrap;gap:7px}.budget-grid{grid-template-columns:1fr}}
+@media(hover:none){.mc:hover,.btn-primary:hover,.btn-ghost:hover,.btn-teal:hover,.quick-btn:hover,.quick-btn.qinc:hover,.quick-btn.qexp:hover,.goal-card:hover,.notif-btn:hover,.btn-del:hover,.sh-link:hover,.nav-item:hover,.theme-btn:hover{transform:none}}
 </style>
 </head>
 <body>
@@ -331,7 +333,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div class="fg c3">
       <div class="f"><label>Hesap Adı</label><input type="text" id="accName" placeholder="Örn: Ziraat Bankası"/></div>
       <div class="f"><label>Tür</label><select id="accType" onchange="App.Accounts.onTypeChange()"><option value="cash">💵 Nakit</option><option value="bank">🏦 Banka</option><option value="card">💳 Kredi Kartı</option><option value="savings">🐖 Birikim</option><option value="investment">📈 Yatırım</option></select></div>
-      <div class="f"><label>Başlangıç Bakiyesi (₺)</label><input type="number" id="accBal" placeholder="0.00" step="0.01"/></div>
+      <div class="f"><label>Başlangıç Bakiyesi (₺)</label><input type="number" inputmode="decimal" id="accBal" placeholder="0.00" step="0.01"/></div>
     </div>
     <div class="fg c3">
       <div class="f"><label>Sahip</label><select id="accOwner" onchange="App.Accounts.onOwnerChange()"><option value="shared">👨‍👩‍👧 Ortak</option><option value="personal">🙋 Kişisel</option></select></div>
@@ -367,7 +369,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   <div class="ph"><div><div class="ph-title">İşlemler</div><div class="ph-sub">Tüm gelir ve giderleriniz</div></div><button class="btn btn-sm btn-ghost" onclick="App.Transactions.exportCSV()">⬇️ CSV İndir</button></div>
   <div class="card">
     <div class="type-pills"><button class="tp ti" id="pillInc" onclick="App.UI.setType('income')">+ Gelir</button><button class="tp" id="pillExp" onclick="App.UI.setType('expense')">− Gider</button></div>
-    <div class="fg c3"><div class="f"><label>Tutar (₺)</label><input type="number" id="txnAmt" placeholder="0.00" min="0" step="0.01"/></div><div class="f"><label>Tarih</label><input type="date" id="txnDate"/></div><div class="f"><label>Kategori</label><select id="txnCat"></select></div></div>
+    <div class="fg c3"><div class="f"><label>Tutar (₺)</label><input type="number" inputmode="decimal" id="txnAmt" placeholder="0.00" min="0" step="0.01"/></div><div class="f"><label>Tarih</label><input type="date" id="txnDate"/></div><div class="f"><label>Kategori</label><select id="txnCat"></select></div></div>
     <div class="fg c3" style="margin-bottom:11px"><div class="f"><label>Hesap</label><select id="txnAcc"><option value="">Hesap seç (isteğe bağlı)</option></select></div><div class="f"><label>Kim Yaptı</label><select id="txnUser"></select></div><div class="f"><label>Not</label><input type="text" id="txnNote" placeholder="Açıklama..."/></div></div>
     <div class="fg c2" style="margin-bottom:11px"><div class="f"><label>Taksit Sayısı</label><input type="number" id="txnInst" placeholder="Tek çekim için boş bırak" min="2" max="36"/></div><div class="f"><label>İlk Taksit Tarihi</label><input type="date" id="txnInstStart"/></div></div>
     <button class="btn btn-primary" onclick="App.Transactions.add()">İşlemi Ekle</button>
@@ -389,7 +391,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div class="sh-title" style="margin-bottom:14px">Yeni Tekrarlayan İşlem</div>
     <div class="fg c4">
       <div class="f"><label>Tür</label><select id="recType"><option value="expense">− Gider</option><option value="income">+ Gelir</option></select></div>
-      <div class="f"><label>Tutar (₺)</label><input type="number" id="recAmt" placeholder="0.00" min="0" step="0.01"/></div>
+      <div class="f"><label>Tutar (₺)</label><input type="number" inputmode="decimal" id="recAmt" placeholder="0.00" min="0" step="0.01"/></div>
       <div class="f"><label>Kategori</label><select id="recCat"></select></div>
       <div class="f"><label>Her Ayın Kaçında</label><input type="number" id="recDay" placeholder="1-31" min="1" max="31"/></div>
     </div>
@@ -414,7 +416,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div class="fg c4">
       <div class="f"><label>Tür</label><select id="debtDir"><option value="lent">⬆️ Verdim (alacak)</option><option value="borrowed">⬇️ Aldım (borç)</option></select></div>
       <div class="f"><label>Kişi</label><input type="text" id="debtPerson" placeholder="Ad soyad"/></div>
-      <div class="f"><label>Tutar (₺)</label><input type="number" id="debtAmt" placeholder="0.00" min="0" step="0.01"/></div>
+      <div class="f"><label>Tutar (₺)</label><input type="number" inputmode="decimal" id="debtAmt" placeholder="0.00" min="0" step="0.01"/></div>
       <div class="f"><label>Tarih</label><input type="date" id="debtDate"/></div>
     </div>
     <div class="fg c2" style="margin-bottom:11px"><div class="f"><label>Not</label><input type="text" id="debtNote" placeholder="Açıklama..."/></div></div>
@@ -448,7 +450,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       <div class="sh-title" style="margin-bottom:14px">Yıllık Gider Ekle (MTV, kasko, bayram, okul kaydı...)</div>
       <div class="fg c3">
         <div class="f"><label>Adı</label><input type="text" id="fundName" placeholder="Örn: MTV"/></div>
-        <div class="f"><label>Yıllık Tutar (₺)</label><input type="number" id="fundAmt" placeholder="0.00" min="0" step="0.01"/></div>
+        <div class="f"><label>Yıllık Tutar (₺)</label><input type="number" inputmode="decimal" id="fundAmt" placeholder="0.00" min="0" step="0.01"/></div>
         <div class="f"><label>Son Ödeme Ayı</label><select id="fundMonth"></select></div>
       </div>
       <button class="btn btn-primary" onclick="App.YearlyFund.add()">Ekle</button>
@@ -481,7 +483,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div class="sh-title" style="margin-bottom:14px">Varlık Ekle</div>
     <div class="fg c4">
       <div class="f"><label>Tür</label><select id="portType"><option value="USD">💵 USD</option><option value="EUR">💶 EUR</option><option value="GBP">💷 GBP</option><option value="GOLD_GRAM">🪙 Gram Altın</option><option value="GOLD_QUARTER">🟡 Çeyrek Altın</option><option value="GOLD_FULL">🟠 Tam Altın</option><option value="FUND">📈 Fon/Hisse</option></select></div>
-      <div class="f"><label>Miktar</label><input type="number" id="portQty" placeholder="0" min="0" step="0.01"/></div>
+      <div class="f"><label>Miktar</label><input type="number" inputmode="decimal" id="portQty" placeholder="0" min="0" step="0.01"/></div>
       <div class="f"><label>Alış Birim Fiyatı (₺)</label><input type="number" id="portCost" placeholder="Opsiyonel" min="0" step="0.01"/></div>
       <div class="f"><label>Etiket</label><input type="text" id="portLabel" placeholder="Opsiyonel"/></div>
     </div>
@@ -509,7 +511,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div class="sh-title" style="margin-bottom:14px">Yeni Hedef</div>
     <div class="fg c3">
       <div class="f"><label>Hedef Adı</label><input type="text" id="gName" placeholder="Tatil Fonu"/></div>
-      <div class="f"><label>Hedef Tutar (₺)</label><input type="number" id="gTarget" placeholder="0.00" min="0" step="0.01"/></div>
+      <div class="f"><label>Hedef Tutar (₺)</label><input type="number" inputmode="decimal" id="gTarget" placeholder="0.00" min="0" step="0.01"/></div>
       <div class="f"><label>Emoji</label><input type="text" id="gEmoji" placeholder="🎯" maxlength="2"/></div>
     </div>
     <button class="btn btn-primary" onclick="App.Goals.add()">Hedef Ekle</button>
