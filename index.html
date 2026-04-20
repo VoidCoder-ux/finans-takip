@@ -233,6 +233,30 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .notif-btn{padding:8px 14px;font-size:.78rem;border-radius:99px;background:var(--bg3);border:1px solid var(--border2);color:var(--txt);cursor:pointer;transition:all var(--tr);display:inline-flex;align-items:center;gap:6px}
 .notif-btn:hover{border-color:var(--teal);color:var(--teal)}
 .notif-btn.granted{background:rgba(34,197,94,.1);border-color:var(--green);color:var(--green)}
+.user-tag{display:inline-flex;align-items:center;gap:4px;font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:99px;background:var(--bg4);color:var(--txt2);margin-left:5px}
+.user-tag .ue{font-size:.8rem;line-height:1}
+.user-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:14px}
+.user-card{background:var(--bg2);border:2px solid var(--border);border-radius:var(--r2);padding:16px;position:relative;transition:all var(--tr)}
+.user-card.active{border-color:var(--teal);box-shadow:0 0 0 3px rgba(20,184,166,.12)}
+.user-card .uc-emoji{font-size:2.2rem;margin-bottom:6px;display:block}
+.user-card .uc-name{font-size:1rem;font-weight:700;margin-bottom:2px}
+.user-card .uc-role{font-size:.68rem;color:var(--txt2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;font-weight:700}
+.user-card .uc-stats{display:flex;gap:14px;font-size:.75rem;margin-bottom:10px;flex-wrap:wrap}
+.user-card .uc-stat .v{font-weight:800;font-size:.92rem;display:block}
+.user-card .uc-stat .l{color:var(--txt2);font-size:.68rem}
+.user-card .uc-bal{font-size:1.1rem;font-weight:800;letter-spacing:-.02em}
+.user-card .uc-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.user-card .btn-active{font-size:.7rem;padding:5px 11px;border-radius:99px;background:var(--grad);color:#fff;font-weight:700;border:none;cursor:pointer}
+.user-card .btn-active.is-active{background:rgba(34,197,94,.15);color:var(--green);cursor:default}
+.active-profile-pill{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border2);border-radius:99px;padding:6px 12px;font-size:.78rem;font-weight:600}
+.active-profile-pill .ap-emoji{font-size:.95rem}
+.wallet-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);margin-bottom:8px}
+.wallet-row .wr-left{display:flex;align-items:center;gap:10px}
+.wallet-row .wr-emoji{font-size:1.4rem}
+.wallet-row .wr-name{font-size:.88rem;font-weight:700}
+.wallet-row .wr-meta{font-size:.7rem;color:var(--txt2);margin-top:1px}
+.wallet-row .wr-bal{font-size:1rem;font-weight:800;letter-spacing:-.02em}
+.wallet-row .wr-bal.pos{color:var(--green)}.wallet-row .wr-bal.neg{color:var(--red)}
 @media(max-width:768px){.sidebar{display:none}.bottom-nav{display:flex}.page{padding:14px 12px 88px}.metrics{grid-template-columns:1fr 1fr}.budget-grid,.goals-grid,.debt-grid,.stats-grid,.port-grid{grid-template-columns:1fr 1fr}.wb-label{flex:0 0 70px;font-size:.72rem}.fg.c3,.fg.c4{grid-template-columns:1fr 1fr}.filter-row{flex-wrap:wrap}.fs,.fi{min-width:0;width:100%;flex:1 1 auto}.acc-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}.hero-chips{flex-wrap:wrap}.ti-amt{font-size:.85rem}.rec-body{min-width:0;overflow:hidden}.rec-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.debt-person{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.goal-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.acc-bal{font-size:clamp(.9rem,3vw,1.2rem);word-break:break-all}}
 @media(max-width:480px){.metrics{grid-template-columns:1fr 1fr}.fg.c2,.fg.c3,.fg.c4{grid-template-columns:1fr}.acc-grid{grid-template-columns:1fr 1fr}.mc{padding:12px}.mc-val{font-size:.9rem}.hero{padding:18px}.chip{font-size:.72rem;padding:5px 10px}.ph-title{font-size:1.1rem}.card{padding:14px}.bc-head{flex-wrap:wrap;gap:7px}.budget-grid{grid-template-columns:1fr}}
 </style>
@@ -244,6 +268,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   <div class="nav-section">Ana</div>
   <div class="nav-item active" data-nav="ozet"><span class="nav-icon">📊</span>Özet</div>
   <div class="nav-item" data-nav="hesaplar"><span class="nav-icon">💳</span>Hesaplar</div>
+  <div class="nav-item" data-nav="aile"><span class="nav-icon">👨‍👩‍👧</span>Aile</div>
   <div class="nav-section">İşlemler</div>
   <div class="nav-item" data-nav="islemler"><span class="nav-icon">↕️</span>İşlemler</div>
   <div class="nav-item" data-nav="tekrarlayan"><span class="nav-icon">🔄</span>Tekrarlayan</div>
@@ -255,6 +280,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   <div class="nav-item" data-nav="istatistikler"><span class="nav-icon">📈</span>İstatistikler</div>
   <div class="nav-item" data-nav="hedefler"><span class="nav-icon">⭐</span>Hedefler</div>
   <div class="sidebar-bottom">
+    <div id="activeProfileBar" style="font-size:.72rem;color:var(--txt2);padding:6px 0;margin-bottom:6px;display:flex;align-items:center;gap:6px;cursor:pointer" onclick="App.UI.nav('aile')"></div>
     <button class="theme-btn" id="themeBtn"><span id="themeIcon">☀️</span><span id="themeLabel">Açık Tema</span><div class="toggle-track" id="toggleTrack"><div class="toggle-thumb"></div></div></button>
   </div>
 </aside>
@@ -276,6 +302,8 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div class="mc"><div class="mc-icon cc-red">💸</div><div class="mc-val" id="mExp" style="color:var(--red)">₺0</div><div class="mc-lbl">Bu Ay Gider</div></div>
     <div class="mc"><div class="mc-icon cc-teal">📦</div><div class="mc-val" id="mCount">0</div><div class="mc-lbl">İşlem Sayısı</div></div>
   </div>
+  <div class="sh"><div class="sh-title">Aile Paneli</div><div class="sh-link" onclick="App.UI.nav('aile')">Yönet →</div></div>
+  <div id="ozet-family"></div>
   <div class="sh"><div class="sh-title">Bu Hafta Para Nereye Gitti?</div><button class="notif-btn" id="notifBtn" onclick="App.Notifications.toggle()">🔔 Hatırlat</button></div>
   <div id="ozet-week"></div>
   <div class="sh"><div class="sh-title">Bu Ay Tekrarlayan</div><div class="sh-link" onclick="App.UI.nav('tekrarlayan')">Tümü →</div></div>
@@ -294,12 +322,34 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       <div class="f"><label>Tür</label><select id="accType" onchange="App.Accounts.onTypeChange()"><option value="cash">💵 Nakit</option><option value="bank">🏦 Banka</option><option value="card">💳 Kredi Kartı</option><option value="savings">🐖 Birikim</option><option value="investment">📈 Yatırım</option></select></div>
       <div class="f"><label>Başlangıç Bakiyesi (₺)</label><input type="number" id="accBal" placeholder="0.00" step="0.01"/></div>
     </div>
-    <div class="fg c2">
-      <div class="f"><label>Sahip</label><select id="accOwner"><option value="shared">👨‍👩‍👧 Ortak</option><option value="personal">🙋 Kişisel</option></select></div>
-      <div class="f" id="accStmtWrap" style="display:none"><label>Ekstre Kesim Günü (1-31)</label><input type="number" id="accStmtDay" placeholder="Örn: 5" min="1" max="31"/></div>
+    <div class="fg c3">
+      <div class="f"><label>Sahip</label><select id="accOwner" onchange="App.Accounts.onOwnerChange()"><option value="shared">👨‍👩‍👧 Ortak</option><option value="personal">🙋 Kişisel</option></select></div>
+      <div class="f" id="accUserWrap" style="display:none"><label>Kişisel Sahibi</label><select id="accUser"></select></div>
+      <div class="f" id="accStmtWrap" style="display:none"><label>Ekstre Kesim Günü</label><input type="number" id="accStmtDay" placeholder="1-31" min="1" max="31"/></div>
     </div>
     <button class="btn btn-primary" onclick="App.Accounts.add()">Hesap Ekle</button>
   </div>
+</section>
+
+<section class="page" id="page-aile">
+  <div class="ph"><div><div class="ph-title">Aile</div><div class="ph-sub">Kullanıcılar, aktif profil ve paylaşılan görünüm</div></div></div>
+  <div class="card">
+    <div class="sh-title" style="margin-bottom:14px">Aktif Profil</div>
+    <div id="activeProfileCard"></div>
+  </div>
+  <div class="sh"><div class="sh-title">Aile Üyeleri</div></div>
+  <div id="familyMembers"></div>
+  <div class="card dashed">
+    <div class="sh-title" style="margin-bottom:14px">Yeni Üye Ekle</div>
+    <div class="fg c3">
+      <div class="f"><label>Ad</label><input type="text" id="userName" placeholder="Örn: Ayşe"/></div>
+      <div class="f"><label>Emoji</label><input type="text" id="userEmoji" placeholder="🙋" maxlength="2"/></div>
+      <div class="f"><label>Renk</label><input type="color" id="userColor" value="#3b82f6"/></div>
+    </div>
+    <button class="btn btn-primary" onclick="App.Users.add()">Üye Ekle</button>
+  </div>
+  <div class="sh"><div class="sh-title">Cüzdan Özeti</div></div>
+  <div id="walletSummary"></div>
 </section>
 
 <section class="page" id="page-islemler">
@@ -307,7 +357,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   <div class="card">
     <div class="type-pills"><button class="tp ti" id="pillInc" onclick="App.UI.setType('income')">+ Gelir</button><button class="tp" id="pillExp" onclick="App.UI.setType('expense')">− Gider</button></div>
     <div class="fg c3"><div class="f"><label>Tutar (₺)</label><input type="number" id="txnAmt" placeholder="0.00" min="0" step="0.01"/></div><div class="f"><label>Tarih</label><input type="date" id="txnDate"/></div><div class="f"><label>Kategori</label><select id="txnCat"></select></div></div>
-    <div class="fg c2" style="margin-bottom:11px"><div class="f"><label>Hesap</label><select id="txnAcc"><option value="">Hesap seç (isteğe bağlı)</option></select></div><div class="f"><label>Not</label><input type="text" id="txnNote" placeholder="Açıklama..."/></div></div>
+    <div class="fg c3" style="margin-bottom:11px"><div class="f"><label>Hesap</label><select id="txnAcc"><option value="">Hesap seç (isteğe bağlı)</option></select></div><div class="f"><label>Kim Yaptı</label><select id="txnUser"></select></div><div class="f"><label>Not</label><input type="text" id="txnNote" placeholder="Açıklama..."/></div></div>
     <div class="fg c2" style="margin-bottom:11px"><div class="f"><label>Taksit Sayısı</label><input type="number" id="txnInst" placeholder="Tek çekim için boş bırak" min="2" max="36"/></div><div class="f"><label>İlk Taksit Tarihi</label><input type="date" id="txnInstStart"/></div></div>
     <button class="btn btn-primary" onclick="App.Transactions.add()">İşlemi Ekle</button>
   </div>
@@ -315,6 +365,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <select class="fs" id="fType" onchange="App.Transactions.renderList()"><option value="">Tümü</option><option value="income">Gelir</option><option value="expense">Gider</option></select>
     <select class="fs" id="fCat" onchange="App.Transactions.renderList()"><option value="">Tüm Kategoriler</option></select>
     <select class="fs" id="fAcc" onchange="App.Transactions.renderList()"><option value="">Tüm Hesaplar</option></select>
+    <select class="fs" id="fUser" onchange="App.Transactions.renderList()"><option value="">Tüm Üyeler</option></select>
     <select class="fs" id="fMonth" onchange="App.Transactions.renderList()"><option value="">Tüm Aylar</option></select>
     <input class="fi" id="fSearch" placeholder="🔍 Ara..." oninput="App.Transactions.renderList()"/>
   </div>
@@ -459,8 +510,9 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 </div>
 <nav class="bottom-nav" id="bottomNav">
   <div class="bnav-item active" data-nav="ozet"><span class="bnav-icon">📊</span>Özet</div>
-  <div class="bnav-item" data-nav="hesaplar"><span class="bnav-icon">💳</span>Hesaplar</div>
-  <div class="bnav-item" data-nav="islemler"><span class="bnav-icon">↕️</span>İşlemler</div>
+  <div class="bnav-item" data-nav="islemler"><span class="bnav-icon">↕️</span>İşlem</div>
+  <div class="bnav-item" data-nav="aile"><span class="bnav-icon">👨‍👩‍👧</span>Aile</div>
+  <div class="bnav-item" data-nav="hesaplar"><span class="bnav-icon">💳</span>Hesap</div>
   <div class="bnav-item" data-nav="taksitler"><span class="bnav-icon">📅</span>Taksit</div>
   <div class="bnav-item" data-nav="portfoy"><span class="bnav-icon">💎</span>Portföy</div>
   <div class="bnav-item" data-nav="butce"><span class="bnav-icon">🎯</span>Bütçe</div>
@@ -488,7 +540,10 @@ var S=(function(){
   function g(k,fb){try{var v=localStorage.getItem(k);return v?JSON.parse(v):fb}catch(e){return fb}}
   function s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
   var _t,_b,_g,_a,_r,_d,_s,_f,_p;
-  function load(){_t=g('pf_t',[]);_b=g('pf_b',{});_g=g('pf_g',[]);_a=g('pf_a',[]);_r=g('pf_r',[]);_d=g('pf_d',[]);_s=g('pf_s',{theme:'dark',rates:{USD:0,EUR:0,GBP:0,GOLD_GRAM:0,GOLD_QUARTER:0,GOLD_FULL:0,FUND:1,updated:null}});_f=g('pf_f',[]);_p=g('pf_p',[])}
+  function load(){_t=g('pf_t',[]);_b=g('pf_b',{});_g=g('pf_g',[]);_a=g('pf_a',[]);_r=g('pf_r',[]);_d=g('pf_d',[]);_s=g('pf_s',{theme:'dark',rates:{USD:0,EUR:0,GBP:0,GOLD_GRAM:0,GOLD_QUARTER:0,GOLD_FULL:0,FUND:1,updated:null}});_f=g('pf_f',[]);_p=g('pf_p',[]);
+    if(!_s.users||!_s.users.length){_s.users=[{id:'u_self',name:'Ben',emoji:'🙋',color:'#14b8a6'},{id:'u_partner',name:'Eş',emoji:'💑',color:'#ec4899'}];_s.activeUser='u_self';s('pf_s',_s)}
+    if(!_s.activeUser){_s.activeUser=_s.users[0].id;s('pf_s',_s)}
+  }
   function txns(){return _t.slice().sort(function(a,b){return a.date===b.date?b.ts-a.ts:b.date.localeCompare(a.date)})}
   return{load,txns,budgets:function(){return _b},goals:function(){return _g},accounts:function(){return _a},recurring:function(){return _r},debts:function(){return _d},settings:function(){return _s},fund:function(){return _f},portfolio:function(){return _p},
     saveTxns:function(v){_t=v;s('pf_t',v)},saveBudgets:function(v){_b=v;s('pf_b',v)},saveGoals:function(v){_g=v;s('pf_g',v)},
@@ -508,12 +563,13 @@ App.UI=(function(){
     page.classList.add('active');
     document.querySelectorAll('[data-nav="'+pg+'"]').forEach(function(b){b.classList.add('active')});
     if(pg==='istatistikler')App.Charts.refresh();
-    if(pg==='ozet'){App.Transactions.renderRecent();App.Recurring.renderOzet();App.WeeklySummary.render();App.Notifications.syncBtn()}
+    if(pg==='ozet'){App.Transactions.renderRecent();App.Recurring.renderOzet();App.WeeklySummary.render();App.Users.renderFamilyPanel();App.Notifications.syncBtn()}
     if(pg==='hesaplar')App.Accounts.renderAll();
     if(pg==='borclar')App.Debts.renderAll();
     if(pg==='taksitler')App.Installments.render();
     if(pg==='portfoy')App.Portfolio.render();
     if(pg==='butce')App.YearlyFund.render();
+    if(pg==='aile')App.Users.renderAll();
   }
   function subTab(pageId,tabId){
     var sec=document.getElementById('page-'+pageId);if(!sec)return;
@@ -541,6 +597,19 @@ App.UI=(function(){
     ['txnAcc','recAcc'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML=opts});
     var el=document.getElementById('fAcc');
     if(el)el.innerHTML='<option value="">Tüm Hesaplar</option>'+accs.map(function(a){return'<option value="'+a.id+'">'+esc(a.name)+'</option>'}).join('');
+    refreshUserSelects();
+  }
+  function refreshUserSelects(){
+    var users=S.settings().users||[],active=S.settings().activeUser;
+    var uopts=users.map(function(u){return'<option value="'+u.id+'"'+(u.id===active?' selected':'')+'>'+esc(u.emoji||'🙋')+' '+esc(u.name)+'</option>'}).join('');
+    ['txnUser','accUser'].forEach(function(id){var el=document.getElementById(id);if(el){var prev=el.value;el.innerHTML=uopts;if(prev)el.value=prev}});
+    var fu=document.getElementById('fUser');
+    if(fu)fu.innerHTML='<option value="">Tüm Üyeler</option>'+users.map(function(u){return'<option value="'+u.id+'">'+esc(u.emoji||'🙋')+' '+esc(u.name)+'</option>'}).join('')+'<option value="__shared__">👨‍👩‍👧 Sadece Ortak</option>';
+  }
+  function syncActiveProfilePill(){
+    var u=App.Users.active();if(!u)return;
+    var bar=document.getElementById('activeProfileBar');
+    if(bar)bar.innerHTML='<span class="ap-emoji" style="font-size:1rem">'+esc(u.emoji||'🙋')+'</span><span>Aktif: <strong>'+esc(u.name)+'</strong></span>';
   }
   function refreshFilterDropdowns(){
     var ac=EC.concat(IC).filter(function(c,i,a){return a.indexOf(c)===i});
@@ -578,18 +647,20 @@ App.UI=(function(){
     var d=new Date();
     document.getElementById('todayDate').textContent=d.getDate()+' '+MF[d.getMonth()]+' '+d.getFullYear()+', '+['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'][d.getDay()];
   }
-  return{nav,subTab,setType,getType,initSelects,refreshAccSelects,refreshFilterDropdowns,toast,setTheme,bindEvents,initDates}
+  return{nav,subTab,setType,getType,initSelects,refreshAccSelects,refreshUserSelects,refreshFilterDropdowns,toast,setTheme,bindEvents,initDates,syncActiveProfilePill}
 })();
 
 App.Accounts=(function(){
   function onTypeChange(){document.getElementById('accStmtWrap').style.display=document.getElementById('accType').value==='card'?'':'none'}
+  function onOwnerChange(){document.getElementById('accUserWrap').style.display=document.getElementById('accOwner').value==='personal'?'':'none'}
   function add(){
     var name=document.getElementById('accName').value.trim(),type=document.getElementById('accType').value,bal=parseFloat(document.getElementById('accBal').value)||0;
     var owner=document.getElementById('accOwner').value||'shared';
+    var userId=owner==='personal'?(document.getElementById('accUser').value||S.settings().activeUser):null;
     var stmtRaw=parseInt(document.getElementById('accStmtDay').value);
     var stmtDay=(type==='card'&&stmtRaw>=1&&stmtRaw<=31)?stmtRaw:null;
     if(!name){App.UI.toast('Hesap adı girin.','err');return}
-    var a=S.accounts();a.push({id:gid('a'),name,type,owner,statementDay:stmtDay,balance:bal,ts:Date.now()});S.saveAccounts(a);
+    var a=S.accounts();a.push({id:gid('a'),name,type,owner,userId,statementDay:stmtDay,balance:bal,ts:Date.now()});S.saveAccounts(a);
     document.getElementById('accName').value='';document.getElementById('accBal').value='';document.getElementById('accStmtDay').value='';
     App.UI.refreshAccSelects();renderAll();renderSummary();App.UI.toast('Hesap eklendi.');
   }
@@ -603,7 +674,8 @@ App.Accounts=(function(){
     el.innerHTML=accs.map(function(a){
       var m=AM[a.type]||{i:'💰',l:'Diğer'};var bc=a.balance>0?'pos':a.balance<0?'neg':'zero';
       var ac=a.type==='bank'?'var(--blue)':a.type==='card'?'var(--red)':a.type==='savings'?'var(--green)':a.type==='investment'?'var(--purple)':'var(--teal)';
-      var ow=a.owner==='personal'?'<span class="owner-tag personal">Kişisel</span>':'<span class="owner-tag shared">Ortak</span>';
+      var u=a.owner==='personal'&&a.userId?App.Users.get(a.userId):null;
+      var ow=a.owner==='personal'?'<span class="owner-tag personal">'+(u?esc(u.emoji||'🙋')+' '+esc(u.name):'Kişisel')+'</span>':'<span class="owner-tag shared">Ortak</span>';
       var st=a.statementDay?'<span class="stmt-tag">Kesim: '+a.statementDay+'</span>':'';
       return'<div class="acc-card" style="border-color:'+ac+'33"><button class="btn-del acc-del" onclick="App.Accounts.remove(\''+a.id+'\')">✕</button><span class="acc-ico">'+m.i+'</span><div class="acc-name">'+esc(a.name)+ow+'</div><div class="acc-type">'+m.l+st+'</div><div class="acc-bal '+bc+'">'+fmt(a.balance)+'</div></div>'
     }).join('');
@@ -618,7 +690,7 @@ App.Accounts=(function(){
     document.getElementById('heroInc').textContent=fmt(all.income)+' Gelir';document.getElementById('heroExp').textContent=fmt(all.expense)+' Gider';
     document.getElementById('heroAcc').textContent=accs.length+' Hesap';
   }
-  return{add,remove,adjustBalance,getName,get,renderAll,renderSummary,onTypeChange,ownerTotals}
+  return{add,remove,adjustBalance,getName,get,renderAll,renderSummary,onTypeChange,onOwnerChange,ownerTotals}
 })();
 
 App.Transactions=(function(){
@@ -633,6 +705,7 @@ App.Transactions=(function(){
     var amt=parseFloat(document.getElementById('txnAmt').value),date=document.getElementById('txnDate').value;
     var cat=document.getElementById('txnCat').value,note=document.getElementById('txnNote').value.trim();
     var accId=document.getElementById('txnAcc').value,type=App.UI.getType();
+    var userId=document.getElementById('txnUser').value||S.settings().activeUser;
     var insCount=parseInt(document.getElementById('txnInst').value)||0;
     var insStart=document.getElementById('txnInstStart').value||date;
     if(!amt||amt<=0){App.UI.toast('Geçerli tutar girin.','err');return}
@@ -642,13 +715,13 @@ App.Transactions=(function(){
       var per=Math.round((amt/insCount)*100)/100,planId=gid('p'),now=Date.now();
       for(var i=0;i<insCount;i++){
         var d=addMonths(insStart,i);
-        arr.unshift({id:gid('t'),type:'expense',amount:per,category:cat,date:d,note:(note||cat)+' ('+(i+1)+'/'+insCount+')',accountId:accId,ts:now+i,installment:{planId,index:i+1,total:insCount,totalAmount:amt,name:note||cat,startDate:insStart}});
+        arr.unshift({id:gid('t'),type:'expense',amount:per,category:cat,date:d,note:(note||cat)+' ('+(i+1)+'/'+insCount+')',accountId:accId,userId,ts:now+i,installment:{planId,index:i+1,total:insCount,totalAmount:amt,name:note||cat,startDate:insStart}});
       }
       S.saveTxns(arr);
       if(accId){var firstD=addMonths(insStart,0);if(firstD<=td())App.Accounts.adjustBalance(accId,-per)}
       App.UI.toast(insCount+' taksit planlandı.');
     }else{
-      arr.unshift({id:gid('t'),type,amount:amt,category:cat,date,note,accountId:accId,ts:Date.now()});S.saveTxns(arr);
+      arr.unshift({id:gid('t'),type,amount:amt,category:cat,date,note,accountId:accId,userId,ts:Date.now()});S.saveTxns(arr);
       if(accId)App.Accounts.adjustBalance(accId,type==='income'?amt:-amt);
       App.UI.toast('İşlem eklendi.');
     }
@@ -687,12 +760,17 @@ App.Transactions=(function(){
     var stmt=t.accountId?statementPeriod(t.accountId,t.date):null;
     var stmtTag=stmt?'<span class="stmt-tag">Ekstre: '+MF[+stmt.split('-')[1]-1]+'</span>':'';
     var insTag=t.installment?'<span class="ti-note" style="background:rgba(249,115,22,.15);color:var(--orange)">Taksit '+t.installment.index+'/'+t.installment.total+'</span>':'';
-    return'<div class="ti"><div class="cat-ico '+info.c+'">'+info.i+'</div><div class="ti-body"><div class="ti-cat">'+esc(t.category)+'</div><div class="ti-meta">'+fd(t.date)+'</div>'+(t.note?'<span class="ti-note">'+esc(t.note)+'</span>':'')+insTag+at+stmtTag+'</div><div class="ti-right"><div class="ti-amt '+t.type+'">'+sign+fmt(t.amount)+'</div>'+(del?'<button class="btn-del" onclick="App.Transactions.remove(\''+t.id+'\')">✕</button>':'')+'</div></div>'
+    var u=t.userId?App.Users.get(t.userId):null;
+    var uTag=u?'<span class="user-tag" style="background:'+(u.color||'#3b82f6')+'22;color:'+(u.color||'#3b82f6')+'"><span class="ue">'+esc(u.emoji||'🙋')+'</span>'+esc(u.name)+'</span>':'';
+    return'<div class="ti"><div class="cat-ico '+info.c+'">'+info.i+'</div><div class="ti-body"><div class="ti-cat">'+esc(t.category)+'</div><div class="ti-meta">'+fd(t.date)+'</div>'+(t.note?'<span class="ti-note">'+esc(t.note)+'</span>':'')+insTag+at+stmtTag+uTag+'</div><div class="ti-right"><div class="ti-amt '+t.type+'">'+sign+fmt(t.amount)+'</div>'+(del?'<button class="btn-del" onclick="App.Transactions.remove(\''+t.id+'\')">✕</button>':'')+'</div></div>'
   }
   function renderList(){
     var tf=document.getElementById('fType').value,cf=document.getElementById('fCat').value,af=document.getElementById('fAcc').value,mf=document.getElementById('fMonth').value,sf=document.getElementById('fSearch').value.toLowerCase();
+    var uf=(document.getElementById('fUser')||{}).value||'';
     var txns=S.txns().filter(function(t){
       if(tf&&t.type!==tf)return false;if(cf&&t.category!==cf)return false;if(af&&t.accountId!==af)return false;
+      if(uf==='__shared__'){var acc=t.accountId?App.Accounts.get(t.accountId):null;if(acc&&acc.owner==='personal')return false}
+      else if(uf&&t.userId!==uf)return false;
       if(mf&&!t.date.startsWith(mf))return false;if(sf){var h=(t.category+' '+(t.note||'')+' '+t.amount).toLowerCase();if(h.indexOf(sf)===-1)return false}return true
     });
     var el=document.getElementById('txnList');
@@ -833,6 +911,73 @@ App.Goals=(function(){
     }).join('');
   }
   return{add,remove,addContrib,removeContrib,togglePanel,renderAll}
+})();
+
+App.Users=(function(){
+  function list(){return S.settings().users||[]}
+  function active(){return list().find(function(u){return u.id===S.settings().activeUser})||list()[0]}
+  function get(id){return list().find(function(u){return u.id===id})}
+  function add(){
+    var name=document.getElementById('userName').value.trim();
+    var emoji=document.getElementById('userEmoji').value.trim()||'🙋';
+    var color=document.getElementById('userColor').value||'#3b82f6';
+    if(!name){App.UI.toast('Ad girin.','err');return}
+    var users=list();users.push({id:gid('u'),name,emoji,color});
+    S.saveSetting('users',users);
+    document.getElementById('userName').value='';document.getElementById('userEmoji').value='';
+    App.UI.refreshUserSelects();renderAll();App.UI.toast('Üye eklendi.');
+  }
+  function edit(id){
+    var u=get(id);if(!u)return;
+    var name=prompt('Ad:',u.name);if(name===null)return;
+    var emoji=prompt('Emoji:',u.emoji||'🙋');if(emoji===null)return;
+    var color=prompt('Renk (hex):',u.color||'#3b82f6');if(color===null)return;
+    var users=list();var idx=users.findIndex(function(x){return x.id===id});users[idx]={id,name:name.trim()||u.name,emoji:emoji.trim()||'🙋',color:color.trim()||'#3b82f6'};
+    S.saveSetting('users',users);App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();renderAll();App.Accounts.renderAll();App.Transactions.renderList();App.Transactions.renderRecent();App.UI.toast('Güncellendi.');
+  }
+  function remove(id){
+    var users=list();if(users.length<=1){App.UI.toast('En az bir üye olmalı.','err');return}
+    if(!confirm('"'+get(id).name+'" silinsin mi? Bu üyeye bağlı hesap ve işlemler "Ortak" olarak işaretlenecek.'))return;
+    var accs=S.accounts();accs.forEach(function(a){if(a.userId===id){a.userId=null;a.owner='shared'}});S.saveAccounts(accs);
+    var txns=S.txns();txns.forEach(function(t){if(t.userId===id)t.userId=null});S.saveTxns(txns);
+    var newUsers=users.filter(function(u){return u.id!==id});S.saveSetting('users',newUsers);
+    if(S.settings().activeUser===id)S.saveSetting('activeUser',newUsers[0].id);
+    App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();renderAll();App.Accounts.renderAll();App.Transactions.renderList();App.Transactions.renderRecent();App.UI.toast('Üye silindi.');
+  }
+  function setActive(id){
+    S.saveSetting('activeUser',id);App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();renderAll();App.UI.toast('Aktif profil: '+get(id).name);
+  }
+  function stats(userId){
+    var accs=S.accounts().filter(function(a){return a.owner==='personal'&&a.userId===userId});
+    var bal=accs.reduce(function(s,a){return s+(a.balance||0)},0);
+    var today=td(),m=tm();var inc=0,exp=0,cnt=0;
+    S.txns().forEach(function(t){if(t.userId!==userId)return;if(t.date>today)return;if(t.date.substring(0,7)!==m)return;cnt++;if(t.type==='income')inc+=t.amount;else exp+=t.amount});
+    return{balance:bal,income:inc,expense:exp,count:cnt,accounts:accs.length}
+  }
+  function sharedStats(){
+    var accs=S.accounts().filter(function(a){return a.owner!=='personal'});
+    var bal=accs.reduce(function(s,a){return s+(a.balance||0)},0);
+    var today=td(),m=tm();var inc=0,exp=0,cnt=0;
+    S.txns().forEach(function(t){var acc=t.accountId?App.Accounts.get(t.accountId):null;if(acc&&acc.owner==='personal')return;if(t.date>today)return;if(t.date.substring(0,7)!==m)return;cnt++;if(t.type==='income')inc+=t.amount;else exp+=t.amount});
+    return{balance:bal,income:inc,expense:exp,count:cnt,accounts:accs.length}
+  }
+  function renderAll(){
+    var users=list(),act=S.settings().activeUser;
+    var apc=document.getElementById('activeProfileCard');
+    if(apc){var au=active();apc.innerHTML=au?'<div style="display:flex;align-items:center;gap:14px"><div style="font-size:2.5rem">'+esc(au.emoji||'🙋')+'</div><div><div style="font-size:1.15rem;font-weight:800">'+esc(au.name)+'</div><div style="font-size:.75rem;color:var(--txt2);margin-top:2px">Yeni işlemler otomatik bu profile atanır.</div></div></div>':''}
+    var fm=document.getElementById('familyMembers');
+    if(fm){fm.innerHTML='<div class="user-grid">'+users.map(function(u){var st=stats(u.id);var isA=u.id===act;return'<div class="user-card'+(isA?' active':'')+'" style="border-color:'+(isA?'var(--teal)':(u.color||'#3b82f6')+'55')+'"><span class="uc-emoji">'+esc(u.emoji||'🙋')+'</span><div class="uc-name" style="color:'+(u.color||'var(--txt)')+'">'+esc(u.name)+'</div><div class="uc-role">'+(isA?'Aktif Profil':'Üye')+'</div><div class="uc-bal">'+fmt(st.balance)+'</div><div style="font-size:.68rem;color:var(--txt2);margin-bottom:6px">'+st.accounts+' kişisel hesap</div><div class="uc-stats"><div class="uc-stat"><span class="v" style="color:var(--green)">'+fmt(st.income)+'</span><span class="l">Bu ay gelir</span></div><div class="uc-stat"><span class="v" style="color:var(--red)">'+fmt(st.expense)+'</span><span class="l">Bu ay gider</span></div></div><div class="uc-actions"><button class="btn-active '+(isA?'is-active':'')+'" onclick="'+(isA?'':'App.Users.setActive(\''+u.id+'\')')+'">'+(isA?'✓ Aktif':'Aktif yap')+'</button><button class="btn btn-sm btn-ghost" onclick="App.Users.edit(\''+u.id+'\')">Düzenle</button><button class="btn-del" onclick="App.Users.remove(\''+u.id+'\')">Sil</button></div></div>'}).join('')+'</div>'}
+    var ws=document.getElementById('walletSummary');
+    if(ws){var sh=sharedStats();var rows='<div class="wallet-row"><div class="wr-left"><span class="wr-emoji">👨‍👩‍👧</span><div><div class="wr-name">Ortak Cüzdan</div><div class="wr-meta">'+sh.accounts+' hesap · Bu ay '+fmt(sh.expense)+' gider</div></div></div><div class="wr-bal '+(sh.balance>=0?'pos':'neg')+'">'+fmt(sh.balance)+'</div></div>';rows+=users.map(function(u){var st=stats(u.id);return'<div class="wallet-row"><div class="wr-left"><span class="wr-emoji">'+esc(u.emoji||'🙋')+'</span><div><div class="wr-name">'+esc(u.name)+' · Kişisel</div><div class="wr-meta">'+st.accounts+' hesap · Bu ay '+fmt(st.expense)+' gider</div></div></div><div class="wr-bal '+(st.balance>=0?'pos':'neg')+'">'+fmt(st.balance)+'</div></div>'}).join('');ws.innerHTML=rows}
+  }
+  function renderFamilyPanel(){
+    var el=document.getElementById('ozet-family');if(!el)return;
+    var users=list(),sh=sharedStats();
+    var cards='<div class="wallet-row" onclick="App.UI.nav(\'aile\')" style="cursor:pointer"><div class="wr-left"><span class="wr-emoji">👨‍👩‍👧</span><div><div class="wr-name">Ortak Cüzdan</div><div class="wr-meta">Bu ay '+fmt(sh.expense)+' gider · '+sh.count+' işlem</div></div></div><div class="wr-bal '+(sh.balance>=0?'pos':'neg')+'">'+fmt(sh.balance)+'</div></div>';
+    cards+=users.map(function(u){var st=stats(u.id);return'<div class="wallet-row" onclick="App.UI.nav(\'aile\')" style="cursor:pointer"><div class="wr-left"><span class="wr-emoji">'+esc(u.emoji||'🙋')+'</span><div><div class="wr-name">'+esc(u.name)+'</div><div class="wr-meta">Bu ay '+fmt(st.expense)+' gider · '+st.count+' işlem</div></div></div><div class="wr-bal '+(st.balance>=0?'pos':'neg')+'">'+fmt(st.balance)+'</div></div>'}).join('');
+    el.innerHTML=cards;
+  }
+  return{list,active,get,add,edit,remove,setActive,stats,sharedStats,renderAll,renderFamilyPanel}
 })();
 
 App.Charts=(function(){
@@ -1016,10 +1161,12 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js')}
 
 document.addEventListener('DOMContentLoaded',function(){
   S.load();App.UI.bindEvents();App.UI.initDates();App.UI.setTheme(S.settings().theme||'dark');App.UI.initSelects();
+  App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();
   App.Transactions.renderSummaryMetrics();App.Transactions.renderRecent();App.Transactions.renderList();
-  App.Accounts.renderAll();App.Accounts.renderSummary();App.Accounts.onTypeChange();
+  App.Accounts.renderAll();App.Accounts.renderSummary();App.Accounts.onTypeChange();App.Accounts.onOwnerChange();
   App.Budget.renderAll();App.Goals.renderAll();App.Recurring.renderList();App.Recurring.renderOzet();App.Debts.renderAll();
   App.Installments.render();App.Portfolio.render();App.YearlyFund.render();App.WeeklySummary.render();App.Notifications.syncBtn();
+  App.Users.renderAll();App.Users.renderFamilyPanel();
   App.UI.nav('ozet');
   setTimeout(function(){App.Notifications.checkDueBills(false)},1500);
 });
