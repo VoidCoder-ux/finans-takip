@@ -825,10 +825,11 @@ App.Recurring=(function(){
   }
   function renderList(){var recs=S.recurring(),el=document.getElementById('recList');if(!recs.length){el.innerHTML='<div class="empty"><span class="empty-ico">🔄</span><div class="empty-t">Tekrarlayan işlem yok</div></div>';return}el.innerHTML=recs.map(function(r){return _rh(r,true)}).join('')}
   function renderOzet(){
-    var el=document.getElementById('ozet-rec'),today_day=new Date().getDate();
-    var lastOfMonth=new Date(new Date().getFullYear(),new Date().getMonth()+1,0).getDate();
-    var up=S.recurring().map(function(r){var diff=r.day-today_day;if(diff<0)diff=lastOfMonth-today_day+r.day;return{r:r,diff:diff}}).sort(function(a,b){return a.diff-b.diff}).slice(0,3);
-    if(!up.length){el.innerHTML='<div style="padding:12px 0;font-size:.8rem;color:var(--txt3)">Bu ay için bekleyen işlem yok.</div>';return}
+    var el=document.getElementById('ozet-rec'),now=new Date(),today_day=now.getDate();
+    var lastOfThis=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+    var lastOfNext=new Date(now.getFullYear(),now.getMonth()+2,0).getDate();
+    var up=S.recurring().map(function(r){var thisD=Math.min(r.day,lastOfThis),nextD=Math.min(r.day,lastOfNext),diff=thisD-today_day;if(diff<0)diff=lastOfThis-today_day+nextD;return{r:r,diff:diff}}).sort(function(a,b){return a.diff-b.diff}).slice(0,3);
+    if(!up.length){el.innerHTML='<div style="padding:12px 0;font-size:.8rem;color:var(--txt3)">Yaklaşan işlem yok.</div>';return}
     el.innerHTML='<div class="rec-list">'+up.map(function(x){return _rh(x.r,true)}).join('')+'</div>';
   }
   return{add,remove,log,renderList,renderOzet}
@@ -1159,8 +1160,10 @@ App.Notifications=(function(){
     Notification.requestPermission().then(function(p){syncBtn();if(p==='granted'){App.UI.toast('Bildirim açıldı.');checkDueBills(true)}});
   }
   function upcomingBills(daysAhead){
-    var today=new Date(),tday=today.getDate(),lastOfMonth=new Date(today.getFullYear(),today.getMonth()+1,0).getDate(),out=[];
-    S.recurring().forEach(function(r){if(r.type!=='expense')return;var diff=r.day-tday;if(diff<0)diff=lastOfMonth-tday+r.day;if(diff<=daysAhead)out.push({rec:r,in:diff})});
+    var today=new Date(),tday=today.getDate(),out=[];
+    var lastOfThis=new Date(today.getFullYear(),today.getMonth()+1,0).getDate();
+    var lastOfNext=new Date(today.getFullYear(),today.getMonth()+2,0).getDate();
+    S.recurring().forEach(function(r){if(r.type!=='expense')return;var thisD=Math.min(r.day,lastOfThis),nextD=Math.min(r.day,lastOfNext),diff=thisD-tday;if(diff<0)diff=lastOfThis-tday+nextD;if(diff<=daysAhead)out.push({rec:r,in:diff})});
     return out;
   }
   function checkDueBills(forceShow){
