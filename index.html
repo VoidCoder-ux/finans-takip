@@ -87,6 +87,13 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .btn{padding:11px 20px;border-radius:var(--r);font-size:.88rem;font-weight:700;transition:all var(--tr);cursor:pointer}
 .btn-primary{background:var(--grad);color:#fff;border:none;width:100%;margin-top:4px}
 .btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+.quick-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.quick-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:16px 12px;border-radius:var(--r2);font-size:.95rem;font-weight:700;cursor:pointer;border:1.5px solid;transition:all var(--tr)}
+.quick-btn .qi{font-size:1.4rem;line-height:1}
+.quick-btn.qinc{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.1);color:var(--green)}
+.quick-btn.qinc:hover{background:rgba(34,197,94,.2);transform:translateY(-1px)}
+.quick-btn.qexp{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.1);color:var(--red)}
+.quick-btn.qexp:hover{background:rgba(239,68,68,.2);transform:translateY(-1px)}
 .btn-sm{padding:7px 14px;font-size:.78rem;border-radius:var(--r)}
 .btn-ghost{background:transparent;border:1.5px solid var(--border2);color:var(--txt2);transition:all var(--tr)}
 .btn-ghost:hover{border-color:var(--teal);color:var(--teal)}
@@ -296,6 +303,10 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       <div class="chip"><span class="dot r"></span><span id="heroExp">₺0 Gider</span></div>
       <div class="chip"><span class="dot b"></span><span id="heroAcc">0 Hesap</span></div>
     </div>
+  </div>
+  <div class="quick-row">
+    <button class="quick-btn qinc" onclick="App.UI.quickAdd('income')"><span class="qi">＋</span><span>Hızlı Gelir</span></button>
+    <button class="quick-btn qexp" onclick="App.UI.quickAdd('expense')"><span class="qi">−</span><span>Hızlı Gider</span></button>
   </div>
   <div class="metrics">
     <div class="mc"><div class="mc-icon cc-green">💵</div><div class="mc-val" id="mInc" style="color:var(--green)">₺0</div><div class="mc-lbl">Bu Ay Gelir</div></div>
@@ -621,6 +632,15 @@ App.UI=(function(){
     var mel=document.getElementById('fMonth');
     if(mel)mel.innerHTML='<option value="">Tüm Aylar</option>'+months.map(function(m){var p=m.split('-');return'<option value="'+m+'">'+MF[+p[1]-1]+' '+p[0]+'</option>'}).join('');
   }
+  function quickAdd(t){
+    nav('islemler');setType(t);
+    setTimeout(function(){
+      var el=document.getElementById('txnAmt');
+      if(!el)return;
+      if(el.scrollIntoView)el.scrollIntoView({behavior:'smooth',block:'center'});
+      el.focus();
+    },80);
+  }
   function toast(msg,type){
     var box=document.getElementById('toasts'),el=document.createElement('div');
     el.className='toast '+(type||'ok');el.innerHTML=(type==='err'?'❌ ':type==='info'?'ℹ️ ':'✅ ')+esc(msg);
@@ -647,7 +667,7 @@ App.UI=(function(){
     var d=new Date();
     document.getElementById('todayDate').textContent=d.getDate()+' '+MF[d.getMonth()]+' '+d.getFullYear()+', '+['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'][d.getDay()];
   }
-  return{nav,subTab,setType,getType,initSelects,refreshAccSelects,refreshUserSelects,refreshFilterDropdowns,toast,setTheme,bindEvents,initDates,syncActiveProfilePill}
+  return{nav,subTab,setType,getType,quickAdd,initSelects,refreshAccSelects,refreshUserSelects,refreshFilterDropdowns,toast,setTheme,bindEvents,initDates,syncActiveProfilePill}
 })();
 
 App.Accounts=(function(){
