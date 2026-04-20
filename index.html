@@ -185,6 +185,17 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .stats-table td{padding:10px 13px;border-bottom:1px solid var(--border)}.stats-table tr:last-child td{border-bottom:none}.stats-table tbody tr:hover td{background:var(--bg3)}
 .toast-box{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:7px}
 .toast{padding:12px 18px;border-radius:var(--r2);font-size:.85rem;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,.4);animation:tin .25s ease,tout .3s ease 2.7s forwards;max-width:300px;display:flex;align-items:center;gap:8px}
+.modal-bd{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal-bd.show{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r3);padding:22px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow)}
+.modal-title{font-size:1.05rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.modal-actions{display:flex;gap:10px;margin-top:16px}
+.modal-actions .btn{flex:1}
+.report-btn-row{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:18px}
+.report-btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:14px;border-radius:var(--r2);font-size:.9rem;font-weight:700;cursor:pointer;border:1.5px solid var(--border2);background:var(--bg2);color:var(--txt);transition:all var(--tr)}
+.report-btn:hover{border-color:var(--teal);color:var(--teal)}
+.report-btn .ri{font-size:1.2rem}
+.print-view{display:none}
 .toast.ok{background:rgba(34,197,94,.9);color:#fff}.toast.err{background:rgba(239,68,68,.9);color:#fff}.toast.info{background:rgba(59,130,246,.9);color:#fff}
 @keyframes tin{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}@keyframes tout{to{opacity:0;transform:translateY(-8px)}}
 .cc-teal{background:rgba(20,184,166,.15);color:var(--teal)}.cc-blue{background:rgba(59,130,246,.15);color:var(--blue)}.cc-purple{background:rgba(139,92,246,.15);color:var(--purple)}
@@ -268,6 +279,28 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 @media(max-width:768px){.sidebar{display:none}.bottom-nav{display:flex}.page{padding:14px 12px calc(96px + env(safe-area-inset-bottom))}.metrics{grid-template-columns:1fr 1fr}.budget-grid,.goals-grid,.debt-grid,.stats-grid,.port-grid{grid-template-columns:1fr 1fr}.wb-label{flex:0 0 70px;font-size:.72rem}.fg.c3,.fg.c4{grid-template-columns:1fr 1fr}.filter-row{flex-wrap:wrap}.fs,.fi{min-width:0;width:100%;flex:1 1 auto}.acc-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}.hero-chips{flex-wrap:wrap}.ti-amt{font-size:.85rem}.rec-body{min-width:0;overflow:hidden}.rec-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.debt-person{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.goal-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.acc-bal{font-size:clamp(.9rem,3vw,1.2rem);word-break:break-all}}
 @media(max-width:480px){.metrics{grid-template-columns:1fr 1fr}.fg.c2,.fg.c3,.fg.c4{grid-template-columns:1fr}.acc-grid{grid-template-columns:1fr 1fr}.mc{padding:12px}.mc-val{font-size:.9rem}.hero{padding:18px}.chip{font-size:.72rem;padding:5px 10px}.ph-title{font-size:1.1rem}.card{padding:14px}.bc-head{flex-wrap:wrap;gap:7px}.budget-grid{grid-template-columns:1fr}}
 @media(hover:none){.mc:hover,.btn-primary:hover,.btn-ghost:hover,.btn-teal:hover,.quick-btn:hover,.quick-btn.qinc:hover,.quick-btn.qexp:hover,.goal-card:hover,.notif-btn:hover,.btn-del:hover,.sh-link:hover,.nav-item:hover,.theme-btn:hover{transform:none}}
+@media print{
+  @page{size:A4;margin:15mm}
+  html,body{background:#fff!important;color:#000!important;min-height:0!important}
+  .shell,.bottom-nav,.toast-box,.modal-bd{display:none!important}
+  .print-view{display:block!important;visibility:visible;padding:0;color:#000;background:#fff}
+  .pr-doc{font-family:-apple-system,'Segoe UI',sans-serif;font-size:10pt;line-height:1.4}
+  .pr-head{border-bottom:2px solid #0d9488;padding-bottom:10px;margin-bottom:14px}
+  .pr-title{font-size:18pt;font-weight:800;color:#0d9488;margin:0}
+  .pr-sub{font-size:9pt;color:#555;margin-top:4px}
+  .pr-h2{font-size:11pt;font-weight:700;margin:14px 0 6px;padding-bottom:3px;border-bottom:1px solid #ccc;color:#0d9488}
+  .pr-tbl,.pr-sum{width:100%;border-collapse:collapse;margin-bottom:6px}
+  .pr-tbl td,.pr-tbl th,.pr-sum td{padding:4px 8px;border-bottom:1px solid #eee;font-size:9pt;vertical-align:top}
+  .pr-tbl th{background:#f5f5f5;font-weight:700;text-align:left;border-bottom:1.5px solid #bbb}
+  .pr-sum td:first-child{width:70%}
+  .pr-r{text-align:right;white-space:nowrap}
+  .pr-g{color:#0a8043}
+  .pr-rr{color:#c02020}
+  .pr-foot{margin-top:20px;padding-top:10px;border-top:1px solid #ccc;font-size:8pt;color:#888;text-align:center}
+  .pr-txns tr{page-break-inside:avoid}
+  thead{display:table-header-group}
+  .pr-empty{font-size:9pt;color:#888;font-style:italic;padding:6px 0}
+}
 </style>
 </head>
 <body>
@@ -309,6 +342,9 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   <div class="quick-row">
     <button class="quick-btn qinc" onclick="App.UI.quickAdd('income')"><span class="qi">＋</span><span>Hızlı Gelir</span></button>
     <button class="quick-btn qexp" onclick="App.UI.quickAdd('expense')"><span class="qi">−</span><span>Hızlı Gider</span></button>
+  </div>
+  <div class="report-btn-row">
+    <button class="report-btn" onclick="App.Report.open()"><span class="ri">📄</span><span>Aylık Detaylı Rapor (PDF)</span></button>
   </div>
   <div class="metrics">
     <div class="mc"><div class="mc-icon cc-green">💵</div><div class="mc-val" id="mInc" style="color:var(--green)">₺0</div><div class="mc-lbl">Bu Ay Gelir</div></div>
@@ -1166,6 +1202,102 @@ App.WeeklySummary=(function(){
     el.innerHTML='<div class="week-card"><div class="week-head"><div><div class="week-title">Son 7 Gün</div><div class="week-sub">'+range+'</div></div><div class="week-total">'+fmt(total)+'</div></div><div class="week-bars">'+bars+'</div></div>';
   }
   return{render}
+})();
+
+App.Report=(function(){
+  function open(){
+    var txns=S.txns(),months=[],now=new Date(),cur=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+    txns.forEach(function(t){var m=t.date.substring(0,7);if(months.indexOf(m)===-1)months.push(m)});
+    if(months.indexOf(cur)===-1)months.push(cur);
+    months.sort().reverse();
+    var opts=months.map(function(mm){var p=mm.split('-');return'<option value="'+mm+'"'+(mm===cur?' selected':'')+'>'+MF[+p[1]-1]+' '+p[0]+'</option>'}).join('');
+    var html='<div class="modal-bd show" id="rapMdl" onclick="if(event.target===this)App.Report.close()"><div class="modal"><div class="modal-title">📄 Aylık Detaylı Rapor</div><div class="f"><label>Ay seç</label><select id="rapMonth">'+opts+'</select></div><div style="font-size:.75rem;color:var(--txt2);margin-top:10px;line-height:1.5">PDF oluşturma: tarayıcının yazdırma ekranı açılır, "PDF olarak kaydet" seçeneğini seçin.</div><div class="modal-actions"><button class="btn btn-ghost" onclick="App.Report.close()">Vazgeç</button><button class="btn btn-primary" onclick="App.Report.generate()">📄 PDF Oluştur</button></div></div></div>';
+    var div=document.createElement('div');div.id='rapHolder';div.innerHTML=html;document.body.appendChild(div);
+  }
+  function close(){var el=document.getElementById('rapHolder');if(el)el.remove()}
+  function generate(){
+    var sel=document.getElementById('rapMonth');if(!sel)return;
+    var m=sel.value;close();
+    var reportHtml=build(m);
+    var holder=document.getElementById('printHolder');
+    if(!holder){holder=document.createElement('div');holder.id='printHolder';holder.className='print-view';document.body.appendChild(holder)}
+    holder.innerHTML=reportHtml;
+    setTimeout(function(){try{window.print()}catch(e){App.UI.toast('Yazdırma açılamadı.','err')}},120);
+  }
+  function build(m){
+    var p=m.split('-'),title=MF[+p[1]-1]+' '+p[0];
+    var now=new Date(),today=now.toLocaleDateString('tr-TR');
+    var txns=S.txns().filter(function(t){return t.date.substring(0,7)===m});
+    var inc=0,exp=0;txns.forEach(function(t){if(t.type==='income')inc+=t.amount;else exp+=t.amount});
+    var net=inc-exp;
+    var users=S.settings().users||[];
+    var accs=S.accounts(),accMap={};accs.forEach(function(a){accMap[a.id]=a.name});
+    var userMap={};users.forEach(function(u){userMap[u.id]=u});
+    var byCatInc={},byCatExp={},byAcc={},byUser={};
+    txns.forEach(function(t){
+      if(t.type==='income')byCatInc[t.category]=(byCatInc[t.category]||0)+t.amount;
+      else byCatExp[t.category]=(byCatExp[t.category]||0)+t.amount;
+      var ak=t.accountId||'__none__';byAcc[ak]=byAcc[ak]||{inc:0,exp:0};byAcc[ak][t.type==='income'?'inc':'exp']+=t.amount;
+      var uk=t.userId||'__none__';byUser[uk]=byUser[uk]||{inc:0,exp:0};byUser[uk][t.type==='income'?'inc':'exp']+=t.amount;
+    });
+    var activeU=App.Users&&App.Users.active?App.Users.active():null;
+    var actLabel=activeU?(activeU.emoji||'')+' '+activeU.name:'Tüm Üyeler';
+
+    var h='<div class="pr-doc">';
+    h+='<div class="pr-head"><div class="pr-title">💰 Finans Takip — Aylık Rapor</div><div class="pr-sub">'+esc(title)+' &middot; Aktif Profil: '+esc(actLabel)+' &middot; Oluşturuldu: '+esc(today)+'</div></div>';
+
+    h+='<div class="pr-h2">Özet</div><table class="pr-sum">';
+    h+='<tr><td>Toplam Gelir</td><td class="pr-r pr-g">+'+fmt(inc)+'</td></tr>';
+    h+='<tr><td>Toplam Gider</td><td class="pr-r pr-rr">-'+fmt(exp)+'</td></tr>';
+    h+='<tr><td><b>Net Bakiye</b></td><td class="pr-r"><b>'+(net>=0?'+':'')+fmt(net)+'</b></td></tr>';
+    h+='<tr><td>İşlem Sayısı</td><td class="pr-r">'+txns.length+'</td></tr>';
+    if(inc>0)h+='<tr><td>Tasarruf Oranı</td><td class="pr-r">'+((Math.max(net,0)/inc)*100).toFixed(1)+'%</td></tr>';
+    h+='</table>';
+
+    var incKeys=Object.keys(byCatInc).sort(function(a,b){return byCatInc[b]-byCatInc[a]});
+    if(incKeys.length){
+      h+='<div class="pr-h2">Gelir Kategorileri</div><table class="pr-tbl"><thead><tr><th>Kategori</th><th class="pr-r">Tutar</th><th class="pr-r">Pay</th></tr></thead>';
+      incKeys.forEach(function(k){var v=byCatInc[k],pct=inc>0?(v/inc*100).toFixed(1):'0.0';h+='<tr><td>'+esc(k)+'</td><td class="pr-r pr-g">'+fmt(v)+'</td><td class="pr-r">'+pct+'%</td></tr>'});
+      h+='</table>';
+    }
+
+    var expKeys=Object.keys(byCatExp).sort(function(a,b){return byCatExp[b]-byCatExp[a]});
+    if(expKeys.length){
+      h+='<div class="pr-h2">Gider Kategorileri</div><table class="pr-tbl"><thead><tr><th>Kategori</th><th class="pr-r">Tutar</th><th class="pr-r">Pay</th></tr></thead>';
+      expKeys.forEach(function(k){var v=byCatExp[k],pct=exp>0?(v/exp*100).toFixed(1):'0.0';h+='<tr><td>'+esc(k)+'</td><td class="pr-r pr-rr">'+fmt(v)+'</td><td class="pr-r">'+pct+'%</td></tr>'});
+      h+='</table>';
+    }
+
+    if(users.length>1){
+      h+='<div class="pr-h2">Üyelere Göre</div><table class="pr-tbl"><thead><tr><th>Üye</th><th class="pr-r">Gelir</th><th class="pr-r">Gider</th><th class="pr-r">Net</th></tr></thead>';
+      users.forEach(function(u){var b=byUser[u.id]||{inc:0,exp:0};h+='<tr><td>'+esc((u.emoji||'')+' '+u.name)+'</td><td class="pr-r pr-g">'+fmt(b.inc)+'</td><td class="pr-r pr-rr">'+fmt(b.exp)+'</td><td class="pr-r">'+fmt(b.inc-b.exp)+'</td></tr>'});
+      h+='</table>';
+    }
+
+    if(accs.length||byAcc['__none__']){
+      h+='<div class="pr-h2">Hesap Hareketleri</div><table class="pr-tbl"><thead><tr><th>Hesap</th><th class="pr-r">Gelir</th><th class="pr-r">Gider</th></tr></thead>';
+      accs.forEach(function(a){var b=byAcc[a.id]||{inc:0,exp:0};h+='<tr><td>'+esc(a.name)+'</td><td class="pr-r pr-g">'+fmt(b.inc)+'</td><td class="pr-r pr-rr">'+fmt(b.exp)+'</td></tr>'});
+      if(byAcc['__none__']){var b=byAcc['__none__'];h+='<tr><td style="color:#999">(Hesap belirtilmemiş)</td><td class="pr-r pr-g">'+fmt(b.inc)+'</td><td class="pr-r pr-rr">'+fmt(b.exp)+'</td></tr>'}
+      h+='</table>';
+    }
+
+    h+='<div class="pr-h2">Tüm İşlemler ('+txns.length+')</div>';
+    if(!txns.length){h+='<div class="pr-empty">Bu ay için işlem kaydedilmemiş.</div>'}
+    else{
+      h+='<table class="pr-tbl pr-txns"><thead><tr><th>Tarih</th><th>Tür</th><th>Kategori</th><th>Not</th><th>Hesap</th><th>Üye</th><th class="pr-r">Tutar</th></tr></thead>';
+      txns.slice().sort(function(a,b){return a.date.localeCompare(b.date)}).forEach(function(t){
+        var sign=t.type==='income'?'+':'-',cls=t.type==='income'?'pr-g':'pr-rr',typeLbl=t.type==='income'?'Gelir':'Gider';
+        var u=userMap[t.userId];var uLabel=u?(u.emoji||'')+' '+u.name:(t.userId==='__shared__'?'Ortak':'-');
+        h+='<tr><td>'+esc(fd(t.date))+'</td><td>'+typeLbl+'</td><td>'+esc(t.category)+'</td><td>'+esc(t.note||'-')+'</td><td>'+esc(accMap[t.accountId]||'-')+'</td><td>'+esc(uLabel)+'</td><td class="pr-r '+cls+'">'+sign+fmt(t.amount)+'</td></tr>';
+      });
+      h+='</table>';
+    }
+
+    h+='<div class="pr-foot">FinansTakip PWA &middot; '+esc(title)+' raporu &middot; Veriler yereldir (KVKK uyumlu)</div>';
+    h+='</div>';
+    return h;
+  }
+  return{open,close,generate};
 })();
 
 App.Notifications=(function(){
