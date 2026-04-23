@@ -52,9 +52,13 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .toggle-track.on .toggle-thumb{transform:translateX(16px)}
 .content{flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;max-width:100%}
 .page{display:none;padding:24px 24px 80px}.page.active{display:block}
-.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);padding:6px env(safe-area-inset-right) max(8px,env(safe-area-inset-bottom)) env(safe-area-inset-left);z-index:100;justify-content:space-around;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.bnav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:.62rem;color:var(--txt3);font-weight:500;padding:6px 10px;min-width:48px;min-height:44px;transition:color var(--tr);cursor:pointer;white-space:nowrap}
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);padding:6px env(safe-area-inset-right) max(8px,env(safe-area-inset-bottom)) env(safe-area-inset-left);z-index:100;justify-content:space-around;overflow:hidden}
+.bnav-item{flex:1 1 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:.62rem;color:var(--txt3);font-weight:500;padding:6px 4px;min-width:0;min-height:44px;transition:color var(--tr);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bnav-item.active{color:var(--teal)}.bnav-icon{font-size:1.2rem}
+.more-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:4px}
+.more-grid-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:var(--r2);background:var(--bg3);border:1px solid var(--border);cursor:pointer;transition:all var(--tr);text-align:center;font-size:.76rem;font-weight:600;color:var(--txt);min-height:76px;justify-content:center}
+.more-grid-item:hover{border-color:var(--teal);color:var(--teal)}
+.more-grid-ico{font-size:1.6rem;line-height:1}
 .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
 .ph-title{font-size:1.4rem;font-weight:700;letter-spacing:-.03em}.ph-sub{font-size:.78rem;color:var(--txt2);margin-top:2px}
 .hero{background:var(--grad);border-radius:var(--r3);padding:26px;margin-bottom:18px;position:relative;overflow:hidden}
@@ -560,11 +564,9 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 <nav class="bottom-nav" id="bottomNav">
   <div class="bnav-item active" data-nav="ozet"><span class="bnav-icon">📊</span>Özet</div>
   <div class="bnav-item" data-nav="islemler"><span class="bnav-icon">↕️</span>İşlem</div>
-  <div class="bnav-item" data-nav="aile"><span class="bnav-icon">👨‍👩‍👧</span>Aile</div>
   <div class="bnav-item" data-nav="hesaplar"><span class="bnav-icon">💳</span>Hesap</div>
-  <div class="bnav-item" data-nav="taksitler"><span class="bnav-icon">📅</span>Taksit</div>
-  <div class="bnav-item" data-nav="portfoy"><span class="bnav-icon">💎</span>Portföy</div>
   <div class="bnav-item" data-nav="butce"><span class="bnav-icon">🎯</span>Bütçe</div>
+  <div class="bnav-item" id="moreBtn" onclick="App.UI.moreMenu()"><span class="bnav-icon">☰</span>Daha</div>
 </nav>
 <div class="toast-box" id="toasts"></div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
@@ -679,6 +681,23 @@ App.UI=(function(){
       el.focus();
     },80);
   }
+  function moreMenu(){
+    if(document.getElementById('moreHolder'))return;
+    var items=[
+      {act:"App.UI.nav('aile')",icon:'👨‍👩‍👧',label:'Aile'},
+      {act:"App.UI.nav('tekrarlayan')",icon:'🔄',label:'Tekrarlayan'},
+      {act:"App.UI.nav('taksitler')",icon:'📅',label:'Taksitler'},
+      {act:"App.UI.nav('borclar')",icon:'🤝',label:'Borçlar'},
+      {act:"App.UI.nav('portfoy')",icon:'💎',label:'Portföy'},
+      {act:"App.UI.nav('istatistikler')",icon:'📈',label:'İstatistik'},
+      {act:"App.UI.nav('hedefler')",icon:'⭐',label:'Hedefler'},
+      {act:"App.Report.open()",icon:'📄',label:'Rapor'}
+    ];
+    var grid=items.map(function(it){return '<div class="more-grid-item" onclick="App.UI.moreClose();'+it.act+'"><div class="more-grid-ico">'+it.icon+'</div><div>'+it.label+'</div></div>'}).join('');
+    var html='<div class="modal-bd show" id="moreMdl" onclick="if(event.target===this)App.UI.moreClose()"><div class="modal" style="max-width:420px"><div class="modal-title">☰ Daha</div><div class="more-grid">'+grid+'</div><div class="modal-actions"><button class="btn btn-ghost" onclick="App.UI.moreClose()">Kapat</button></div></div></div>';
+    var div=document.createElement('div');div.id='moreHolder';div.innerHTML=html;document.body.appendChild(div);
+  }
+  function moreClose(){var el=document.getElementById('moreHolder');if(el)el.remove()}
   function toast(msg,type){
     var box=document.getElementById('toasts'),el=document.createElement('div');
     el.className='toast '+(type||'ok');el.innerHTML=(type==='err'?'❌ ':type==='info'?'ℹ️ ':'✅ ')+esc(msg);
@@ -705,7 +724,7 @@ App.UI=(function(){
     var d=new Date();
     document.getElementById('todayDate').textContent=d.getDate()+' '+MF[d.getMonth()]+' '+d.getFullYear()+', '+['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'][d.getDay()];
   }
-  return{nav,subTab,setType,getType,quickAdd,initSelects,refreshAccSelects,refreshUserSelects,refreshFilterDropdowns,toast,setTheme,bindEvents,initDates,syncActiveProfilePill}
+  return{nav,subTab,setType,getType,quickAdd,moreMenu,moreClose,initSelects,refreshAccSelects,refreshUserSelects,refreshFilterDropdowns,toast,setTheme,bindEvents,initDates,syncActiveProfilePill}
 })();
 
 App.Accounts=(function(){
