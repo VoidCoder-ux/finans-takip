@@ -59,7 +59,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .more-grid-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:var(--r2);background:var(--bg3);border:1px solid var(--border);cursor:pointer;transition:all var(--tr);text-align:center;font-size:.76rem;font-weight:600;color:var(--txt);min-height:76px;justify-content:center}
 .more-grid-item:hover{border-color:var(--teal);color:var(--teal)}
 .more-grid-ico{font-size:1.6rem;line-height:1}
-.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:10px}
 .ph-title{font-size:1.4rem;font-weight:700;letter-spacing:-.03em}.ph-sub{font-size:.78rem;color:var(--txt2);margin-top:2px}
 .hero{background:var(--grad);border-radius:var(--r3);padding:26px;margin-bottom:18px;position:relative;overflow:hidden}
 .hero::before{content:'';position:absolute;top:-50px;right:-50px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.07)}
@@ -122,7 +122,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .acc-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
 .acc-ico{font-size:1.6rem;margin-bottom:10px;display:block}.acc-name{font-size:.88rem;font-weight:700;margin-bottom:2px}
 .acc-type{font-size:.7rem;color:var(--txt2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
-.acc-bal{font-size:1.2rem;font-weight:800;letter-spacing:-.03em}
+.acc-bal{font-size:1.2rem;font-weight:800;letter-spacing:-.03em;word-break:break-all;overflow-wrap:break-word}
 .acc-bal.pos{color:var(--green)}.acc-bal.neg{color:var(--red)}.acc-bal.zero{color:var(--txt2)}
 .acc-del{position:absolute;top:10px;right:10px}
 .budget-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -279,7 +279,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .port-ico{font-size:1.4rem;margin-bottom:8px;display:block}
 .port-type{font-size:.68rem;color:var(--txt2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;font-weight:700}
 .port-qty{font-size:.82rem;color:var(--txt);font-weight:600;margin-bottom:4px}
-.port-val{font-size:1.05rem;font-weight:800;letter-spacing:-.03em;color:var(--teal)}
+.port-val{font-size:1.05rem;font-weight:800;letter-spacing:-.03em;color:var(--teal);word-break:break-all;overflow-wrap:break-word}
 .port-chg{font-size:.7rem;color:var(--txt2);margin-top:3px}
 .port-del{position:absolute;top:8px;right:8px}
 .rate-bar{display:flex;gap:10px;align-items:center;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:12px 16px;margin-bottom:14px;flex-wrap:wrap}
@@ -289,7 +289,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .ins-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .ins-name{font-size:.92rem;font-weight:700}
 .ins-meta{font-size:.72rem;color:var(--txt2);margin-top:2px}
-.ins-amt{font-size:1.05rem;font-weight:800;color:var(--red);letter-spacing:-.02em}
+.ins-amt{font-size:1.05rem;font-weight:800;color:var(--red);letter-spacing:-.02em;word-break:break-all}
 .ins-months{display:flex;gap:4px;flex-wrap:wrap;margin-top:10px}
 .ins-month{padding:3px 8px;font-size:.68rem;border-radius:99px;font-weight:700;background:var(--bg4);color:var(--txt2)}
 .ins-month.paid{background:rgba(34,197,94,.15);color:var(--green)}
@@ -298,7 +298,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .fund-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;flex-wrap:wrap}
 .fund-name{font-size:.92rem;font-weight:700}
 .fund-yearly{font-size:.72rem;color:var(--txt2);margin-top:2px}
-.fund-monthly{font-size:1.05rem;font-weight:800;color:var(--orange);letter-spacing:-.02em;white-space:nowrap}
+.fund-monthly{font-size:1.05rem;font-weight:800;color:var(--orange);letter-spacing:-.02em;word-break:break-all}
 .fund-prog{height:6px;background:var(--bg4);border-radius:99px;overflow:hidden;margin-top:10px}
 .fund-prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--orange),var(--yellow));transition:width .5s}
 .fund-foot{display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:.72rem;color:var(--txt2)}
@@ -321,7 +321,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .user-card .uc-stats{display:flex;gap:14px;font-size:.75rem;margin-bottom:10px;flex-wrap:wrap}
 .user-card .uc-stat .v{font-weight:800;font-size:.92rem;display:block}
 .user-card .uc-stat .l{color:var(--txt2);font-size:.68rem}
-.user-card .uc-bal{font-size:1.1rem;font-weight:800;letter-spacing:-.02em}
+.user-card .uc-bal{font-size:1.1rem;font-weight:800;letter-spacing:-.02em;word-break:break-all;overflow-wrap:break-word}
 .user-card .uc-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
 .user-card .btn-active{font-size:.7rem;padding:5px 11px;border-radius:99px;background:var(--grad);color:#fff;font-weight:700;border:none;cursor:pointer}
 .user-card .btn-active.is-active{background:rgba(34,197,94,.15);color:var(--green);cursor:default}
@@ -332,10 +332,10 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .wallet-row .wr-emoji{font-size:1.4rem}
 .wallet-row .wr-name{font-size:.88rem;font-weight:700}
 .wallet-row .wr-meta{font-size:.7rem;color:var(--txt2);margin-top:1px}
-.wallet-row .wr-bal{font-size:1rem;font-weight:800;letter-spacing:-.02em}
+.wallet-row .wr-bal{font-size:1rem;font-weight:800;letter-spacing:-.02em;word-break:break-all;text-align:right;max-width:45%}
 .wallet-row .wr-bal.pos{color:var(--green)}.wallet-row .wr-bal.neg{color:var(--red)}
 @media(max-width:768px){.sidebar{display:none}.bottom-nav{display:flex}.page{padding:14px 12px calc(96px + env(safe-area-inset-bottom))}.metrics{grid-template-columns:1fr 1fr}.budget-grid,.goals-grid,.debt-grid,.port-grid{grid-template-columns:1fr 1fr}.stats-grid{grid-template-columns:1fr}.chart-card{padding:14px}.chart-wrap{height:240px}.wb-label{flex:0 0 70px;font-size:.72rem}.fg.c3,.fg.c4{grid-template-columns:1fr 1fr}.filter-row{flex-wrap:wrap}.fs,.fi{min-width:0;width:100%;flex:1 1 auto}.acc-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}.hero-chips{flex-wrap:wrap}.ti-amt{font-size:.85rem}.rec-body{min-width:0;overflow:hidden}.rec-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.debt-person{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.goal-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.acc-bal{font-size:clamp(.9rem,3vw,1.2rem);word-break:break-all}}
-@media(max-width:480px){.metrics{grid-template-columns:1fr 1fr}.fg.c2,.fg.c3,.fg.c4{grid-template-columns:1fr}.acc-grid{grid-template-columns:1fr 1fr}.mc{padding:12px}.mc-val{font-size:.9rem}.hero{padding:18px}.chip{font-size:.72rem;padding:5px 10px}.ph-title{font-size:1.1rem}.card{padding:14px}.bc-head{flex-wrap:wrap;gap:7px}.budget-grid{grid-template-columns:1fr}.rule-card{grid-template-columns:1fr;gap:6px}.rule-arrow{transform:rotate(90deg);justify-self:center;font-size:1rem}.rule-actions{justify-content:space-between}.modal-bd{padding:12px}.modal{padding:18px}}
+@media(max-width:480px){.metrics{grid-template-columns:1fr 1fr}.fg.c2,.fg.c3,.fg.c4{grid-template-columns:1fr}.acc-grid{grid-template-columns:1fr 1fr}.port-grid,.debt-grid,.goals-grid{grid-template-columns:1fr}.acc-card{padding:14px}.port-card{padding:14px}.debt-card,.goal-card,.bc{padding:14px}.mc{padding:12px}.mc-val{font-size:.9rem}.hero{padding:18px}.chip{font-size:.72rem;padding:5px 10px}.ph-title{font-size:1.1rem}.card{padding:14px}.bc-head{flex-wrap:wrap;gap:7px}.budget-grid{grid-template-columns:1fr}.rule-card{grid-template-columns:1fr;gap:6px}.rule-arrow{transform:rotate(90deg);justify-self:center;font-size:1rem}.rule-actions{justify-content:space-between}.modal-bd{padding:12px}.modal{padding:18px}.ti{padding:11px 13px;gap:10px}.rec-item{padding:12px 13px;gap:10px}.wallet-row{padding:11px 12px}.nw-card{padding:14px}.zbb-card{padding:14px}}
 @media(hover:none){.mc:hover,.btn-primary:hover,.btn-ghost:hover,.btn-teal:hover,.quick-btn:hover,.quick-btn.qinc:hover,.quick-btn.qexp:hover,.goal-card:hover,.notif-btn:hover,.btn-del:hover,.sh-link:hover,.nav-item:hover,.theme-btn:hover{transform:none}}
 @media print{
   @page{size:A4;margin:15mm}
@@ -520,7 +520,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 
 <section class="page" id="page-borclar">
   <div class="ph"><div><div class="ph-title">Borçlar</div><div class="ph-sub">Verilen ve alınan borçlar</div></div></div>
-  <div class="metrics" style="grid-template-columns:1fr 1fr 1fr">
+  <div class="metrics">
     <div class="mc"><div class="mc-icon cc-blue">⬆️</div><div class="mc-val" id="debtLentTotal" style="color:var(--blue)">₺0</div><div class="mc-lbl">Verilen Borç</div></div>
     <div class="mc"><div class="mc-icon cc-red">⬇️</div><div class="mc-val" id="debtBorrowedTotal" style="color:var(--red)">₺0</div><div class="mc-lbl">Alınan Borç</div></div>
     <div class="mc"><div class="mc-icon cc-teal">⚖️</div><div class="mc-val" id="debtNet">₺0</div><div class="mc-lbl">Net Durum</div></div>
@@ -583,7 +583,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 
 <section class="page" id="page-taksitler">
   <div class="ph"><div><div class="ph-title">Taksitler</div><div class="ph-sub">Taksitli alışverişlerin aylık yükü</div></div></div>
-  <div class="metrics" style="grid-template-columns:1fr 1fr 1fr">
+  <div class="metrics">
     <div class="mc"><div class="mc-icon cc-red">💳</div><div class="mc-val" id="insMonthly" style="color:var(--red)">₺0</div><div class="mc-lbl">Bu Ay Taksit</div></div>
     <div class="mc"><div class="mc-icon cc-orange">📆</div><div class="mc-val" id="insRemaining">₺0</div><div class="mc-lbl">Kalan Toplam</div></div>
     <div class="mc"><div class="mc-icon cc-teal">🧾</div><div class="mc-val" id="insCount">0</div><div class="mc-lbl">Aktif Plan</div></div>
