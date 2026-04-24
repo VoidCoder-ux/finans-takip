@@ -735,13 +735,14 @@ App.UI=(function(){
     if(pg==='istatistikler')App.Charts.refresh();
     if(pg==='ozet'){App.Transactions.renderRecent();App.Recurring.renderOzet();App.WeeklySummary.render();App.Users.renderFamilyPanel();App.Notifications.syncBtn();App.NetWorth.render()}
     if(pg==='hesaplar')App.Accounts.renderAll();
+    if(pg==='islemler')App.Transactions.renderList();
     if(pg==='borclar')App.Debts.renderAll();
     if(pg==='taksitler')App.Installments.render();
     if(pg==='portfoy')App.Portfolio.render();
-    if(pg==='butce')App.YearlyFund.render();
+    if(pg==='butce'){App.Budget.renderAll();App.YearlyFund.render()}
     if(pg==='aile')App.Users.renderAll();
-    if(pg==='hedefler')App.Goals.renderEmergencyInfo();
-    if(pg==='tekrarlayan')App.Recurring.renderSubSummary();
+    if(pg==='hedefler'){App.Goals.renderAll();App.Goals.renderEmergencyInfo()}
+    if(pg==='tekrarlayan'){App.Recurring.renderList();App.Recurring.renderSubSummary()}
     if(pg==='kurallar'){App.Rules.initSelects();App.Rules.renderList()}
   }
   function subTab(pageId,tabId){
@@ -1117,11 +1118,11 @@ App.Budget=(function(){
   }
   function remove(cat){var b=S.budgets();delete b[cat];S.saveBudgets(b);var bm=S.budgetMeta();delete bm[cat];S.saveBudgetMeta(bm);renderAll();App.UI.toast('Limit silindi.')}
   function prevMonth(m){var p=m.split('-'),y=+p[0],mo=+p[1]-1-1;if(mo<0){mo=11;y--}return y+'-'+String(mo+1).padStart(2,'0')}
-  function rolloverBalance(cat,uptoMonth){
+  function rolloverBalance(cat){
     var bm=S.budgetMeta();if(!bm[cat]||!bm[cat].carryOver)return 0;
     var b=S.budgets(),limit=b[cat]||0;if(!limit)return 0;
-    var now=new Date(),balance=0,curM=tm();
-    for(var i=6;i>=1;i--){var d=new Date(now.getFullYear(),now.getMonth()-i,1);var m=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');if(m>=curM)continue;var spent=(App.Transactions.catTotals(m)||{})[cat]||0;balance+=(limit-spent)}
+    var now=new Date(),balance=0;
+    for(var i=6;i>=1;i--){var d=new Date(now.getFullYear(),now.getMonth()-i,1);var m=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');var spent=(App.Transactions.catTotals(m)||{})[cat]||0;balance+=(limit-spent)}
     return balance;
   }
   function effectiveLimit(cat){var base=S.budgets()[cat]||0;return base+rolloverBalance(cat)}
@@ -1344,14 +1345,14 @@ App.Charts=(function(){
     var p1=month.split('-'),p2=prev.split('-');
     var curLabel=MF[+p1[1]-1]+' '+p1[0],prevLabel=MF[+p2[1]-1]+' '+p2[0];
     title.textContent=(yoy?'Yıldan Yıla':'Aydan Aya')+' Kıyaslama — '+curLabel+' vs '+prevLabel;
-    function deltaCell(cur,pr){var d=cur-pr,pct=pr?(d/pr)*100:0;if(!pr&&!cur)return'<span class="cmp-delta flat">—</span>';if(!pr)return'<span class="cmp-delta up">Yeni</span>';var cls=d>0?'up':d<0?'down':'flat',sign=d>0?'▲':d<0?'▼':'=';return'<span class="cmp-delta '+cls+'">'+sign+' '+Math.abs(pct).toFixed(0)+'%</span>'}
-    var rows='<tr><td>💵 Gelir</td><td class="num">'+fmt(curT.income)+'</td><td class="num">'+fmt(prevT.income)+'</td><td class="num">'+deltaCell(curT.income,prevT.income)+'</td></tr>';
-    rows+='<tr><td>💸 Gider</td><td class="num">'+fmt(curT.expense)+'</td><td class="num">'+fmt(prevT.expense)+'</td><td class="num">'+deltaCell(curT.expense,prevT.expense)+'</td></tr>';
-    rows+='<tr><td>⚖️ Net</td><td class="num"><b>'+fmt(curT.income-curT.expense)+'</b></td><td class="num">'+fmt(prevT.income-prevT.expense)+'</td><td class="num">'+deltaCell(curT.income-curT.expense,prevT.income-prevT.expense)+'</td></tr>';
+    function deltaCell(cur,pr,higherIsGood){var d=cur-pr,pct=pr?(d/pr)*100:0;if(!pr&&!cur)return'<span class="cmp-delta flat">—</span>';if(!pr)return'<span class="cmp-delta '+(higherIsGood?'down':'up')+'">Yeni</span>';var sign=d>0?'▲':d<0?'▼':'=';var cls=d===0?'flat':d>0?(higherIsGood?'down':'up'):(higherIsGood?'up':'down');return'<span class="cmp-delta '+cls+'">'+sign+' '+Math.abs(pct).toFixed(0)+'%</span>'}
+    var rows='<tr><td>💵 Gelir</td><td class="num">'+fmt(curT.income)+'</td><td class="num">'+fmt(prevT.income)+'</td><td class="num">'+deltaCell(curT.income,prevT.income,true)+'</td></tr>';
+    rows+='<tr><td>💸 Gider</td><td class="num">'+fmt(curT.expense)+'</td><td class="num">'+fmt(prevT.expense)+'</td><td class="num">'+deltaCell(curT.expense,prevT.expense,false)+'</td></tr>';
+    rows+='<tr><td>⚖️ Net</td><td class="num"><b>'+fmt(curT.income-curT.expense)+'</b></td><td class="num">'+fmt(prevT.income-prevT.expense)+'</td><td class="num">'+deltaCell(curT.income-curT.expense,prevT.income-prevT.expense,true)+'</td></tr>';
     var curCats=_catTotalsByType(month,'expense'),prevCats=_catTotalsByType(prev,'expense');
     var allCats={};Object.keys(curCats).forEach(function(k){allCats[k]=true});Object.keys(prevCats).forEach(function(k){allCats[k]=true});
     var catKeys=Object.keys(allCats).sort(function(a,b){return(curCats[b]||0)-(curCats[a]||0)});
-    var catRows=catKeys.map(function(c){var cu=curCats[c]||0,pr=prevCats[c]||0;return'<tr><td>'+ci(c).i+' '+esc(c)+'</td><td class="num">'+fmt(cu)+'</td><td class="num">'+fmt(pr)+'</td><td class="num">'+deltaCell(cu,pr)+'</td></tr>'}).join('');
+    var catRows=catKeys.map(function(c){var cu=curCats[c]||0,pr=prevCats[c]||0;return'<tr><td>'+ci(c).i+' '+esc(c)+'</td><td class="num">'+fmt(cu)+'</td><td class="num">'+fmt(pr)+'</td><td class="num">'+deltaCell(cu,pr,false)+'</td></tr>'}).join('');
     var content='<div class="stats-table-wrap"><table class="cmp-table"><thead><tr><th>Kategori / Toplam</th><th style="text-align:right">'+curLabel+'</th><th style="text-align:right">'+prevLabel+'</th><th style="text-align:right">Fark</th></tr></thead><tbody>'+rows+(catKeys.length?'<tr><td colspan="4" style="padding-top:14px;font-size:.7rem;color:var(--txt3);text-transform:uppercase">Kategori Kırılımı</td></tr>'+catRows:'')+'</tbody></table></div>';
     el.innerHTML=content;
   }
@@ -1691,8 +1692,9 @@ App.ICS=(function(){
   function _stamp(){var d=new Date();return d.getUTCFullYear()+_pad(d.getUTCMonth()+1)+_pad(d.getUTCDate())+'T'+_pad(d.getUTCHours())+_pad(d.getUTCMinutes())+_pad(d.getUTCSeconds())+'Z'}
   function _esc(s){return String(s||'').replace(/\\/g,'\\\\').replace(/,/g,'\\,').replace(/;/g,'\\;').replace(/\n/g,'\\n')}
   function _addMonths(iso,n){var p=iso.split('-'),y=+p[0],m=+p[1]-1+n,day=+p[2];var lastOfTarget=new Date(y,m+1,0).getDate();var d=new Date(y,m,Math.min(day,lastOfTarget));return d.getFullYear()+'-'+_pad(d.getMonth()+1)+'-'+_pad(d.getDate())}
+  function _nextDay(iso){var p=iso.split('-');var d=new Date(+p[0],+p[1]-1,+p[2]);d.setDate(d.getDate()+1);return d.getFullYear()+'-'+_pad(d.getMonth()+1)+'-'+_pad(d.getDate())}
   function _event(uid,date,summary,desc){
-    return['BEGIN:VEVENT','UID:'+uid+'@finanstakip','DTSTAMP:'+_stamp(),'DTSTART;VALUE=DATE:'+_dt(date),'DTEND;VALUE=DATE:'+_dt(_addMonths(date,0)),'SUMMARY:'+_esc(summary),desc?'DESCRIPTION:'+_esc(desc):'','END:VEVENT'].filter(Boolean).join('\r\n');
+    return['BEGIN:VEVENT','UID:'+uid+'@finanstakip','DTSTAMP:'+_stamp(),'DTSTART;VALUE=DATE:'+_dt(date),'DTEND;VALUE=DATE:'+_dt(_nextDay(date)),'SUMMARY:'+_esc(summary),desc?'DESCRIPTION:'+_esc(desc):'','END:VEVENT'].filter(Boolean).join('\r\n');
   }
   function buildCalendar(months){
     months=months||12;
