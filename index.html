@@ -487,7 +487,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 </section>
 
 <section class="page" id="page-islemler">
-  <div class="ph"><div><div class="ph-title">İşlemler</div><div class="ph-sub">Tüm gelir ve giderleriniz</div></div><button class="btn btn-sm btn-ghost" onclick="App.Transactions.exportCSV()">⬇️ CSV İndir</button></div>
+  <div class="ph"><div><div class="ph-title">İşlemler</div><div class="ph-sub">Tüm gelir ve giderleriniz</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm btn-ghost" onclick="document.getElementById('csvImport').click()">⬆️ CSV Yükle</button><button class="btn btn-sm btn-ghost" onclick="App.Transactions.exportCSV()">⬇️ CSV İndir</button><input type="file" id="csvImport" accept=".csv,text/csv" style="display:none" onchange="App.Transactions.importCSV(this)"/></div></div>
   <div class="card">
     <div class="type-pills"><button class="tp ti" id="pillInc" onclick="App.UI.setType('income')">+ Gelir</button><button class="tp" id="pillExp" onclick="App.UI.setType('expense')">− Gider</button></div>
     <div class="fg c3"><div class="f"><label>Tutar (₺)</label><input type="number" inputmode="decimal" id="txnAmt" placeholder="0.00" min="0" step="0.01"/></div><div class="f"><label>Tarih</label><input type="date" id="txnDate"/></div><div class="f"><label>Kategori</label><select id="txnCat"></select></div></div>
@@ -1023,7 +1023,48 @@ App.Transactions=(function(){
     txns.forEach(function(t){var an=t.accountId?App.Accounts.getName(t.accountId):'';rows.push([t.date,t.type==='income'?'Gelir':'Gider',t.category,t.amount,an,t.note||''].map(function(v){return'"'+String(v).replace(/"/g,'""')+'"'}).join(','))});
     var blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='finanstakip_'+td()+'.csv';a.click();URL.revokeObjectURL(url);App.UI.toast('CSV indirildi.','info');
   }
-  return{add,remove,monthTotals,catTotals,last6,allTimeTotals,renderSummaryMetrics,renderList,renderRecent,exportCSV,statementPeriod}
+  function _parseCSV(text){
+    text=String(text||'').replace(/^\uFEFF/,'');var rows=[],row=[],cur='',q=false;
+    for(var i=0;i<text.length;i++){var ch=text[i],nx=text[i+1];if(q){if(ch==='"'&&nx==='"'){cur+='"';i++}else if(ch==='"')q=false;else cur+=ch}else{if(ch==='"')q=true;else if(ch===','){row.push(cur);cur=''}else if(ch==='\n'){row.push(cur);rows.push(row);row=[];cur=''}else if(ch!=='\r')cur+=ch}}
+    if(cur||row.length){row.push(cur);rows.push(row)}return rows.filter(function(r){return r.some(function(c){return String(c).trim()!==''})})
+  }
+  function importCSV(input){
+    var file=input.files&&input.files[0];if(!file)return;
+    var reader=new FileReader();
+    reader.onload=function(){
+      try{
+        var rows=_parseCSV(reader.result);if(rows.length<2){App.UI.toast('CSV boş veya geçersiz.','err');return}
+        var head=rows.shift().map(function(h){return String(h).trim().toLowerCase()});
+        function col(name){return head.indexOf(name)}
+        var iDate=col('tarih'),iType=col('tür'),iCat=col('kategori'),iAmt=col('tutar'),iAcc=col('hesap'),iNote=col('not');
+        if(iDate<0||iType<0||iCat<0||iAmt<0){App.UI.toast('CSV kolonları eksik.','err');return}
+        var shared=App.Accounts.sharedAccount();if(!shared){App.UI.toast('Ortak cüzdan hesabı oluşturun.','err');return}
+        var accounts=S.accounts(),txns=S.txns(),seen={};
+        function parseAmount(v){v=String(v||'').trim();return v.indexOf(',')>=0?parseFloat(v.replace(/\./g,'').replace(',','.')):parseFloat(v)}
+        txns.forEach(function(t){seen[[t.date,t.type,t.amount,t.category,t.note||'',t.accountId||''].join('|')]=1});
+        var added=0,skipped=0,bad=0,balances={};
+        rows.forEach(function(r){
+          var date=String(r[iDate]||'').trim(),rawType=String(r[iType]||'').trim().toLowerCase(),cat=String(r[iCat]||'').trim();
+          var amount=parseAmount(r[iAmt]),note=iNote>=0?String(r[iNote]||'').trim():'';
+          var type=rawType==='gelir'||rawType==='income'?'income':rawType==='gider'||rawType==='expense'?'expense':'';
+          if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!type||!cat||!amount||amount<=0){bad++;return}
+          var accName=iAcc>=0?String(r[iAcc]||'').trim():'';
+          var acc=accounts.find(function(a){return a.name===accName})||shared;
+          var sig=[date,type,amount,cat,note,acc.id].join('|');if(seen[sig]){skipped++;return}
+          seen[sig]=1;txns.unshift({id:gid('t'),type,amount,category:cat,date,note,accountId:acc.id,userId:S.settings().activeUser,ts:Date.now()+added});
+          balances[acc.id]=(balances[acc.id]||0)+(type==='income'?amount:-amount);added++;
+        });
+        if(!added){App.UI.toast('Yeni işlem bulunamadı. '+(skipped?skipped+' tekrar atlandı.':''),'info');return}
+        S.saveTxns(txns);
+        Object.keys(balances).forEach(function(id){App.Accounts.adjustBalance(id,balances[id])});
+        App.UI.refreshFilterDropdowns();renderList();renderRecent();renderSummaryMetrics();App.Accounts.renderSummary();App.Budget.renderAll();App.Installments.render();App.WeeklySummary.render();
+        App.UI.toast(added+' işlem yüklendi'+(skipped?', '+skipped+' tekrar atlandı':'')+(bad?', '+bad+' satır okunamadı':'')+'.','info');
+      }catch(e){App.UI.toast('CSV yüklenemedi.','err')}
+      finally{input.value=''}
+    };
+    reader.readAsText(file,'utf-8');
+  }
+  return{add,remove,monthTotals,catTotals,last6,allTimeTotals,renderSummaryMetrics,renderList,renderRecent,exportCSV,importCSV,statementPeriod}
 })();
 
 App.Recurring=(function(){
