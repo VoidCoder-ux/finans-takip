@@ -1333,7 +1333,11 @@ App.Rules=(function(){
 
 App.Charts=(function(){
   var _d=null,_b=null;
-  function refresh(){var month=document.getElementById('statMonth').value||tm();var cats=App.Transactions.catTotals(month);_donut(cats);_bar(App.Transactions.last6());_compare(month);_table(month,cats)}
+  function _drawMsg(id,msg){
+    var c=document.getElementById(id);if(!c)return;
+    var ctx=c.getContext('2d');ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);ctx.fillStyle=cv('--txt2');ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText(msg,ctx.canvas.width/2,ctx.canvas.height/2);
+  }
+  function refresh(){var month=document.getElementById('statMonth').value||tm();var cats=App.Transactions.catTotals(month);if(!window.Chart){if(_d){_d.destroy();_d=null}if(_b){_b.destroy();_b=null}_drawMsg('cDonut','Grafik kütüphanesi yüklenemedi');_drawMsg('cBar','Grafik kütüphanesi yüklenemedi');var cc=document.getElementById('cmpContent');if(cc)cc.innerHTML='<div class="empty"><span class="empty-ico">📊</span><div class="empty-t">Grafik kütüphanesi yüklenemedi</div></div>';var st=document.getElementById('statsTable');if(st)st.innerHTML='<div class="empty"><span class="empty-ico">📊</span><div class="empty-t">Grafik kütüphanesi yüklenemedi</div></div>';return}_donut(cats);_bar(App.Transactions.last6());_compare(month);_table(month,cats)}
   function _prevMonth(m){var p=m.split('-'),y=+p[0],mo=+p[1]-1;mo--;if(mo<0){mo=11;y--}return y+'-'+String(mo+1).padStart(2,'0')}
   function _prevYear(m){var p=m.split('-');return(+p[0]-1)+'-'+p[1]}
   function _catTotalsByType(month,type){var out={};S.txns().forEach(function(t){if(t.type!==type||!t.date.startsWith(month))return;out[t.category]=(out[t.category]||0)+t.amount});return out}
@@ -1378,20 +1382,20 @@ App.Charts=(function(){
 App.Installments=(function(){
   function active(){
     var plans={},arr=S.txns();
-    arr.forEach(function(t){if(!t.installment)return;var p=t.installment.planId;if(!plans[p])plans[p]={planId:p,name:t.installment.name,total:t.installment.total,totalAmount:t.installment.totalAmount,startDate:t.installment.startDate,per:0,items:[],accountId:t.accountId,category:t.category};plans[p].items.push(t);plans[p].per=t.amount});
-    return Object.values(plans).map(function(p){p.items.sort(function(a,b){return a.installment.index-b.installment.index});var today=td();var paid=p.items.filter(function(x){return x.date<=today}).length;p.paid=paid;p.remaining=(p.total-paid)*p.per;p.thisMonth=p.items.find(function(x){return x.date.substring(0,7)===tm()});return p}).filter(function(p){return p.paid<p.total});
+    arr.forEach(function(t){if(!t.installment)return;var p=t.installment.planId;if(!plans[p])plans[p]={planId:p,name:t.installment.name,total:t.installment.total,totalAmount:t.installment.totalAmount,startDate:t.installment.startDate,items:[],accountId:t.accountId,category:t.category};plans[p].items.push(t)});
+    return Object.values(plans).map(function(p){p.items.sort(function(a,b){return a.installment.index-b.installment.index});var today=td();p.paid=p.items.filter(function(x){return x.date<=today}).length;p.remaining=p.items.filter(function(x){return x.date>today}).reduce(function(s,x){return s+x.amount},0);p.thisMonth=p.items.find(function(x){return x.date.substring(0,7)===tm()});p.displayAmount=p.thisMonth?p.thisMonth.amount:(p.items[0]?p.items[0].amount:0);return p}).filter(function(p){return p.paid<p.total});
   }
-  function monthlyTotal(){return active().reduce(function(s,p){return s+(p.thisMonth?p.per:0)},0)}
+  function monthlyTotal(){return active().reduce(function(s,p){return s+(p.thisMonth?p.thisMonth.amount:0)},0)}
   function render(){
     var plans=active(),el=document.getElementById('insList');
-    document.getElementById('insMonthly').textContent=fmt(plans.reduce(function(s,p){return s+(p.thisMonth?p.per:0)},0));
+    document.getElementById('insMonthly').textContent=fmt(plans.reduce(function(s,p){return s+(p.thisMonth?p.thisMonth.amount:0)},0));
     document.getElementById('insRemaining').textContent=fmt(plans.reduce(function(s,p){return s+p.remaining},0));
     document.getElementById('insCount').textContent=plans.length;
     if(!plans.length){el.innerHTML='<div class="empty"><span class="empty-ico">📅</span><div class="empty-t">Aktif taksit yok</div><div class="empty-s">İşlem eklerken taksit sayısını belirt</div></div>';return}
     el.innerHTML=plans.map(function(p){
       var info=ci(p.category),an=p.accountId?App.Accounts.getName(p.accountId):'';
       var monthsHtml=p.items.map(function(it){var cls=it.date<=td()?'paid':'';if(it.date.substring(0,7)===tm())cls='current';return'<span class="ins-month '+cls+'" title="'+fd(it.date)+'">'+it.installment.index+'</span>'}).join('');
-      return'<div class="ins-card"><div class="ins-head"><div><div class="ins-name">'+info.i+' '+esc(p.name)+'</div><div class="ins-meta">'+fmt(p.totalAmount)+' · '+p.total+' ay · '+p.paid+'/'+p.total+' ödendi'+(an?' · '+esc(an):'')+'</div></div><div style="text-align:right"><div class="ins-amt">'+fmt(p.per)+'</div><div style="font-size:.7rem;color:var(--txt2)">aylık</div></div></div><div class="ins-months">'+monthsHtml+'</div></div>';
+      return'<div class="ins-card"><div class="ins-head"><div><div class="ins-name">'+info.i+' '+esc(p.name)+'</div><div class="ins-meta">'+fmt(p.totalAmount)+' · '+p.total+' ay · '+p.paid+'/'+p.total+' ödendi'+(an?' · '+esc(an):'')+'</div></div><div style="text-align:right"><div class="ins-amt">'+fmt(p.displayAmount)+'</div><div style="font-size:.7rem;color:var(--txt2)">aylık</div></div></div><div class="ins-months">'+monthsHtml+'</div></div>';
     }).join('');
   }
   return{active,monthlyTotal,render}
@@ -1582,6 +1586,7 @@ App.NetWorth=(function(){
   function _renderChart(hist){
     if(_chart){_chart.destroy();_chart=null}
     var ctx=document.getElementById('nwChart').getContext('2d');
+    if(!window.Chart){ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);ctx.fillStyle=cv('--txt3');ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Grafik kütüphanesi yüklenemedi',ctx.canvas.width/2,ctx.canvas.height/2);return}
     if(hist.length<2){ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);ctx.fillStyle=cv('--txt3');ctx.font='11px sans-serif';ctx.textAlign='center';ctx.fillText('Bir sonraki ay grafik oluşacak',ctx.canvas.width/2,ctx.canvas.height/2);return}
     var labels=hist.map(function(h){var p=h.month.split('-');return MN[+p[1]-1]+' '+p[0].slice(2)});
     var data=hist.map(function(h){return h.total});

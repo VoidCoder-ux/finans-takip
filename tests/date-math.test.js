@@ -68,5 +68,24 @@ eq('split 100/3 sums to 100',sum(splitInstallment(100,3)),100);
 eq('split 10/3 sums to 10',sum(splitInstallment(10,3)),10);
 eq('split 999.99/7 sums to 999.99',sum(splitInstallment(999.99,7)),999.99);
 
+// --- Installment dashboard totals: use actual item amounts, not a copied per value
+function activeInstallmentPlan(items,today,currentMonth){
+  var p={total:items[0].installment.total,items:items.slice()};
+  p.items.sort(function(a,b){return a.installment.index-b.installment.index});
+  p.paid=p.items.filter(function(x){return x.date<=today}).length;
+  p.remaining=sum(p.items.filter(function(x){return x.date>today}).map(function(x){return x.amount}));
+  p.thisMonth=p.items.find(function(x){return x.date.substring(0,7)===currentMonth});
+  p.displayAmount=p.thisMonth?p.thisMonth.amount:(p.items[0]?p.items[0].amount:0);
+  return p;
+}
+var plan100=[
+  {date:'2026-01-01',amount:33.33,installment:{index:1,total:3}},
+  {date:'2026-02-01',amount:33.33,installment:{index:2,total:3}},
+  {date:'2026-03-01',amount:33.34,installment:{index:3,total:3}}
+];
+var active100=activeInstallmentPlan(plan100,'2026-01-15','2026-03');
+eq('installment remaining uses actual unpaid amounts',active100.remaining,66.67);
+eq('installment current month uses actual final amount',active100.displayAmount,33.34);
+
 console.log('\n'+pass+' passed, '+fail+' failed');
 process.exit(fail?1:0);

@@ -8,7 +8,11 @@ const ASSETS = [
 
 self.addEventListener('install', function(e) {
   e.waitUntil(
-    caches.open(CACHE).then(function(c) { return c.addAll(ASSETS); })
+    caches.open(CACHE).then(function(c) {
+      return Promise.all(ASSETS.map(function(asset) {
+        return c.add(asset).catch(function() { return null; });
+      }));
+    })
   );
   self.skipWaiting();
 });
@@ -45,7 +49,7 @@ self.addEventListener('fetch', function(e) {
           caches.open(CACHE).then(function(c) { c.put(req, copy); });
         }
         return resp;
-      }).catch(function() { return caches.match('./index.html'); });
+      }).catch(function() { return new Response('', { status: 504, statusText: 'Offline' }); });
     })
   );
 });
