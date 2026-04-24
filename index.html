@@ -181,6 +181,18 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .contrib-item{display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:var(--r);padding:8px 11px;font-size:.78rem}
 .ca{font-weight:700;color:var(--teal)}.cd{color:var(--txt2);font-size:.7rem}
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.stats-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
+.skpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:15px;min-width:0}
+.skpi-lbl{font-size:.68rem;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}
+.skpi-val{font-size:1.15rem;font-weight:800;letter-spacing:-.03em;word-break:break-all}
+.skpi-sub{font-size:.72rem;color:var(--txt3);margin-top:4px;line-height:1.35}
+.stats-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-left:auto}
+.stats-action-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:99px;border:1px solid var(--border2);background:var(--bg2);color:var(--txt);font-size:.8rem;font-weight:700;cursor:pointer;transition:all var(--tr)}
+.stats-action-btn:hover{border-color:var(--teal);color:var(--teal)}
+.insight-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.insight-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:13px}
+.insight-label{font-size:.68rem;color:var(--txt2);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.insight-text{font-size:.86rem;font-weight:650;margin-top:5px;line-height:1.35}
 .chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:18px}.chart-card.full{grid-column:1/-1}
 .chart-title{font-size:.75rem;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px}
 .chart-wrap{position:relative;height:220px}
@@ -334,8 +346,8 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .wallet-row .wr-meta{font-size:.7rem;color:var(--txt2);margin-top:1px}
 .wallet-row .wr-bal{font-size:1rem;font-weight:800;letter-spacing:-.02em;word-break:break-all;text-align:right;max-width:45%}
 .wallet-row .wr-bal.pos{color:var(--green)}.wallet-row .wr-bal.neg{color:var(--red)}
-@media(max-width:768px){.sidebar{display:none}.bottom-nav{display:flex}.page{padding:14px 12px calc(96px + env(safe-area-inset-bottom))}.metrics{grid-template-columns:1fr 1fr}.budget-grid,.goals-grid,.debt-grid,.port-grid{grid-template-columns:1fr 1fr}.stats-grid{grid-template-columns:1fr}.chart-card{padding:14px}.chart-wrap{height:240px}.wb-label{flex:0 0 70px;font-size:.72rem}.fg.c3,.fg.c4{grid-template-columns:1fr 1fr}.filter-row{flex-wrap:wrap}.fs,.fi{min-width:0;width:100%;flex:1 1 auto}.acc-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}.hero-chips{flex-wrap:wrap}.ti-amt{font-size:.85rem}.rec-body{min-width:0;overflow:hidden}.rec-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.debt-person{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.goal-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.acc-bal{font-size:clamp(.9rem,3vw,1.2rem);word-break:break-all}}
-@media(max-width:480px){.metrics{grid-template-columns:1fr 1fr}.fg.c2,.fg.c3,.fg.c4{grid-template-columns:1fr}.acc-grid{grid-template-columns:1fr 1fr}.port-grid,.debt-grid,.goals-grid{grid-template-columns:1fr}.acc-card{padding:14px}.port-card{padding:14px}.debt-card,.goal-card,.bc{padding:14px}.mc{padding:12px}.mc-val{font-size:.9rem}.hero{padding:18px}.chip{font-size:.72rem;padding:5px 10px}.ph-title{font-size:1.1rem}.card{padding:14px}.bc-head{flex-wrap:wrap;gap:7px}.budget-grid{grid-template-columns:1fr}.rule-card{grid-template-columns:1fr;gap:6px}.rule-arrow{transform:rotate(90deg);justify-self:center;font-size:1rem}.rule-actions{justify-content:space-between}.modal-bd{padding:12px}.modal{padding:18px}.ti{padding:11px 13px;gap:10px}.rec-item{padding:12px 13px;gap:10px}.wallet-row{padding:11px 12px}.nw-card{padding:14px}.zbb-card{padding:14px}}
+@media(max-width:768px){.sidebar{display:none}.bottom-nav{display:flex}.page{padding:14px 12px calc(96px + env(safe-area-inset-bottom))}.metrics{grid-template-columns:1fr 1fr}.budget-grid,.goals-grid,.debt-grid,.port-grid{grid-template-columns:1fr 1fr}.stats-grid{grid-template-columns:1fr}.stats-kpis{grid-template-columns:1fr 1fr}.insight-grid{grid-template-columns:1fr}.stats-actions{width:100%;margin-left:0}.stats-action-btn{flex:1;justify-content:center}.chart-card{padding:14px}.chart-wrap{height:240px}.wb-label{flex:0 0 70px;font-size:.72rem}.fg.c3,.fg.c4{grid-template-columns:1fr 1fr}.filter-row{flex-wrap:wrap}.fs,.fi{min-width:0;width:100%;flex:1 1 auto}.acc-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}.hero-chips{flex-wrap:wrap}.ti-amt{font-size:.85rem}.rec-body{min-width:0;overflow:hidden}.rec-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.debt-person{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.goal-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.acc-bal{font-size:clamp(.9rem,3vw,1.2rem);word-break:break-all}}
+@media(max-width:480px){.metrics{grid-template-columns:1fr 1fr}.stats-kpis{grid-template-columns:1fr}.fg.c2,.fg.c3,.fg.c4{grid-template-columns:1fr}.acc-grid{grid-template-columns:1fr 1fr}.port-grid,.debt-grid,.goals-grid{grid-template-columns:1fr}.acc-card{padding:14px}.port-card{padding:14px}.debt-card,.goal-card,.bc{padding:14px}.mc{padding:12px}.mc-val{font-size:.9rem}.hero{padding:18px}.chip{font-size:.72rem;padding:5px 10px}.ph-title{font-size:1.1rem}.card{padding:14px}.bc-head{flex-wrap:wrap;gap:7px}.budget-grid{grid-template-columns:1fr}.rule-card{grid-template-columns:1fr;gap:6px}.rule-arrow{transform:rotate(90deg);justify-self:center;font-size:1rem}.rule-actions{justify-content:space-between}.modal-bd{padding:12px}.modal{padding:18px}.ti{padding:11px 13px;gap:10px}.rec-item{padding:12px 13px;gap:10px}.wallet-row{padding:11px 12px}.nw-card{padding:14px}.zbb-card{padding:14px}}
 @media(hover:none){.mc:hover,.btn-primary:hover,.btn-ghost:hover,.btn-teal:hover,.quick-btn:hover,.quick-btn.qinc:hover,.quick-btn.qexp:hover,.goal-card:hover,.notif-btn:hover,.btn-del:hover,.sh-link:hover,.nav-item:hover,.theme-btn:hover{transform:none}}
 @media print{
   @page{size:A4;margin:10mm}
@@ -622,7 +634,10 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <span style="font-size:.8rem;color:var(--txt2);font-weight:600">Dönem:</span>
     <input type="month" id="statMonth" onchange="App.Charts.refresh()" style="background:var(--bg2);border:1px solid var(--border2);border-radius:99px;padding:7px 14px;font-size:.8rem;color:var(--txt)"/>
     <label class="compare-toggle"><input type="checkbox" id="cmpYoY" onchange="App.Charts.refresh()"/> <span>📆 Geçen yıl ile kıyasla</span></label>
+    <div class="stats-actions"><button class="stats-action-btn" onclick="App.Charts.report()">📄 Seçili Ay PDF Raporu</button></div>
   </div>
+  <div class="stats-kpis" id="statsKpis"></div>
+  <div class="insight-grid" id="statsInsights"></div>
   <div class="stats-grid">
     <div class="chart-card"><div class="chart-title">Harcama Dağılımı</div><div class="chart-wrap"><canvas id="cDonut"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">6 Aylık Trend</div><div class="chart-wrap"><canvas id="cBar"></canvas></div></div>
@@ -1346,7 +1361,30 @@ App.Charts=(function(){
     var c=document.getElementById(id);if(!c)return;
     var ctx=c.getContext('2d');ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);ctx.fillStyle=cv('--txt2');ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText(msg,ctx.canvas.width/2,ctx.canvas.height/2);
   }
-  function refresh(){var month=document.getElementById('statMonth').value||tm();var cats=App.Transactions.catTotals(month);if(!window.Chart){if(_d){_d.destroy();_d=null}if(_b){_b.destroy();_b=null}_drawMsg('cDonut','Grafik kütüphanesi yüklenemedi');_drawMsg('cBar','Grafik kütüphanesi yüklenemedi');var cc=document.getElementById('cmpContent');if(cc)cc.innerHTML='<div class="empty"><span class="empty-ico">📊</span><div class="empty-t">Grafik kütüphanesi yüklenemedi</div></div>';var st=document.getElementById('statsTable');if(st)st.innerHTML='<div class="empty"><span class="empty-ico">📊</span><div class="empty-t">Grafik kütüphanesi yüklenemedi</div></div>';return}_donut(cats);_bar(App.Transactions.last6());_compare(month);_table(month,cats)}
+  function refresh(){var month=document.getElementById('statMonth').value||tm();var cats=App.Transactions.catTotals(month);_summary(month,cats);if(!window.Chart){if(_d){_d.destroy();_d=null}if(_b){_b.destroy();_b=null}_drawMsg('cDonut','Grafik kütüphanesi yüklenemedi');_drawMsg('cBar','Grafik kütüphanesi yüklenemedi');var cc=document.getElementById('cmpContent');if(cc)cc.innerHTML='<div class="empty"><span class="empty-ico">📊</span><div class="empty-t">Grafik kütüphanesi yüklenemedi</div></div>';var st=document.getElementById('statsTable');if(st)st.innerHTML='<div class="empty"><span class="empty-ico">📊</span><div class="empty-t">Grafik kütüphanesi yüklenemedi</div></div>';return}_donut(cats);_bar(App.Transactions.last6());_compare(month);_table(month,cats)}
+  function _pct(v){return isFinite(v)?v.toFixed(1)+'%':'0.0%'}
+  function _daysInMonth(m){var p=m.split('-');return new Date(+p[0],+p[1],0).getDate()}
+  function _summary(month,cats){
+    var total=App.Transactions.monthTotals(month),prev=App.Transactions.monthTotals(_prevMonth(month));
+    var net=total.income-total.expense,saveRate=total.income?net/total.income*100:0,avg=total.expense/_daysInMonth(month);
+    var topCat=Object.keys(cats).sort(function(a,b){return cats[b]-cats[a]})[0],topSpend=topCat?cats[topCat]:0;
+    var b=S.budgets(),budgetTotal=0;Object.keys(b).forEach(function(k){budgetTotal+=b[k]||0});
+    var budgetPct=budgetTotal?total.expense/budgetTotal*100:0,deltaExp=total.expense-prev.expense;
+    var kpis=[
+      ['Net Sonuç',fmt(net),net>=0?'Gelir giderden yüksek':'Gider gelirden yüksek',net>=0?'var(--green)':'var(--red)'],
+      ['Tasarruf Oranı',_pct(saveRate),total.income?fmt(total.income)+' gelir üzerinden':'Gelir kaydı yok',saveRate>=0?'var(--green)':'var(--red)'],
+      ['Günlük Ortalama Gider',fmt(avg),'Ayın günlük harcama temposu','var(--orange)'],
+      ['Bütçe Kullanımı',budgetTotal?_pct(budgetPct):'Limit yok',budgetTotal?fmt(budgetTotal)+' toplam limit':'Kategori limiti tanımlı değil',budgetPct>100?'var(--red)':budgetPct>=75?'var(--yellow)':'var(--green)']
+    ];
+    var el=document.getElementById('statsKpis');if(el)el.innerHTML=kpis.map(function(k){return'<div class="skpi"><div class="skpi-lbl">'+k[0]+'</div><div class="skpi-val" style="color:'+k[3]+'">'+k[1]+'</div><div class="skpi-sub">'+k[2]+'</div></div>'}).join('');
+    var insights=[
+      ['En Büyük Gider',topCat?ci(topCat).i+' '+esc(topCat)+' · '+fmt(topSpend):'Bu dönem gider yok'],
+      ['Gider Değişimi',(deltaExp>0?'Önceki aya göre '+fmt(deltaExp)+' arttı':deltaExp<0?'Önceki aya göre '+fmt(Math.abs(deltaExp))+' azaldı':'Önceki ayla aynı seviyede')],
+      ['İşlem Yoğunluğu',total.count+' işlem · Ortalama işlem '+(total.count?fmt((total.income+total.expense)/total.count):fmt(0))]
+    ];
+    var ins=document.getElementById('statsInsights');if(ins)ins.innerHTML=insights.map(function(x){return'<div class="insight-item"><div class="insight-label">'+x[0]+'</div><div class="insight-text">'+x[1]+'</div></div>'}).join('');
+  }
+  function report(){var m=document.getElementById('statMonth').value||tm();App.Report.generateMonth(m)}
   function _prevMonth(m){var p=m.split('-'),y=+p[0],mo=+p[1]-1;mo--;if(mo<0){mo=11;y--}return y+'-'+String(mo+1).padStart(2,'0')}
   function _prevYear(m){var p=m.split('-');return(+p[0]-1)+'-'+p[1]}
   function _catTotalsByType(month,type){var out={};S.txns().forEach(function(t){if(t.type!==type||!t.date.startsWith(month))return;out[t.category]=(out[t.category]||0)+t.amount});return out}
@@ -1385,7 +1423,7 @@ App.Charts=(function(){
     var rows=keys.map(function(cat){var spent=cats[cat],lim=b[cat];var s='<span style="color:var(--txt3)">—</span>';if(lim){var pct=(spent/lim)*100;s=pct>=100?'<span style="color:var(--red)">⚠ Aşıldı</span>':pct>=75?'<span style="color:var(--yellow)">⚠ '+pct.toFixed(0)+'%</span>':'<span style="color:var(--green)">✓ '+pct.toFixed(0)+'%</span>'}return'<tr><td>'+ci(cat).i+' <strong>'+esc(cat)+'</strong></td><td style="color:var(--red);font-weight:700">'+fmt(spent)+'</td><td>'+(lim?fmt(lim):'—')+'</td><td>'+s+'</td></tr>'}).join('');
     el.innerHTML='<div class="stats-table-wrap"><table class="stats-table"><thead><tr><th>Kategori</th><th>Harcama</th><th>Limit</th><th>Durum</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
-  return{refresh}
+  return{refresh,report}
 })();
 
 App.Installments=(function(){
@@ -1617,7 +1655,9 @@ App.Report=(function(){
   function close(){var el=document.getElementById('rapHolder');if(el)el.remove()}
   function generate(){
     var sel=document.getElementById('rapMonth');if(!sel)return;
-    var m=sel.value;close();
+    generateMonth(sel.value);close();
+  }
+  function generateMonth(m){
     var reportHtml=build(m);
     var holder=document.getElementById('printHolder');
     if(!holder){holder=document.createElement('div');holder.id='printHolder';holder.className='print-view';document.body.appendChild(holder)}
@@ -1697,7 +1737,7 @@ App.Report=(function(){
     h+='</div>';
     return h;
   }
-  return{open,close,generate};
+  return{open,close,generate,generateMonth};
 })();
 
 App.ICS=(function(){
