@@ -477,7 +477,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   <div class="card">
     <div class="type-pills"><button class="tp ti" id="pillInc" onclick="App.UI.setType('income')">+ Gelir</button><button class="tp" id="pillExp" onclick="App.UI.setType('expense')">− Gider</button></div>
     <div class="fg c3"><div class="f"><label>Tutar (₺)</label><input type="number" inputmode="decimal" id="txnAmt" placeholder="0.00" min="0" step="0.01"/></div><div class="f"><label>Tarih</label><input type="date" id="txnDate"/></div><div class="f"><label>Kategori</label><select id="txnCat"></select></div></div>
-    <div class="fg c3" style="margin-bottom:11px"><div class="f"><label>Hesap</label><select id="txnAcc"><option value="">Hesap seç (isteğe bağlı)</option></select></div><div class="f"><label>Kim Yaptı</label><select id="txnUser"></select></div><div class="f"><label>Not</label><input type="text" id="txnNote" placeholder="Açıklama..."/></div></div>
+    <div class="fg c3" style="margin-bottom:11px"><div class="f"><label>Hesap</label><div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px 12px;font-size:.84rem;color:var(--txt2)">Ortak cüzdan otomatik</div></div><div class="f"><label>Kim Yaptı</label><select id="txnUser"></select></div><div class="f"><label>Not</label><input type="text" id="txnNote" placeholder="Açıklama..."/></div></div>
     <div class="fg c2" style="margin-bottom:11px"><div class="f"><label>Taksit Sayısı</label><input type="number" id="txnInst" placeholder="Tek çekim için boş bırak" min="2" max="36"/></div><div class="f"><label>İlk Taksit Tarihi</label><input type="date" id="txnInstStart"/></div></div>
     <button class="btn btn-primary" onclick="App.Transactions.add()">İşlemi Ekle</button>
   </div>
@@ -503,7 +503,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       <div class="f"><label>Her Ayın Kaçında</label><input type="number" id="recDay" placeholder="1-31" min="1" max="31"/></div>
     </div>
     <div class="fg c2" style="margin-bottom:11px">
-      <div class="f"><label>Hesap</label><select id="recAcc"><option value="">Hesap seç (isteğe bağlı)</option></select></div>
+      <div class="f"><label>Hesap</label><div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px 12px;font-size:.84rem;color:var(--txt2)">Ortak cüzdan otomatik</div></div>
       <div class="f"><label>Açıklama</label><input type="text" id="recNote" placeholder="Örn: Elektrik faturası"/></div>
     </div>
     <label class="sub-check"><input type="checkbox" id="recIsSub"/> <span>📺 Abonelik (Netflix, Spotify vb.) — kolay iptal takibi için işaretleyin</span></label>
@@ -881,6 +881,7 @@ App.Accounts=(function(){
   function adjustBalance(id,delta){var a=S.accounts();var x=a.find(function(x){return x.id===id});if(x)x.balance+=delta;S.saveAccounts(a);renderAll();renderSummary()}
   function getName(id){var x=S.accounts().find(function(a){return a.id===id});return x?x.name:''}
   function get(id){return S.accounts().find(function(a){return a.id===id})}
+  function sharedAccount(){return S.accounts().find(function(a){return(a.owner||'shared')!=='personal'})}
   function renderAll(){
     var accs=S.accounts(),el=document.getElementById('accGrid');
     if(!accs.length){el.innerHTML='<div class="empty" style="grid-column:1/-1"><span class="empty-ico">💳</span><div class="empty-t">Hesap eklenmedi</div></div>';return}
@@ -903,7 +904,7 @@ App.Accounts=(function(){
     document.getElementById('heroInc').textContent=fmt(all.income)+' Gelir';document.getElementById('heroExp').textContent=fmt(all.expense)+' Gider';
     document.getElementById('heroAcc').textContent=accs.length+' Hesap';
   }
-  return{add,remove,adjustBalance,getName,get,renderAll,renderSummary,onTypeChange,onOwnerChange,ownerTotals}
+  return{add,remove,adjustBalance,getName,get,sharedAccount,renderAll,renderSummary,onTypeChange,onOwnerChange,ownerTotals}
 })();
 
 App.Transactions=(function(){
@@ -917,12 +918,14 @@ App.Transactions=(function(){
   function add(){
     var amt=parseFloat(document.getElementById('txnAmt').value),date=document.getElementById('txnDate').value;
     var cat=document.getElementById('txnCat').value,note=document.getElementById('txnNote').value.trim();
-    var accId=document.getElementById('txnAcc').value,type=App.UI.getType();
+    var type=App.UI.getType();
     var userId=document.getElementById('txnUser').value||S.settings().activeUser;
     var insCount=parseInt(document.getElementById('txnInst').value)||0;
     var insStart=document.getElementById('txnInstStart').value||date;
     if(!amt||amt<=0){App.UI.toast('Geçerli tutar girin.','err');return}
     if(!date){App.UI.toast('Tarih seçin.','err');return}
+    var sharedAcc=App.Accounts.sharedAccount();if(!sharedAcc){App.UI.toast('Ortak cüzdan hesabı oluşturun.','err');return}
+    var accId=sharedAcc.id;
     var arr=S.txns();
     if(type==='expense'&&insCount>=2&&insCount<=36){
       var per=Math.round((amt/insCount)*100)/100,planId=gid('p'),now=Date.now();
@@ -1010,9 +1013,11 @@ App.Recurring=(function(){
   var _filter='all';
   function add(){
     var type=document.getElementById('recType').value,amt=parseFloat(document.getElementById('recAmt').value),cat=document.getElementById('recCat').value;
-    var day=parseInt(document.getElementById('recDay').value),note=document.getElementById('recNote').value.trim(),accId=document.getElementById('recAcc').value;
+    var day=parseInt(document.getElementById('recDay').value),note=document.getElementById('recNote').value.trim(),accId='';
     var isSub=!!document.getElementById('recIsSub').checked;
     if(!amt||amt<=0){App.UI.toast('Geçerli tutar girin.','err');return}if(!day||day<1||day>31){App.UI.toast('Geçerli gün girin (1-31).','err');return}
+    var sharedAcc=App.Accounts.sharedAccount();if(!sharedAcc){App.UI.toast('Ortak cüzdan hesabı oluşturun.','err');return}
+    accId=sharedAcc.id;
     var arr=S.recurring();arr.push({id:gid('r'),type,amount:amt,category:cat,day,note,accountId:accId,isSubscription:isSub,ts:Date.now()});S.saveRecurring(arr);
     document.getElementById('recAmt').value='';document.getElementById('recNote').value='';document.getElementById('recDay').value='';document.getElementById('recIsSub').checked=false;
     renderList();renderOzet();renderSubSummary();App.UI.toast(isSub?'Abonelik eklendi. 📺':'Tekrarlayan işlem eklendi.');
@@ -1022,8 +1027,9 @@ App.Recurring=(function(){
   function setFilter(f){_filter=f;document.querySelectorAll('[data-rfilter]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-rfilter')===f)});renderList()}
   function log(id){
     var rec=S.recurring().find(function(r){return r.id===id});if(!rec)return;
-    var arr=S.txns();arr.unshift({id:gid('t'),type:rec.type,amount:rec.amount,category:rec.category,date:td(),note:rec.note||'Tekrarlayan',accountId:rec.accountId,userId:S.settings().activeUser,ts:Date.now()});S.saveTxns(arr);
-    if(rec.accountId)App.Accounts.adjustBalance(rec.accountId,rec.type==='income'?rec.amount:-rec.amount);
+    var sharedAcc=App.Accounts.sharedAccount();if(!sharedAcc){App.UI.toast('Ortak cüzdan hesabı oluşturun.','err');return}
+    var arr=S.txns();arr.unshift({id:gid('t'),type:rec.type,amount:rec.amount,category:rec.category,date:td(),note:rec.note||'Tekrarlayan',accountId:sharedAcc.id,userId:S.settings().activeUser,ts:Date.now()});S.saveTxns(arr);
+    App.Accounts.adjustBalance(sharedAcc.id,rec.type==='income'?rec.amount:-rec.amount);
     App.UI.refreshFilterDropdowns();App.Transactions.renderList();App.Transactions.renderRecent();App.Transactions.renderSummaryMetrics();App.Accounts.renderSummary();App.Budget.renderAll();
     App.UI.toast('"'+(rec.note||rec.category)+'" kaydedildi.','info');
   }

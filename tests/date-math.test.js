@@ -87,5 +87,25 @@ var active100=activeInstallmentPlan(plan100,'2026-01-15','2026-03');
 eq('installment remaining uses actual unpaid amounts',active100.remaining,66.67);
 eq('installment current month uses actual final amount',active100.displayAmount,33.34);
 
+// --- Shared wallet routing: user ownership stays on the transaction, money hits shared account
+function sharedAccount(accounts){return accounts.find(function(a){return(a.owner||'shared')!=='personal'})}
+function routeTxn(type,amount,userId,selectedAccountId,accounts){
+  var shared=sharedAccount(accounts);
+  if(!shared)return null;
+  return{type:type,amount:amount,userId:userId,accountId:shared.id,balanceDelta:type==='income'?amount:-amount,ignoredAccountId:selectedAccountId};
+}
+var accountsForRouting=[
+  {id:'personal_a',owner:'personal',userId:'u_a'},
+  {id:'shared_wallet',owner:'shared'}
+];
+var incomeRoute=routeTxn('income',500,'u_a','personal_a',accountsForRouting);
+eq('income keeps selected user',incomeRoute.userId,'u_a');
+eq('income routes money to shared wallet',incomeRoute.accountId,'shared_wallet');
+eq('income adds to shared wallet',incomeRoute.balanceDelta,500);
+var expenseRoute=routeTxn('expense',120,'u_b','personal_a',accountsForRouting);
+eq('expense routes money to shared wallet',expenseRoute.accountId,'shared_wallet');
+eq('expense subtracts from shared wallet',expenseRoute.balanceDelta,-120);
+eq('missing shared wallet blocks routing',routeTxn('income',50,'u_a','personal_a',[{id:'personal_a',owner:'personal'}]),null);
+
 console.log('\n'+pass+' passed, '+fail+' failed');
 process.exit(fail?1:0);
