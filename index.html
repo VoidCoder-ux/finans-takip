@@ -1019,8 +1019,8 @@ App.Transactions=(function(){
   function renderRecent(){var el=document.getElementById('ozet-txns'),txns=S.txns().slice(0,5);if(!txns.length){el.innerHTML='<div class="empty"><span class="empty-ico">💳</span><div class="empty-t">Henüz işlem yok</div></div>';return}el.innerHTML=txns.map(function(t){return _h(t,false)}).join('')}
   function exportCSV(){
     var txns=S.txns();if(!txns.length){App.UI.toast('İşlem yok.','err');return}
-    var rows=['\uFEFFTarih,Tür,Kategori,Tutar,Hesap,Not'];
-    txns.forEach(function(t){var an=t.accountId?App.Accounts.getName(t.accountId):'';rows.push([t.date,t.type==='income'?'Gelir':'Gider',t.category,t.amount,an,t.note||''].map(function(v){return'"'+String(v).replace(/"/g,'""')+'"'}).join(','))});
+    var rows=['\uFEFFTarih,Tür,Kategori,Tutar,Hesap,Üye,Not'];
+    txns.forEach(function(t){var an=t.accountId?App.Accounts.getName(t.accountId):'',u=t.userId?App.Users.get(t.userId):null;rows.push([t.date,t.type==='income'?'Gelir':'Gider',t.category,t.amount,an,u?u.name:'',t.note||''].map(function(v){return'"'+String(v).replace(/"/g,'""')+'"'}).join(','))});
     var blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='finanstakip_'+td()+'.csv';a.click();URL.revokeObjectURL(url);App.UI.toast('CSV indirildi.','info');
   }
   function _parseCSV(text){
@@ -1036,7 +1036,7 @@ App.Transactions=(function(){
         var rows=_parseCSV(reader.result);if(rows.length<2){App.UI.toast('CSV boş veya geçersiz.','err');return}
         var head=rows.shift().map(function(h){return String(h).trim().toLowerCase()});
         function col(name){return head.indexOf(name)}
-        var iDate=col('tarih'),iType=col('tür'),iCat=col('kategori'),iAmt=col('tutar'),iAcc=col('hesap'),iNote=col('not');
+        var iDate=col('tarih'),iType=col('tür'),iCat=col('kategori'),iAmt=col('tutar'),iUser=col('üye'),iNote=col('not');
         if(iDate<0||iType<0||iCat<0||iAmt<0){App.UI.toast('CSV kolonları eksik.','err');return}
         var shared=App.Accounts.sharedAccount();if(!shared){App.UI.toast('Ortak cüzdan hesabı oluşturun.','err');return}
         var accounts=S.accounts(),txns=S.txns(),seen={};
@@ -1048,10 +1048,11 @@ App.Transactions=(function(){
           var amount=parseAmount(r[iAmt]),note=iNote>=0?String(r[iNote]||'').trim():'';
           var type=rawType==='gelir'||rawType==='income'?'income':rawType==='gider'||rawType==='expense'?'expense':'';
           if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!type||!cat||!amount||amount<=0){bad++;return}
-          var accName=iAcc>=0?String(r[iAcc]||'').trim():'';
-          var acc=accounts.find(function(a){return a.name===accName})||shared;
+          var userName=iUser>=0?String(r[iUser]||'').trim():'';
+          var user=userName?(App.Users.list().find(function(u){return u.name===userName})):null;
+          var acc=shared;
           var sig=[date,type,amount,cat,note,acc.id].join('|');if(seen[sig]){skipped++;return}
-          seen[sig]=1;txns.unshift({id:gid('t'),type,amount,category:cat,date,note,accountId:acc.id,userId:S.settings().activeUser,ts:Date.now()+added});
+          seen[sig]=1;txns.unshift({id:gid('t'),type,amount,category:cat,date,note,accountId:acc.id,userId:(user?user.id:S.settings().activeUser),ts:Date.now()+added});
           balances[acc.id]=(balances[acc.id]||0)+(type==='income'?amount:-amount);added++;
         });
         if(!added){App.UI.toast('Yeni işlem bulunamadı. '+(skipped?skipped+' tekrar atlandı.':''),'info');return}
