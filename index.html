@@ -662,6 +662,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       <div class="assistant-meta" id="assistantMeta"></div>
     </div>
     <div class="assistant-side">
+      <button class="assistant-action" onclick="App.Assistant.run('general')"><span class="assistant-action-ico">🧭</span><span><span class="assistant-action-title">Genel Analiz</span><span class="assistant-action-sub">Tüm finans durumunu tek raporda değerlendirir.</span></span></button>
       <button class="assistant-action" onclick="App.Assistant.run('spending')"><span class="assistant-action-ico">📊</span><span><span class="assistant-action-title">Harcamaları Analiz Et</span><span class="assistant-action-sub">Bu ay kategori ve işlem davranışını yorumlar.</span></span></button>
       <button class="assistant-action" onclick="App.Assistant.run('budget')"><span class="assistant-action-ico">🎯</span><span><span class="assistant-action-title">Bütçe Kontrolü</span><span class="assistant-action-sub">Limit aşımı, kalan bütçe ve riskleri çıkarır.</span></span></button>
       <button class="assistant-action" onclick="App.Assistant.run('portfolio')"><span class="assistant-action-ico">💎</span><span><span class="assistant-action-title">Portföy Yorumu</span><span class="assistant-action-sub">Güncel kur ve varlık dağılımını özetler.</span></span></button>
@@ -1673,6 +1674,7 @@ App.Portfolio=(function(){
 
 App.Assistant=(function(){
   var TASKS={
+    general:'Tum finans durumumu genel olarak analiz et. Gelir-gider dengesi, butce disiplini, portfoy, borclar, taksitler, tekrar eden odemeler ve hedefleri birlikte yorumla. En onemli 5 bulgu, ilk 3 risk ve uygulanabilir 5 adim ver.',
     spending:'Bu ayki gelir-gider ve kategori harcamalarimi analiz et. En buyuk 3 riski ve en pratik 3 aksiyonu yaz.',
     budget:'Butce limitlerimi, asimlari ve kalan alanlari kontrol et. Oncelik sirali uyarilar ve duzeltme onerileri ver.',
     portfolio:'Portfoyumu guncel kur bilgileriyle yorumla. Dagilim, kur riski ve takip edilmesi gereken noktalar icin kisa ozet ver.',
@@ -1761,7 +1763,7 @@ App.Assistant=(function(){
     });
   }
   function run(kind){
-    var titles={spending:'Harcamaları Analiz Et',budget:'Bütçe Kontrolü',portfolio:'Portföy Yorumu',savings:'Tasarruf Planı',debts:'Borç ve Ödeme Uyarıları'};
+    var titles={general:'Genel Analiz',spending:'Harcamaları Analiz Et',budget:'Bütçe Kontrolü',portfolio:'Portföy Yorumu',savings:'Tasarruf Planı',debts:'Borç ve Ödeme Uyarıları'};
     _callDeepSeek(TASKS[kind]||TASKS.spending,titles[kind]||'Asistan');
   }
   function askCustom(){
