@@ -303,6 +303,20 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .market-panel-title{font-size:.8rem;font-weight:800;color:var(--txt2);text-transform:uppercase;letter-spacing:.05em}
 .market-panel-text{font-size:.86rem;line-height:1.55;color:var(--txt);white-space:pre-wrap}
 .market-panel-meta{font-size:.7rem;color:var(--txt3);margin-top:8px}
+.assistant-shell{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;align-items:start}
+.assistant-chat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:16px;min-height:360px;display:flex;flex-direction:column;gap:12px}
+.assistant-output{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:15px;white-space:pre-wrap;font-size:.9rem;line-height:1.55;color:var(--txt);min-height:240px;overflow:auto}
+.assistant-output.empty{display:flex;align-items:center;justify-content:center;text-align:center;color:var(--txt3);font-weight:700}
+.assistant-input-row{display:flex;gap:8px;align-items:flex-end}
+.assistant-input-row textarea{flex:1;min-height:74px;resize:vertical;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:11px 12px;color:var(--txt);font-family:inherit;font-size:16px;line-height:1.4}
+.assistant-input-row textarea:focus{border-color:var(--teal)}
+.assistant-side{display:flex;flex-direction:column;gap:10px}
+.assistant-action{display:flex;align-items:center;gap:10px;text-align:left;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px;transition:all var(--tr);cursor:pointer}
+.assistant-action:hover{border-color:var(--teal);transform:translateY(-1px)}
+.assistant-action-ico{width:34px;height:34px;border-radius:10px;background:var(--bg3);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.assistant-action-title{font-size:.88rem;font-weight:800}
+.assistant-action-sub{font-size:.72rem;color:var(--txt2);margin-top:2px;line-height:1.35}
+.assistant-meta{font-size:.72rem;color:var(--txt3);line-height:1.45}
 .ins-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:10px}
 .ins-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .ins-name{font-size:.92rem;font-weight:700}
@@ -352,7 +366,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .wallet-row .wr-meta{font-size:.7rem;color:var(--txt2);margin-top:1px}
 .wallet-row .wr-bal{font-size:1rem;font-weight:800;letter-spacing:-.02em;word-break:break-all;text-align:right;max-width:45%}
 .wallet-row .wr-bal.pos{color:var(--green)}.wallet-row .wr-bal.neg{color:var(--red)}
-@media(max-width:768px){.sidebar{display:none}.bottom-nav{display:flex}.page{padding:14px 12px calc(96px + env(safe-area-inset-bottom))}.metrics{grid-template-columns:1fr 1fr}.budget-grid,.goals-grid,.debt-grid,.port-grid{grid-template-columns:1fr 1fr}.stats-grid{grid-template-columns:1fr}.stats-kpis{grid-template-columns:1fr 1fr}.insight-grid{grid-template-columns:1fr}.stats-actions{width:100%;margin-left:0}.stats-action-btn{flex:1;justify-content:center}.chart-card{padding:14px}.chart-wrap{height:240px}.wb-label{flex:0 0 70px;font-size:.72rem}.fg.c3,.fg.c4{grid-template-columns:1fr 1fr}.filter-row{flex-wrap:wrap}.fs,.fi{min-width:0;width:100%;flex:1 1 auto}.acc-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}.hero-chips{flex-wrap:wrap}.ti-amt{font-size:.85rem}.rec-body{min-width:0;overflow:hidden}.rec-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.debt-person{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.goal-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.acc-bal{font-size:clamp(.9rem,3vw,1.2rem);word-break:break-all}}
+@media(max-width:768px){.sidebar{display:none}.bottom-nav{display:flex}.page{padding:14px 12px calc(96px + env(safe-area-inset-bottom))}.metrics{grid-template-columns:1fr 1fr}.budget-grid,.goals-grid,.debt-grid,.port-grid{grid-template-columns:1fr 1fr}.stats-grid{grid-template-columns:1fr}.stats-kpis{grid-template-columns:1fr 1fr}.insight-grid{grid-template-columns:1fr}.assistant-shell{grid-template-columns:1fr}.assistant-input-row{flex-direction:column;align-items:stretch}.stats-actions{width:100%;margin-left:0}.stats-action-btn{flex:1;justify-content:center}.chart-card{padding:14px}.chart-wrap{height:240px}.wb-label{flex:0 0 70px;font-size:.72rem}.fg.c3,.fg.c4{grid-template-columns:1fr 1fr}.filter-row{flex-wrap:wrap}.fs,.fi{min-width:0;width:100%;flex:1 1 auto}.acc-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}.hero-chips{flex-wrap:wrap}.ti-amt{font-size:.85rem}.rec-body{min-width:0;overflow:hidden}.rec-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.debt-person{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.goal-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.acc-bal{font-size:clamp(.9rem,3vw,1.2rem);word-break:break-all}}
 @media(max-width:480px){.metrics{grid-template-columns:1fr 1fr}.stats-kpis{grid-template-columns:1fr}.fg.c2,.fg.c3,.fg.c4{grid-template-columns:1fr}.acc-grid{grid-template-columns:1fr 1fr}.port-grid,.debt-grid,.goals-grid{grid-template-columns:1fr}.acc-card{padding:14px}.port-card{padding:14px}.debt-card,.goal-card,.bc{padding:14px}.mc{padding:12px}.mc-val{font-size:.9rem}.hero{padding:18px}.chip{font-size:.72rem;padding:5px 10px}.ph-title{font-size:1.1rem}.card{padding:14px}.bc-head{flex-wrap:wrap;gap:7px}.budget-grid{grid-template-columns:1fr}.rule-card{grid-template-columns:1fr;gap:6px}.rule-arrow{transform:rotate(90deg);justify-self:center;font-size:1rem}.rule-actions{justify-content:space-between}.modal-bd{padding:12px}.modal{padding:18px}.ti{padding:11px 13px;gap:10px}.rec-item{padding:12px 13px;gap:10px}.wallet-row{padding:11px 12px}.nw-card{padding:14px}.zbb-card{padding:14px}}
 @media(hover:none){.mc:hover,.btn-primary:hover,.btn-ghost:hover,.btn-teal:hover,.quick-btn:hover,.quick-btn.qinc:hover,.quick-btn.qexp:hover,.goal-card:hover,.notif-btn:hover,.btn-del:hover,.sh-link:hover,.nav-item:hover,.theme-btn:hover{transform:none}}
 @media print{
@@ -397,6 +411,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   <div class="nav-section">Analiz</div>
   <div class="nav-item" data-nav="butce"><span class="nav-icon">🎯</span>Bütçe</div>
   <div class="nav-item" data-nav="portfoy"><span class="nav-icon">💎</span>Portföy</div>
+  <div class="nav-item" data-nav="asistan"><span class="nav-icon">🧠</span>Asistan</div>
   <div class="nav-item" data-nav="istatistikler"><span class="nav-icon">📈</span>İstatistikler</div>
   <div class="nav-item" data-nav="hedefler"><span class="nav-icon">⭐</span>Hedefler</div>
   <div class="sidebar-bottom">
@@ -635,6 +650,27 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   <div class="port-grid" id="portGrid"></div>
 </section>
 
+<section class="page" id="page-asistan">
+  <div class="ph"><div><div class="ph-title">AI Finans Asistanı</div><div class="ph-sub">Harcamalar, bütçe, portföy ve borçlar için DeepSeek analizi</div></div><button class="notif-btn" onclick="App.Portfolio.openApiSettings()">⚙️ API Ayarları</button></div>
+  <div class="assistant-shell">
+    <div class="assistant-chat">
+      <div class="assistant-output empty" id="assistantOutput">Bir analiz seç veya kendi sorunu yaz.</div>
+      <div class="assistant-input-row">
+        <textarea id="assistantQuestion" placeholder="Örn: Bu ay nerede fazla harcadım ve önümüzdeki hafta neye dikkat etmeliyim?"></textarea>
+        <button class="btn btn-teal" onclick="App.Assistant.askCustom()">Sor</button>
+      </div>
+      <div class="assistant-meta" id="assistantMeta"></div>
+    </div>
+    <div class="assistant-side">
+      <button class="assistant-action" onclick="App.Assistant.run('spending')"><span class="assistant-action-ico">📊</span><span><span class="assistant-action-title">Harcamaları Analiz Et</span><span class="assistant-action-sub">Bu ay kategori ve işlem davranışını yorumlar.</span></span></button>
+      <button class="assistant-action" onclick="App.Assistant.run('budget')"><span class="assistant-action-ico">🎯</span><span><span class="assistant-action-title">Bütçe Kontrolü</span><span class="assistant-action-sub">Limit aşımı, kalan bütçe ve riskleri çıkarır.</span></span></button>
+      <button class="assistant-action" onclick="App.Assistant.run('portfolio')"><span class="assistant-action-ico">💎</span><span><span class="assistant-action-title">Portföy Yorumu</span><span class="assistant-action-sub">Güncel kur ve varlık dağılımını özetler.</span></span></button>
+      <button class="assistant-action" onclick="App.Assistant.run('savings')"><span class="assistant-action-ico">💡</span><span><span class="assistant-action-title">Tasarruf Planı</span><span class="assistant-action-sub">Kısa vadeli uygulanabilir öneriler üretir.</span></span></button>
+      <button class="assistant-action" onclick="App.Assistant.run('debts')"><span class="assistant-action-ico">🤝</span><span><span class="assistant-action-title">Borç ve Ödeme Uyarıları</span><span class="assistant-action-sub">Borç, taksit, abonelik ve yaklaşan ödemeleri inceler.</span></span></button>
+    </div>
+  </div>
+</section>
+
 <section class="page" id="page-istatistikler">
   <div class="ph"><div><div class="ph-title">İstatistikler</div><div class="ph-sub">Finansal analiz ve grafikler</div></div></div>
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap">
@@ -730,10 +766,11 @@ var S=(function(){
   function s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
   var _t,_b,_g,_a,_r,_d,_s,_f,_p;
   var _nw,_ru,_bm,_cpi;
-  function load(){_t=g('pf_t',[]);_b=g('pf_b',{});_g=g('pf_g',[]);_a=g('pf_a',[]);_r=g('pf_r',[]);_d=g('pf_d',[]);_s=g('pf_s',{theme:'dark',rates:{USD:0,EUR:0,GBP:0,GOLD_GRAM:0,GOLD_QUARTER:0,GOLD_FULL:0,FUND:1,updated:null},deepseekApiKey:'',marketSummary:null});_f=g('pf_f',[]);_p=g('pf_p',[]);_nw=g('pf_nw',[]);_ru=g('pf_ru',[]);_bm=g('pf_bm',{});_cpi=g('pf_cpi',null);
+  function load(){_t=g('pf_t',[]);_b=g('pf_b',{});_g=g('pf_g',[]);_a=g('pf_a',[]);_r=g('pf_r',[]);_d=g('pf_d',[]);_s=g('pf_s',{theme:'dark',rates:{USD:0,EUR:0,GBP:0,GOLD_GRAM:0,GOLD_QUARTER:0,GOLD_FULL:0,FUND:1,updated:null},deepseekApiKey:'',marketSummary:null,assistantLast:null});_f=g('pf_f',[]);_p=g('pf_p',[]);_nw=g('pf_nw',[]);_ru=g('pf_ru',[]);_bm=g('pf_bm',{});_cpi=g('pf_cpi',null);
     if(!_s.rates)_s.rates={USD:0,EUR:0,GBP:0,GOLD_GRAM:0,GOLD_QUARTER:0,GOLD_FULL:0,FUND:1,updated:null};
     if(typeof _s.deepseekApiKey==='undefined')_s.deepseekApiKey='';
     if(typeof _s.marketSummary==='undefined')_s.marketSummary=null;
+    if(typeof _s.assistantLast==='undefined')_s.assistantLast=null;
     if(!_s.users||!_s.users.length){_s.users=[{id:'u_self',name:'Ben',emoji:'🙋',color:'#14b8a6'},{id:'u_partner',name:'Eş',emoji:'💑',color:'#ec4899'}];_s.activeUser='u_self';s('pf_s',_s)}
     if(!_s.activeUser){_s.activeUser=_s.users[0].id;s('pf_s',_s)}
   }
@@ -766,6 +803,7 @@ App.UI=(function(){
     if(pg==='borclar')App.Debts.renderAll();
     if(pg==='taksitler')App.Installments.render();
     if(pg==='portfoy'){App.Portfolio.render();App.Portfolio.ensureFreshRates()}
+    if(pg==='asistan')App.Assistant.render();
     if(pg==='butce'){App.Budget.renderAll();App.YearlyFund.render()}
     if(pg==='aile')App.Users.renderAll();
     if(pg==='hedefler'){App.Goals.renderAll();App.Goals.renderEmergencyInfo()}
@@ -839,6 +877,7 @@ App.UI=(function(){
       {act:"App.UI.nav('taksitler')",icon:'📅',label:'Taksitler'},
       {act:"App.UI.nav('borclar')",icon:'🤝',label:'Borçlar'},
       {act:"App.UI.nav('portfoy')",icon:'💎',label:'Portföy'},
+      {act:"App.UI.nav('asistan')",icon:'🧠',label:'Asistan'},
       {act:"App.UI.nav('istatistikler')",icon:'📈',label:'İstatistik'},
       {act:"App.UI.nav('hedefler')",icon:'⭐',label:'Hedefler'},
       {act:"App.UI.nav('kurallar')",icon:'🔧',label:'Kurallar'},
@@ -1632,6 +1671,107 @@ App.Portfolio=(function(){
   return{add,remove,refreshRates,ensureFreshRates,setRate,rateOf,openApiSettings,closeApiSettings,saveApiSettings,generateMarketSummary,clearMarketSummary,render}
 })();
 
+App.Assistant=(function(){
+  var TASKS={
+    spending:'Bu ayki gelir-gider ve kategori harcamalarimi analiz et. En buyuk 3 riski ve en pratik 3 aksiyonu yaz.',
+    budget:'Butce limitlerimi, asimlari ve kalan alanlari kontrol et. Oncelik sirali uyarilar ve duzeltme onerileri ver.',
+    portfolio:'Portfoyumu guncel kur bilgileriyle yorumla. Dagilim, kur riski ve takip edilmesi gereken noktalar icin kisa ozet ver.',
+    savings:'Gelir, gider, hedefler ve tekrar eden odemelere gore uygulanabilir bir tasarruf plani hazirla.',
+    debts:'Borclar, alacaklar, taksitler ve tekrar eden odemeler icin yaklasan riskleri ve odeme onceligini ozetle.'
+  };
+  function render(){
+    var out=document.getElementById('assistantOutput'),meta=document.getElementById('assistantMeta');
+    if(!out)return;
+    var last=S.settings().assistantLast;
+    if(last&&last.text){out.classList.remove('empty');out.textContent=last.text;if(meta)meta.textContent='Son analiz: '+new Date(last.ts).toLocaleString('tr-TR')+' · '+(last.title||'Asistan')}
+    else{out.classList.add('empty');out.textContent='Bir analiz seç veya kendi sorunu yaz.';if(meta)meta.textContent='DeepSeek API anahtarı Portföy > API Ayarları bölümünden eklenir.'}
+  }
+  function _monthTxns(month){return S.txns().filter(function(t){return t.date&&t.date.substring(0,7)===month})}
+  function _sumBy(arr,keyFn,amountFn){
+    var out={};arr.forEach(function(x){var k=keyFn(x)||'Belirsiz';out[k]=(out[k]||0)+(amountFn?amountFn(x):(x.amount||0))});return out;
+  }
+  function _top(obj,n){
+    return Object.keys(obj).sort(function(a,b){return obj[b]-obj[a]}).slice(0,n||8).map(function(k){return{name:k,amount:Math.round(obj[k]*100)/100}});
+  }
+  function _debts(){
+    return S.debts().filter(function(d){return!d.settled}).map(function(d){
+      var paid=(d.payments||[]).reduce(function(s,p){return s+(p.amount||0)},0);
+      return{person:d.person,direction:d.direction,amount:d.amount||0,remaining:Math.max((d.amount||0)-paid,0),dueDate:d.dueDate||'',note:d.note||''};
+    });
+  }
+  function _installments(){
+    try{return App.Installments.active().map(function(p){return{name:p.name,total:p.total,totalAmount:p.totalAmount,paid:p.paid,remaining:Math.round((p.remaining||0)*100)/100,thisMonth:p.thisMonth?{date:p.thisMonth.date,amount:p.thisMonth.amount}:null}})}
+    catch(e){return[]}
+  }
+  function _context(){
+    var month=tm(),txns=_monthTxns(month),inc=0,exp=0;
+    txns.forEach(function(t){if(t.type==='income')inc+=t.amount||0;else exp+=t.amount||0});
+    var expenseTxns=txns.filter(function(t){return t.type==='expense'}),incomeTxns=txns.filter(function(t){return t.type==='income'});
+    var budgets=S.budgets(),budgetRows=Object.keys(budgets).map(function(cat){
+      var spent=expenseTxns.filter(function(t){return t.category===cat}).reduce(function(s,t){return s+(t.amount||0)},0),limit=budgets[cat]||0;
+      return{category:cat,limit:limit,spent:Math.round(spent*100)/100,remaining:Math.round((limit-spent)*100)/100,usage:limit?Math.round((spent/limit)*1000)/10:null};
+    }).sort(function(a,b){return (b.usage||0)-(a.usage||0)});
+    var rates=S.settings().rates||{},portfolio=S.portfolio().map(function(p){var rate=rates[p.type]||0;return{type:p.type,label:p.label||'',qty:p.qty||0,cost:p.cost||0,rate:rate,value:Math.round((p.qty||0)*rate*100)/100}});
+    var accounts=S.accounts().map(function(a){return{name:a.name,type:a.type,balance:a.balance||0,owner:a.owner||'shared'}});
+    var recurring=S.recurring().map(function(r){return{type:r.type,category:r.category,amount:r.amount||0,day:r.day,note:r.note||'',isSubscription:!!r.isSubscription}});
+    var goals=S.goals().map(function(g){return{name:g.name,target:g.target||0,saved:g.saved||0,dueDate:g.dueDate||''}});
+    return{
+      month:month,
+      generatedAt:new Date().toLocaleString('tr-TR'),
+      summary:{income:Math.round(inc*100)/100,expense:Math.round(exp*100)/100,net:Math.round((inc-exp)*100)/100,transactionCount:txns.length,savingsRate:inc?Math.round(((inc-exp)/inc)*1000)/10:null},
+      topExpenses:_top(_sumBy(expenseTxns,function(t){return t.category}),8),
+      topIncome:_top(_sumBy(incomeTxns,function(t){return t.category}),5),
+      largestTransactions:expenseTxns.slice().sort(function(a,b){return (b.amount||0)-(a.amount||0)}).slice(0,10).map(function(t){return{date:t.date,category:t.category,amount:t.amount,note:t.note||''}}),
+      budgets:budgetRows,
+      accounts:accounts,
+      portfolio:{rates:rates,items:portfolio,total:Math.round(portfolio.reduce(function(s,p){return s+p.value},0)*100)/100},
+      debts:_debts(),
+      installments:_installments(),
+      recurring:recurring,
+      goals:goals,
+      activeUser:App.Users&&App.Users.active?App.Users.active():null
+    };
+  }
+  function _setLoading(title){
+    var out=document.getElementById('assistantOutput'),meta=document.getElementById('assistantMeta');
+    if(out){out.classList.remove('empty');out.textContent='Analiz hazırlanıyor...'}
+    if(meta)meta.textContent=title+' · veriler yerelden hazırlanıyor, yanıt DeepSeek üzerinden alınıyor.';
+  }
+  function _show(text,title){
+    var out=document.getElementById('assistantOutput'),meta=document.getElementById('assistantMeta');
+    if(out){out.classList.remove('empty');out.textContent=text}
+    if(meta)meta.textContent='Güncellendi: '+new Date().toLocaleString('tr-TR')+' · '+title;
+    S.saveSetting('assistantLast',{text:text,title:title,ts:Date.now()});
+  }
+  function _callDeepSeek(question,title){
+    var key=(S.settings().deepseekApiKey||'').trim();
+    if(!key){App.Portfolio.openApiSettings();App.UI.toast('Önce DeepSeek API anahtarını ekleyin.','info');return}
+    if(title==='Portföy Yorumu')App.Portfolio.ensureFreshRates();
+    _setLoading(title);
+    var payload={model:'deepseek-chat',messages:[
+      {role:'system',content:'Turkce konusan bir kisisel finans asistanisin. Verilen yerel finans verilerini analiz et. Yatirim tavsiyesi verme; kesin al/sat soyleme. Kisa, uygulanabilir, madde madde yanit ver. Gerektiginde uyarilari onceliklendir.'},
+      {role:'user',content:'Kullanicinin sorusu: '+question+'\n\nFinans verisi JSON:\n'+JSON.stringify(_context())}
+    ],temperature:.25,max_tokens:900};
+    fetch('https://api.deepseek.com/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(payload)}).then(function(res){if(!res.ok)throw new Error('deepseek '+res.status);return res.json()}).then(function(data){
+      var text=data&&data.choices&&data.choices[0]&&data.choices[0].message?data.choices[0].message.content:'Yanıt alınamadı.';
+      _show(text,title);App.UI.toast('Asistan yanıtı hazır.','ok');
+    }).catch(function(){
+      _show('DeepSeek isteği başarısız oldu. API anahtarını, internet bağlantısını veya tarayıcı CORS erişimini kontrol edin. Statik uygulamada anahtar tarayıcıdan kullanılır; daha güvenli ve sorunsuz kullanım için backend/proxy eklenebilir.',title);
+      App.UI.toast('Asistan isteği başarısız oldu.','err');
+    });
+  }
+  function run(kind){
+    var titles={spending:'Harcamaları Analiz Et',budget:'Bütçe Kontrolü',portfolio:'Portföy Yorumu',savings:'Tasarruf Planı',debts:'Borç ve Ödeme Uyarıları'};
+    _callDeepSeek(TASKS[kind]||TASKS.spending,titles[kind]||'Asistan');
+  }
+  function askCustom(){
+    var el=document.getElementById('assistantQuestion'),q=el?el.value.trim():'';
+    if(!q){App.UI.toast('Asistana sormak istediğin şeyi yaz.','err');return}
+    _callDeepSeek(q,'Özel Soru');
+  }
+  return{render,run,askCustom}
+})();
+
 App.YearlyFund=(function(){
   function add(){
     var name=document.getElementById('fundName').value.trim(),amt=parseFloat(document.getElementById('fundAmt').value),month=parseInt(document.getElementById('fundMonth').value);
@@ -1950,7 +2090,7 @@ document.addEventListener('DOMContentLoaded',function(){
   App.Budget.renderAll();App.Goals.renderAll();App.Goals.renderEmergencyInfo();App.Recurring.renderList();App.Recurring.renderOzet();App.Recurring.renderSubSummary();App.Debts.renderAll();
   App.Installments.render();App.Portfolio.render();App.YearlyFund.render();App.WeeklySummary.render();App.Notifications.syncBtn();
   App.Users.renderAll();App.Users.renderFamilyPanel();
-  App.NetWorth.render();
+  App.NetWorth.render();App.Assistant.render();
   App.UI.nav('ozet');
   handleShortcut();
   setTimeout(function(){App.Notifications.checkDueBills(false)},1500);
