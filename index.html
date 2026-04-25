@@ -1180,7 +1180,7 @@ App.Debts=(function(){
     var dir=document.getElementById('debtDir').value,person=document.getElementById('debtPerson').value.trim();
     var amt=parseFloat(document.getElementById('debtAmt').value),date=document.getElementById('debtDate').value,note=document.getElementById('debtNote').value.trim();
     if(!person){App.UI.toast('Kişi adı girin.','err');return}if(!amt||amt<=0){App.UI.toast('Geçerli tutar girin.','err');return}if(!date){App.UI.toast('Tarih seçin.','err');return}
-    var arr=S.debts();arr.push({id:gid('d'),direction:dir,person,amount:amt,date,note,payments:[],settled:false,ts:Date.now()});S.saveDebts(arr);
+    var arr=S.debts();arr.push({id:gid('d'),direction:dir,person,amount:amt,date,dueDate:date,note,payments:[],settled:false,ts:Date.now()});S.saveDebts(arr);
     document.getElementById('debtPerson').value='';document.getElementById('debtAmt').value='';document.getElementById('debtNote').value='';
     renderAll();App.UI.toast('Borç eklendi.');
   }
@@ -1542,7 +1542,7 @@ App.Installments=(function(){
 
 App.Portfolio=(function(){
   var TM={USD:{i:'💵',l:'USD'},EUR:{i:'💶',l:'EUR'},GBP:{i:'💷',l:'GBP'},GOLD_GRAM:{i:'🪙',l:'Gram Altın'},GOLD_QUARTER:{i:'🟡',l:'Çeyrek Altın'},GOLD_FULL:{i:'🟠',l:'Tam Altın'},FUND:{i:'📈',l:'Fon/Hisse'}};
-  var REFRESH_MS=30*60*1000,_refreshing=false;
+  var REFRESH_MS=30*60*1000,_refreshing=false,_refreshPromise=null;
   function _num(v){if(typeof v==='number')return v;return parseFloat(String(v||'').replace(/\./g,'').replace(',','.').replace(/[^\d.-]/g,''))||0}
   function _withTimeout(p,ms){return Promise.race([p,new Promise(function(_,rej){setTimeout(function(){rej(new Error('timeout'))},ms||9000)})])}
   function _pick(obj,names){for(var i=0;i<names.length;i++){if(obj&&obj[names[i]]!==undefined)return obj[names[i]]}return null}
@@ -1552,9 +1552,9 @@ App.Portfolio=(function(){
     r.USD=read('USD')||read('DOLAR')||read('Amerikan Doları');
     r.EUR=read('EUR')||read('EURO');
     r.GBP=read('GBP')||read('İngiliz Sterlini');
-    r.GOLD_GRAM=read('Gram Altın')||read('gram-altin')||read('GRA')||read('ALTIN');
-    r.GOLD_QUARTER=read('Çeyrek Altın')||read('ceyrek-altin')||(r.GOLD_GRAM?r.GOLD_GRAM*1.75:0);
-    r.GOLD_FULL=read('Tam Altın')||read('tam-altin')||(r.GOLD_GRAM?r.GOLD_GRAM*7:0);
+    r.GOLD_GRAM=read('HAS')||read('Gram Altın')||read('gram-altin')||read('GRA')||read('ALTIN');
+    r.GOLD_QUARTER=read('CEYREKALTIN')||read('Çeyrek Altın')||read('ceyrek-altin')||(r.GOLD_GRAM?r.GOLD_GRAM*1.75:0);
+    r.GOLD_FULL=read('TAMALTIN')||read('Tam Altın')||read('tam-altin')||(r.GOLD_GRAM?r.GOLD_GRAM*7:0);
     return r;
   }
   function _fetchTruncgil(){
@@ -1580,7 +1580,7 @@ App.Portfolio=(function(){
   }
   function ensureFreshRates(){
     var r=(S.settings().rates)||{},stale=!r.updated||(Date.now()-r.updated)>REFRESH_MS;
-    if(stale)refreshRates({silent:true});
+    return stale?refreshRates({silent:true}):Promise.resolve(r);
   }
   function add(){
     var type=document.getElementById('portType').value,qty=parseFloat(document.getElementById('portQty').value);
@@ -1593,15 +1593,18 @@ App.Portfolio=(function(){
   function remove(id){S.savePortfolio(S.portfolio().filter(function(x){return x.id!==id}));render();App.UI.toast('Silindi.')}
   function refreshRates(opts){
     opts=opts||{};
-    if(_refreshing)return;
+    if(_refreshing)return _refreshPromise||Promise.resolve(S.settings().rates||{});
     _refreshing=true;
     if(!opts.silent)App.UI.toast('Kurlar internetten çekiliyor...','info');
-    _fetchTruncgil().catch(function(){return _fetchFrankfurter()}).then(function(res){
-      _mergeRates(res.rates,res.provider);render();
+    _refreshPromise=_fetchTruncgil().catch(function(){return _fetchFrankfurter()}).then(function(res){
+      var merged=_mergeRates(res.rates,res.provider);render();
       if(!opts.silent)App.UI.toast('Kur ve piyasa bilgileri güncellendi.','ok');
+      return merged;
     }).catch(function(){
-      if(!opts.silent){App.UI.toast('Kur servisleri ulaşılamadı. Manuel giriş açılıyor.','err');promptManualRates()}
-    }).finally(function(){_refreshing=false});
+      if(!opts.silent){App.UI.toast('Kur servisleri ulaşılamadı. Manuel giriş açılıyor.','err');promptManualRates();return S.settings().rates||{}}
+      throw new Error('rates unavailable');
+    }).finally(function(){_refreshing=false;_refreshPromise=null});
+    return _refreshPromise;
   }
   function promptManualRates(){
     var s=S.settings(),r=s.rates||{};
@@ -1618,6 +1621,7 @@ App.Portfolio=(function(){
   }
   function rateOf(type){var r=(S.settings().rates)||{};return r[type]||0}
   function openApiSettings(){
+    if(document.getElementById('apiHolder'))return;
     var s=S.settings(),key=s.deepseekApiKey||'';
     var html='<div class="modal-bd show" id="apiMdl" onclick="if(event.target===this)App.Portfolio.closeApiSettings()"><div class="modal"><div class="modal-title">⚙️ API Ayarları</div><div class="f"><label>DeepSeek API Key</label><input type="password" id="deepseekKey" placeholder="sk-..." value="'+esc(key)+'"/></div><div style="font-size:.74rem;color:var(--txt2);margin-top:10px;line-height:1.5">Anahtar sadece bu tarayıcının localStorage alanında saklanır. Statik PWA olduğu için tarayıcıdan yapılan DeepSeek isteklerinde anahtar istemci tarafında kullanılır.</div><div class="modal-actions"><button class="btn btn-ghost" onclick="App.Portfolio.closeApiSettings()">Vazgeç</button><button class="btn btn-primary" onclick="App.Portfolio.saveApiSettings()">Kaydet</button></div></div></div>';
     var div=document.createElement('div');div.id='apiHolder';div.innerHTML=html;document.body.appendChild(div);
@@ -1631,7 +1635,7 @@ App.Portfolio=(function(){
     var key=(S.settings().deepseekApiKey||'').trim();
     if(!key){openApiSettings();App.UI.toast('Önce DeepSeek API anahtarını ekleyin.','info');return}
     var r=S.settings().rates||{},items=S.portfolio();
-    if(!r.updated){refreshRates({manual:true});App.UI.toast('Özet için önce kurlar güncelleniyor.','info');return}
+    if(!r.updated){App.UI.toast('Özet için önce kurlar güncelleniyor.','info');refreshRates({manual:true}).then(generateMarketSummary).catch(function(){App.UI.toast('Kurlar güncellenemediği için özet hazırlanamadı.','err')});return}
     App.UI.toast('DeepSeek piyasa özeti hazırlıyor...','info');
     var payload={model:'deepseek-chat',messages:[
       {role:'system',content:'Kisa, net ve Turkce finans takip asistanisin. Yatirim tavsiyesi verme; veri ozeti ve risk hatirlatmasi yap.'},
@@ -1698,7 +1702,7 @@ App.Assistant=(function(){
   function _debts(){
     return S.debts().filter(function(d){return!d.settled}).map(function(d){
       var paid=(d.payments||[]).reduce(function(s,p){return s+(p.amount||0)},0);
-      return{person:d.person,direction:d.direction,amount:d.amount||0,remaining:Math.max((d.amount||0)-paid,0),dueDate:d.dueDate||'',note:d.note||''};
+      return{person:d.person,direction:d.direction,amount:d.amount||0,remaining:Math.max((d.amount||0)-paid,0),dueDate:d.dueDate||d.date||'',note:d.note||''};
     });
   }
   function _installments(){
@@ -1745,10 +1749,14 @@ App.Assistant=(function(){
     if(meta)meta.textContent='Güncellendi: '+new Date().toLocaleString('tr-TR')+' · '+title;
     S.saveSetting('assistantLast',{text:text,title:title,ts:Date.now()});
   }
-  function _callDeepSeek(question,title){
+  function _callDeepSeek(question,title,ratesReady){
     var key=(S.settings().deepseekApiKey||'').trim();
     if(!key){App.Portfolio.openApiSettings();App.UI.toast('Önce DeepSeek API anahtarını ekleyin.','info');return}
-    if(title==='Portföy Yorumu')App.Portfolio.ensureFreshRates();
+    if(title==='Portföy Yorumu'&&!ratesReady){
+      _setLoading(title);
+      App.Portfolio.ensureFreshRates().then(function(){_callDeepSeek(question,title,true)}).catch(function(){_show('Kurlar güncellenemediği için portföy yorumu hazırlanamadı. İnternet bağlantısını veya kur servislerini kontrol edin.',title);App.UI.toast('Portföy yorumu hazırlanamadı.','err')});
+      return;
+    }
     _setLoading(title);
     var payload={model:'deepseek-chat',messages:[
       {role:'system',content:'Turkce konusan bir kisisel finans asistanisin. Verilen yerel finans verilerini analiz et. Yatirim tavsiyesi verme; kesin al/sat soyleme. Kisa, uygulanabilir, madde madde yanit ver. Gerektiginde uyarilari onceliklendir.'},
@@ -2037,7 +2045,7 @@ App.ICS=(function(){
     });
     S.txns().forEach(function(t){if(t.installment&&t.date>=td()){var sum='📅 Taksit '+t.installment.index+'/'+t.installment.total+' — '+(t.installment.name||t.category)+' ₺'+t.amount.toLocaleString('tr-TR');events.push(_event('ins-'+t.id,t.date,sum,t.category))}});
     S.fund().forEach(function(f){if(f.dueMonth){var targetMonth=f.dueMonth-1;var year=targetMonth>=curM?curY:curY+1;var date=year+'-'+_pad(targetMonth+1)+'-01';events.push(_event('fund-'+f.id+'-'+year,date,'💰 Yıllık Ödeme: '+f.name+' — ₺'+f.amount.toLocaleString('tr-TR'),'Yıllık fon'))}});
-    S.debts().forEach(function(d){if(!d.settled&&d.dueDate){var sum='🤝 Borç Vade: '+d.person+' — ₺'+d.amount.toLocaleString('tr-TR');events.push(_event('debt-'+d.id,d.dueDate,sum,d.note||(d.direction==='lent'?'Alacak':'Borç')))}});
+    S.debts().forEach(function(d){var due=d.dueDate||d.date;if(!d.settled&&due){var sum='🤝 Borç Vade: '+d.person+' — ₺'+d.amount.toLocaleString('tr-TR');events.push(_event('debt-'+d.id,due,sum,d.note||(d.direction==='lent'?'Alacak':'Borç')))}});
     var cal=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//FinansTakip//TR','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:Finans Takip','X-WR-TIMEZONE:Europe/Istanbul'].concat(events).concat(['END:VCALENDAR']).join('\r\n');
     return{ics:cal,count:events.length};
   }
