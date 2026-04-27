@@ -87,8 +87,9 @@ eq('reconcile idempotent balance', accounts[0].balance, 900);
 
 var indexHtml = fs.readFileSync('index.html', 'utf8');
 ok('client no longer stores DeepSeek API key setting', !/saveSetting\('deepseekApiKey'/.test(indexHtml));
-ok('client no longer calls DeepSeek directly', !/api\.deepseek\.com\/chat\/completions/.test(indexHtml));
+ok('direct DeepSeek call is available only through assistant key flow', /pf_direct_ai_key/.test(indexHtml) && /api\.deepseek\.com\/chat\/completions/.test(indexHtml));
 ok('AI proxy URL setting exists', /aiProxyUrl/.test(indexHtml));
+ok('local no-key analysis fallback exists', /Yerel analiz/.test(indexHtml) && /API key, proxy veya dış servis kullanılmadı/.test(indexHtml));
 
 var sw = fs.readFileSync('sw.js', 'utf8');
 ok('service worker only caches ok HTML responses', /if \(resp && resp\.ok\)/.test(sw));
