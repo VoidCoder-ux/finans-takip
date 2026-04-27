@@ -50,6 +50,40 @@ function parseAmount(v) {
 eq('strict amount parses Turkish decimal', parseAmount('1.234,56'), 1234.56);
 ok('strict amount rejects mixed suffix', Number.isNaN(parseAmount('123abc')));
 
+var MAX_MONEY = 1000000000000;
+function roundMoney(n) {
+  n = Number(n);
+  return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0;
+}
+function parseMoney(v, opt) {
+  opt = opt || {};
+  var min = opt.min != null ? opt.min : (opt.allowZero ? 0 : .01);
+  var max = opt.max || MAX_MONEY;
+  var n;
+  if (typeof v === 'number') n = v;
+  else {
+    var s = String(v == null ? '' : v).trim();
+    if (!s || /[eE]/.test(s) || /^(nan|infinity|-infinity)$/i.test(s)) return null;
+    if (s.indexOf(',') >= 0) {
+      if (!/^-?\d{1,3}(\.\d{3})*(,\d+)?$|^-?\d+(,\d+)?$/.test(s)) return null;
+      n = Number(s.replace(/\./g, '').replace(',', '.'));
+    } else {
+      if (!/^-?\d+(\.\d+)?$/.test(s)) return null;
+      n = Number(s);
+    }
+  }
+  if (!Number.isFinite(n) || n < min || n > max) return null;
+  return opt.round === false ? n : roundMoney(n);
+}
+
+eq('money parser accepts Turkish decimal', parseMoney('1.234,56'), 1234.56);
+eq('money parser accepts dot decimal', parseMoney('1234.56'), 1234.56);
+eq('money parser allows negative opening balance', parseMoney('-100.25', { min: -MAX_MONEY, allowZero: true }), -100.25);
+eq('money parser rejects zero by default', parseMoney('0'), null);
+eq('money parser rejects scientific notation', parseMoney('1e309'), null);
+eq('money parser rejects Infinity', parseMoney('Infinity'), null);
+eq('money parser rejects mixed suffix', parseMoney('123abc'), null);
+
 function safeColor(v) { return /^#[0-9a-fA-F]{6}$/.test(String(v || '')) ? String(v) : '#3b82f6'; }
 eq('safe color accepts hex', safeColor('#14b8a6'), '#14b8a6');
 eq('safe color rejects CSS injection', safeColor('red;position:absolute'), '#3b82f6');
@@ -62,8 +96,9 @@ eq('goal saved derives from contributions', goalSaved({ contributions: [{ amount
 function reconcileInstallments(txns, accounts, today) {
   var balances = {}, changed = 0;
   txns.forEach(function(t) {
-    if (!t.installment || t.installment.balanceApplied || t.date > today || !t.accountId) return;
-    t.installment.balanceApplied = true;
+    if (t.balanceApplied !== false || t.date > today || !t.accountId) return;
+    t.balanceApplied = true;
+    if (t.installment) t.installment.balanceApplied = true;
     changed++;
     balances[t.accountId] = (balances[t.accountId] || 0) + (t.type === 'income' ? t.amount : -t.amount);
   });
@@ -75,15 +110,18 @@ function reconcileInstallments(txns, accounts, today) {
 }
 
 var txns = [
-  { type: 'expense', amount: 100, date: '2026-04-01', accountId: 'a1', installment: { balanceApplied: false } },
-  { type: 'expense', amount: 50, date: '2026-05-01', accountId: 'a1', installment: { balanceApplied: false } },
-  { type: 'expense', amount: 20, date: '2026-04-01', accountId: 'a1', installment: { balanceApplied: true } }
+  { type: 'expense', amount: 100, date: '2026-04-01', accountId: 'a1', balanceApplied: false, installment: { balanceApplied: false } },
+  { type: 'expense', amount: 50, date: '2026-05-01', accountId: 'a1', balanceApplied: false, installment: { balanceApplied: false } },
+  { type: 'expense', amount: 20, date: '2026-04-01', accountId: 'a1', balanceApplied: true, installment: { balanceApplied: true } },
+  { type: 'income', amount: 75, date: '2026-04-20', accountId: 'a1', balanceApplied: false },
+  { type: 'income', amount: 40, date: '2026-12-31', accountId: 'a1', balanceApplied: false }
 ];
 var accounts = [{ id: 'a1', balance: 1000 }];
-eq('reconcile applies due installment once', reconcileInstallments(txns, accounts, '2026-04-27'), 1);
-eq('reconcile updates account balance', accounts[0].balance, 900);
+eq('reconcile applies due planned transactions once', reconcileInstallments(txns, accounts, '2026-04-27'), 2);
+eq('reconcile updates account balance', accounts[0].balance, 975);
 eq('reconcile second pass is idempotent', reconcileInstallments(txns, accounts, '2026-04-27'), 0);
-eq('reconcile idempotent balance', accounts[0].balance, 900);
+eq('reconcile idempotent balance', accounts[0].balance, 975);
+eq('future normal transaction remains unapplied', txns[4].balanceApplied, false);
 
 var indexHtml = fs.readFileSync('index.html', 'utf8');
 ok('expense categories include credit payment options', /var EC=\[[^\]]*'Kredi Ödemesi'[^\]]*'Kredi Kartı Ödemesi'[^\]]*'Borç Ödemesi'[^\]]*\]/.test(indexHtml));

@@ -767,6 +767,26 @@ function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'
 function escAttr(s){return esc(s).replace(/'/g,'&#39;')}
 function safeColor(v){return /^#[0-9a-fA-F]{6}$/.test(String(v||''))?String(v):'#3b82f6'}
 function safeId(v){return /^[a-z]+[0-9]{13}_[a-z0-9]{4}$|^u_(self|partner)$/.test(String(v||''))?String(v):''}
+var MAX_MONEY=1000000000000;
+function roundMoney(n){n=Number(n);return Number.isFinite(n)?Math.round(n*100)/100:0}
+function parseMoney(v,opt){
+  opt=opt||{};var min=opt.min!=null?opt.min:(opt.allowZero?0:.01),max=opt.max||MAX_MONEY,n;
+  if(typeof v==='number')n=v;
+  else{
+    var s=String(v==null?'':v).trim();
+    if(!s||/[eE]/.test(s)||/^(nan|infinity|-infinity)$/i.test(s))return null;
+    if(s.indexOf(',')>=0){
+      if(!/^-?\d{1,3}(\.\d{3})*(,\d+)?$|^-?\d+(,\d+)?$/.test(s))return null;
+      n=Number(s.replace(/\./g,'').replace(',','.'));
+    }else{
+      if(!/^-?\d+(\.\d+)?$/.test(s))return null;
+      n=Number(s);
+    }
+  }
+  if(!Number.isFinite(n)||n<min||n>max)return null;
+  return opt.round===false?n:roundMoney(n);
+}
+function isValidMoney(v,opt){return parseMoney(v,opt)!==null}
 function toNum(v,fb){var n=typeof v==='number'?v:parseFloat(String(v||'').replace(',','.'));return isFinite(n)?n:(fb||0)}
 function validDate(iso){var m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return false;var d=new Date(+m[1],+m[2]-1,+m[3]);return d.getFullYear()===+m[1]&&d.getMonth()===+m[2]-1&&d.getDate()===+m[3]}
 function validMonth(m){return /^\d{4}-(0[1-9]|1[0-2])$/.test(String(m||''))}
@@ -803,13 +823,13 @@ var S=(function(){
     _s.users=normalizeList(_s.users,'pf_s.users',function(u,i){return{id:cleanStoredId(u.id,'u'),name:String(u.name||('Üye '+(i+1))).slice(0,80),emoji:String(u.emoji||'🙋').slice(0,4),color:safeColor(u.color)}} ,invalid);
     if(!_s.users.length)_s.users=[{id:'u_self',name:'Ben',emoji:'🙋',color:'#14b8a6'},{id:'u_partner',name:'Eş',emoji:'💑',color:'#ec4899'}];
     if(!_s.activeUser||!_s.users.find(function(u){return u.id===_s.activeUser}))_s.activeUser=_s.users[0].id;
-    _a=normalizeList(_a,'pf_a',function(a){var type=AM[a.type]?a.type:'cash';var owner=a.owner==='personal'?'personal':'shared';return{id:cleanStoredId(a.id,'a'),name:String(a.name||'Hesap').slice(0,120),type:type,owner:owner,userId:owner==='personal'?cleanStoredRef(a.userId||_s.activeUser):null,statementDay:a.statementDay>=1&&a.statementDay<=31?parseInt(a.statementDay):null,balance:toNum(a.balance,0),ts:toNum(a.ts,Date.now())}},invalid);
-    _t=normalizeList(_t,'pf_t',function(t){var type=t.type==='expense'?'expense':'income',date=cleanDate(t.date),inst=t.installment?obj(t.installment):null;if(inst){var created=dateFromTs(t.ts);inst.planId=cleanStoredId(inst.planId,'p');inst.index=Math.max(1,parseInt(inst.index)||1);inst.total=Math.max(inst.index,parseInt(inst.total)||inst.index);inst.totalAmount=toNum(inst.totalAmount,t.amount);inst.name=String(inst.name||t.category||'Taksit').slice(0,120);inst.startDate=cleanDate(inst.startDate,date);if(typeof inst.balanceApplied!=='boolean')inst.balanceApplied=date<=created}return{id:cleanStoredId(t.id,'t'),type:type,amount:Math.max(0,toNum(t.amount,0)),category:String(t.category||'Diğer').slice(0,80),date:date,note:String(t.note||'').slice(0,500),accountId:cleanStoredRef(t.accountId),userId:cleanStoredRef(t.userId||_s.activeUser),ts:toNum(t.ts,Date.now()),installment:inst}},invalid);
-    _g=normalizeList(_g,'pf_g',function(g){return{id:cleanStoredId(g.id,'g'),name:String(g.name||'Hedef').slice(0,120),target:Math.max(0,toNum(g.target,0)),emoji:String(g.emoji||'🎯').slice(0,4),contributions:normalizeList(g.contributions,'goal.contributions',function(c){return{id:cleanStoredId(c.id,'c'),amount:Math.max(0,toNum(c.amount,0)),date:cleanDate(c.date),note:String(c.note||'').slice(0,300)}},invalid),done:g.done||null,emergency:!!g.emergency,monthsCovered:toNum(g.monthsCovered,0),baseAvg:toNum(g.baseAvg,0),ts:toNum(g.ts,Date.now())}},invalid);
-    _r=normalizeList(_r,'pf_r',function(r){return{id:cleanStoredId(r.id,'r'),type:r.type==='income'?'income':'expense',amount:Math.max(0,toNum(r.amount,0)),category:String(r.category||'Diğer').slice(0,80),day:Math.min(31,Math.max(1,parseInt(r.day)||1)),note:String(r.note||'').slice(0,300),accountId:cleanStoredRef(r.accountId),userId:cleanStoredRef(r.userId||_s.activeUser),isSubscription:!!r.isSubscription,ts:toNum(r.ts,Date.now())}},invalid);
-    _d=normalizeList(_d,'pf_d',function(d){return{id:cleanStoredId(d.id,'d'),direction:d.direction==='borrowed'?'borrowed':'lent',person:String(d.person||'Kişi').slice(0,120),amount:Math.max(0,toNum(d.amount,0)),date:cleanDate(d.date),dueDate:cleanDate(d.dueDate||d.date),note:String(d.note||'').slice(0,300),payments:normalizeList(d.payments,'debt.payments',function(p){return{id:cleanStoredId(p.id,'p'),amount:Math.max(0,toNum(p.amount,0)),date:cleanDate(p.date)}},invalid),settled:!!d.settled,ts:toNum(d.ts,Date.now())}},invalid);
-    _f=normalizeList(_f,'pf_f',function(f){return{id:cleanStoredId(f.id,'yf'),name:String(f.name||'Yıllık gider').slice(0,120),amount:Math.max(0,toNum(f.amount,0)),dueMonth:Math.min(12,Math.max(1,parseInt(f.dueMonth)||12)),contributed:Math.max(0,toNum(f.contributed,0)),ts:toNum(f.ts,Date.now())}},invalid);
-    _p=normalizeList(_p,'pf_p',function(p){return{id:cleanStoredId(p.id,'pa'),type:p.type||'FUND',qty:Math.max(0,toNum(p.qty,0)),cost:Math.max(0,toNum(p.cost,0)),label:String(p.label||'').slice(0,120),ts:toNum(p.ts,Date.now())}},invalid);
+    _a=normalizeList(_a,'pf_a',function(a){var type=AM[a.type]?a.type:'cash';var owner=a.owner==='personal'?'personal':'shared';return{id:cleanStoredId(a.id,'a'),name:String(a.name||'Hesap').slice(0,120),type:type,owner:owner,userId:owner==='personal'?cleanStoredRef(a.userId||_s.activeUser):null,statementDay:a.statementDay>=1&&a.statementDay<=31?parseInt(a.statementDay):null,balance:Math.max(-MAX_MONEY,Math.min(MAX_MONEY,roundMoney(toNum(a.balance,0)))),ts:toNum(a.ts,Date.now())}},invalid);
+    _t=normalizeList(_t,'pf_t',function(t){var type=t.type==='expense'?'expense':'income',date=cleanDate(t.date),inst=t.installment?obj(t.installment):null,amt=Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(t.amount,0))));var balApplied=typeof t.balanceApplied==='boolean'?t.balanceApplied:true;if(inst){var created=dateFromTs(t.ts);inst.planId=cleanStoredId(inst.planId,'p');inst.index=Math.max(1,parseInt(inst.index)||1);inst.total=Math.max(inst.index,parseInt(inst.total)||inst.index);inst.totalAmount=Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(inst.totalAmount,amt))));inst.name=String(inst.name||t.category||'Taksit').slice(0,120);inst.startDate=cleanDate(inst.startDate,date);if(typeof inst.balanceApplied!=='boolean')inst.balanceApplied=date<=created;balApplied=inst.balanceApplied}return{id:cleanStoredId(t.id,'t'),type:type,amount:amt,category:String(t.category||'Diğer').slice(0,80),date:date,note:String(t.note||'').slice(0,500),accountId:cleanStoredRef(t.accountId),userId:cleanStoredRef(t.userId||_s.activeUser),ts:toNum(t.ts,Date.now()),balanceApplied:balApplied,installment:inst}},invalid);
+    _g=normalizeList(_g,'pf_g',function(g){return{id:cleanStoredId(g.id,'g'),name:String(g.name||'Hedef').slice(0,120),target:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(g.target,0)))),emoji:String(g.emoji||'🎯').slice(0,4),contributions:normalizeList(g.contributions,'goal.contributions',function(c){return{id:cleanStoredId(c.id,'c'),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(c.amount,0)))),date:cleanDate(c.date),note:String(c.note||'').slice(0,300)}},invalid),done:g.done||null,emergency:!!g.emergency,monthsCovered:toNum(g.monthsCovered,0),baseAvg:toNum(g.baseAvg,0),ts:toNum(g.ts,Date.now())}},invalid);
+    _r=normalizeList(_r,'pf_r',function(r){return{id:cleanStoredId(r.id,'r'),type:r.type==='income'?'income':'expense',amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(r.amount,0)))),category:String(r.category||'Diğer').slice(0,80),day:Math.min(31,Math.max(1,parseInt(r.day)||1)),note:String(r.note||'').slice(0,300),accountId:cleanStoredRef(r.accountId),userId:cleanStoredRef(r.userId||_s.activeUser),isSubscription:!!r.isSubscription,ts:toNum(r.ts,Date.now())}},invalid);
+    _d=normalizeList(_d,'pf_d',function(d){return{id:cleanStoredId(d.id,'d'),direction:d.direction==='borrowed'?'borrowed':'lent',person:String(d.person||'Kişi').slice(0,120),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(d.amount,0)))),date:cleanDate(d.date),dueDate:cleanDate(d.dueDate||d.date),note:String(d.note||'').slice(0,300),payments:normalizeList(d.payments,'debt.payments',function(p){return{id:cleanStoredId(p.id,'p'),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(p.amount,0)))),date:cleanDate(p.date)}},invalid),settled:!!d.settled,ts:toNum(d.ts,Date.now())}},invalid);
+    _f=normalizeList(_f,'pf_f',function(f){return{id:cleanStoredId(f.id,'yf'),name:String(f.name||'Yıllık gider').slice(0,120),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(f.amount,0)))),dueMonth:Math.min(12,Math.max(1,parseInt(f.dueMonth)||12)),contributed:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(f.contributed,0)))),ts:toNum(f.ts,Date.now())}},invalid);
+    _p=normalizeList(_p,'pf_p',function(p){return{id:cleanStoredId(p.id,'pa'),type:p.type||'FUND',qty:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(p.qty,0)))),cost:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(p.cost,0)))),label:String(p.label||'').slice(0,120),ts:toNum(p.ts,Date.now())}},invalid);
     _ru=normalizeList(_ru,'pf_ru',function(r){return{id:cleanStoredId(r.id,'ru'),field:String(r.field||'note'),value:String(r.value||'').slice(0,120),category:String(r.category||'Diğer').slice(0,80),active:r.active!==false,ts:toNum(r.ts,Date.now())}},invalid);
     _nw=normalizeList(_nw,'pf_nw',function(n){var m=validMonth(n.month)?n.month:tm();return{month:m,total:toNum(n.total,0),accounts:toNum(n.accounts,0),portfolio:toNum(n.portfolio,0),lent:toNum(n.lent,0),borrowed:toNum(n.borrowed,0),ts:toNum(n.ts,Date.now())}},invalid);
     _b=obj(_b);Object.keys(_b).forEach(function(k){_b[k]=Math.max(0,toNum(_b[k],0))});_bm=obj(_bm);_cpi=_cpi?obj(_cpi):null;
@@ -995,12 +1015,13 @@ App.Accounts=(function(){
   function onTypeChange(){document.getElementById('accStmtWrap').style.display=document.getElementById('accType').value==='card'?'':'none'}
   function onOwnerChange(){document.getElementById('accUserWrap').style.display=document.getElementById('accOwner').value==='personal'?'':'none'}
   function add(){
-    var name=document.getElementById('accName').value.trim(),type=document.getElementById('accType').value,bal=parseFloat(document.getElementById('accBal').value)||0;
+    var name=document.getElementById('accName').value.trim(),type=document.getElementById('accType').value,bal=parseMoney(document.getElementById('accBal').value||0,{allowZero:true,min:-MAX_MONEY});
     var owner=document.getElementById('accOwner').value||'shared';
     var userId=owner==='personal'?(document.getElementById('accUser').value||S.settings().activeUser):null;
     var stmtRaw=parseInt(document.getElementById('accStmtDay').value);
     var stmtDay=(type==='card'&&stmtRaw>=1&&stmtRaw<=31)?stmtRaw:null;
     if(!name){App.UI.toast('Hesap adı girin.','err');return}
+    if(bal===null){App.UI.toast('Geçerli başlangıç bakiyesi girin.','err');return}
     var a=S.accounts();a.push({id:gid('a'),name,type,owner,userId,statementDay:stmtDay,balance:bal,ts:Date.now()});S.saveAccounts(a);
     document.getElementById('accName').value='';document.getElementById('accBal').value='';document.getElementById('accStmtDay').value='';
     App.UI.refreshAccSelects();renderAll();renderSummary();App.UI.toast('Hesap eklendi.');
@@ -1018,7 +1039,7 @@ App.Accounts=(function(){
     if(touched||rtouched){App.Transactions.renderList();App.Transactions.renderRecent();App.Recurring.renderList();App.Recurring.renderOzet();App.UI.toast('Hesap silindi. '+touched+' işlem, '+rtouched+' tekrarlayan hesapsız bırakıldı.','info')}
     else App.UI.toast('Hesap silindi.');
   }
-  function adjustBalance(id,delta){var a=S.accounts();var x=a.find(function(x){return x.id===id});if(x)x.balance+=delta;S.saveAccounts(a);renderAll();renderSummary()}
+  function adjustBalance(id,delta){delta=roundMoney(delta);if(!Number.isFinite(delta))return;var a=S.accounts();var x=a.find(function(x){return x.id===id});if(x)x.balance=roundMoney((x.balance||0)+delta);S.saveAccounts(a);renderAll();renderSummary()}
   function getName(id){var x=S.accounts().find(function(a){return a.id===id});return x?x.name:''}
   function get(id){return S.accounts().find(function(a){return a.id===id})}
   function sharedAccount(){return S.accounts().find(function(a){return(a.owner||'shared')!=='personal'})}
@@ -1057,14 +1078,15 @@ App.Transactions=(function(){
     return endY+'-'+String(endM).padStart(2,'0');
   }
   function add(){
-    var amt=parseFloat(document.getElementById('txnAmt').value),date=document.getElementById('txnDate').value;
+    var amt=parseMoney(document.getElementById('txnAmt').value),date=document.getElementById('txnDate').value;
     var cat=document.getElementById('txnCat').value,note=document.getElementById('txnNote').value.trim();
     var type=App.UI.getType();
     var userId=document.getElementById('txnUser').value||S.settings().activeUser;
     var insCount=parseInt(document.getElementById('txnInst').value)||0;
     var insStart=document.getElementById('txnInstStart').value||date;
-    if(!amt||amt<=0){App.UI.toast('Geçerli tutar girin.','err');return}
-    if(!date){App.UI.toast('Tarih seçin.','err');return}
+    if(amt===null){App.UI.toast('Geçerli tutar girin.','err');return}
+    if(!validDate(date)){App.UI.toast('Geçerli tarih seçin.','err');return}
+    if(insCount>=2&&insCount<=36&&!validDate(insStart)){App.UI.toast('Geçerli ilk taksit tarihi seçin.','err');return}
     var sharedAcc=App.Accounts.sharedAccount();if(!sharedAcc){App.UI.toast('Ortak cüzdan hesabı oluşturun.','err');return}
     var accId=sharedAcc.id;
     var arr=S.txns();
@@ -1076,17 +1098,18 @@ App.Transactions=(function(){
       for(var i=0;i<insCount;i++){
         var d=addMonths(insStart,i);var thisAmt=(i===insCount-1)?lastPer:per;
         var applied=d<=today;
-        arr.unshift({id:gid('t'),type:'expense',amount:thisAmt,category:instCat,date:d,note:(note||cat)+' ('+(i+1)+'/'+insCount+')',accountId:accId,userId,ts:now+i,installment:{planId,index:i+1,total:insCount,totalAmount:amt,name:note||cat,startDate:insStart,balanceApplied:applied}});
+        arr.unshift({id:gid('t'),type:'expense',amount:thisAmt,category:instCat,date:d,note:(note||cat)+' ('+(i+1)+'/'+insCount+')',accountId:accId,userId,ts:now+i,balanceApplied:applied,installment:{planId,index:i+1,total:insCount,totalAmount:amt,name:note||cat,startDate:insStart,balanceApplied:applied}});
         if(applied)pastTotal+=thisAmt;
       }
       S.saveTxns(arr);
       if(accId&&pastTotal>0)App.Accounts.adjustBalance(accId,-pastTotal);
       App.UI.toast(insCount+' taksit planlandı.');
     }else{
-      var newTxn={id:gid('t'),type,amount:amt,category:cat,date,note,accountId:accId,userId,ts:Date.now()};
+      var applied=date<=td();
+      var newTxn={id:gid('t'),type,amount:amt,category:cat,date,note,accountId:accId,userId,ts:Date.now(),balanceApplied:applied};
       var origCat=cat;App.Rules.apply(newTxn);
       arr.unshift(newTxn);S.saveTxns(arr);
-      if(accId)App.Accounts.adjustBalance(accId,type==='income'?amt:-amt);
+      if(accId&&applied)App.Accounts.adjustBalance(accId,type==='income'?amt:-amt);
       if(newTxn._ruleApplied&&newTxn.category!==origCat)App.UI.toast('İşlem eklendi. Kural uygulandı: '+origCat+' → '+newTxn.category,'info');
       else App.UI.toast('İşlem eklendi.');
     }
@@ -1098,7 +1121,7 @@ App.Transactions=(function(){
     if(!t)return;
     var toDelete=[t];
     if(t.installment){if(!confirm('Bu taksit planının tüm taksitlerini silmek ister misin?\n\nTamam → tüm plan silinir\nİptal → silme iptal edilir')){return}toDelete=txns.filter(function(x){return x.installment&&x.installment.planId===t.installment.planId})}
-    toDelete.forEach(function(x){if(x.accountId&&x.date<=td())App.Accounts.adjustBalance(x.accountId,x.type==='income'?-x.amount:x.amount)});
+    toDelete.forEach(function(x){if(x.accountId&&x.balanceApplied!==false)App.Accounts.adjustBalance(x.accountId,x.type==='income'?-x.amount:x.amount)});
     var delIds={};toDelete.forEach(function(x){delIds[x.id]=1});
     S.saveTxns(txns.filter(function(x){return!delIds[x.id]}));
     App.UI.refreshFilterDropdowns();renderList();renderRecent();renderSummaryMetrics();App.Accounts.renderSummary();App.Budget.renderAll();App.Installments.render();App.WeeklySummary.render();App.UI.toast(toDelete.length>1?toDelete.length+' işlem silindi.':'İşlem silindi.');
@@ -1106,8 +1129,8 @@ App.Transactions=(function(){
   function reconcileInstallments(){
     var today=td(),txns=S.txns(),changed=false,balances={};
     txns.forEach(function(t){
-      if(!t.installment||t.installment.balanceApplied||t.date>today||!t.accountId)return;
-      t.installment.balanceApplied=true;changed=true;
+      if(t.balanceApplied!==false||t.date>today||!t.accountId)return;
+      t.balanceApplied=true;if(t.installment)t.installment.balanceApplied=true;changed=true;
       balances[t.accountId]=(balances[t.accountId]||0)+(t.type==='income'?t.amount:-t.amount);
     });
     if(!changed)return 0;
@@ -1187,13 +1210,14 @@ App.Transactions=(function(){
           var date=String(r[iDate]||'').trim(),rawType=String(r[iType]||'').trim().toLowerCase(),cat=String(r[iCat]||'').trim();
           var amount=parseAmount(r[iAmt]),note=iNote>=0?String(r[iNote]||'').trim():'';
           var type=rawType==='gelir'||rawType==='income'?'income':rawType==='gider'||rawType==='expense'?'expense':'';
-          if(!validDate(date)||!type||!cat||!isFinite(amount)||amount<=0){bad++;return}
+          if(!validDate(date)||!type||!cat||!isFinite(amount)||amount<=0||amount>MAX_MONEY){bad++;return}
           var userName=iUser>=0?String(r[iUser]||'').trim():'';
           var user=userName?(App.Users.list().find(function(u){return u.name===userName})):null;
           var acc=shared;
           var sig=[date,type,amount,cat,note,acc.id].join('|');if(seen[sig]){skipped++;return}
-          seen[sig]=1;txns.unshift({id:gid('t'),type,amount,category:cat,date,note,accountId:acc.id,userId:(user?user.id:S.settings().activeUser),ts:Date.now()+added});
-          balances[acc.id]=(balances[acc.id]||0)+(type==='income'?amount:-amount);added++;
+          var applied=date<=td();
+          seen[sig]=1;txns.unshift({id:gid('t'),type,amount,category:cat,date,note,accountId:acc.id,userId:(user?user.id:S.settings().activeUser),ts:Date.now()+added,balanceApplied:applied});
+          if(applied)balances[acc.id]=(balances[acc.id]||0)+(type==='income'?amount:-amount);added++;
         });
         if(!added){App.UI.toast('Yeni işlem bulunamadı. '+(skipped?skipped+' tekrar atlandı.':''),'info');return}
         S.saveTxns(txns);
@@ -1211,10 +1235,10 @@ App.Transactions=(function(){
 App.Recurring=(function(){
   var _filter='all';
   function add(){
-    var type=document.getElementById('recType').value,amt=parseFloat(document.getElementById('recAmt').value),cat=document.getElementById('recCat').value;
+    var type=document.getElementById('recType').value,amt=parseMoney(document.getElementById('recAmt').value),cat=document.getElementById('recCat').value;
     var day=parseInt(document.getElementById('recDay').value),note=document.getElementById('recNote').value.trim(),accId='';
     var isSub=!!document.getElementById('recIsSub').checked;
-    if(!amt||amt<=0){App.UI.toast('Geçerli tutar girin.','err');return}if(!day||day<1||day>31){App.UI.toast('Geçerli gün girin (1-31).','err');return}
+    if(amt===null){App.UI.toast('Geçerli tutar girin.','err');return}if(!day||day<1||day>31){App.UI.toast('Geçerli gün girin (1-31).','err');return}
     var sharedAcc=App.Accounts.sharedAccount();if(!sharedAcc){App.UI.toast('Ortak cüzdan hesabı oluşturun.','err');return}
     accId=sharedAcc.id;
     var arr=S.recurring();arr.push({id:gid('r'),type,amount:amt,category:cat,day,note,accountId:accId,userId:S.settings().activeUser,isSubscription:isSub,ts:Date.now()});S.saveRecurring(arr);
@@ -1227,7 +1251,7 @@ App.Recurring=(function(){
   function log(id){
     var rec=S.recurring().find(function(r){return r.id===id});if(!rec)return;
     var sharedAcc=App.Accounts.sharedAccount();if(!sharedAcc){App.UI.toast('Ortak cüzdan hesabı oluşturun.','err');return}
-    var arr=S.txns();arr.unshift({id:gid('t'),type:rec.type,amount:rec.amount,category:rec.category,date:td(),note:rec.note||'Tekrarlayan',accountId:sharedAcc.id,userId:rec.userId||S.settings().activeUser,ts:Date.now()});S.saveTxns(arr);
+    var arr=S.txns();arr.unshift({id:gid('t'),type:rec.type,amount:rec.amount,category:rec.category,date:td(),note:rec.note||'Tekrarlayan',accountId:sharedAcc.id,userId:rec.userId||S.settings().activeUser,ts:Date.now(),balanceApplied:true});S.saveTxns(arr);
     App.Accounts.adjustBalance(sharedAcc.id,rec.type==='income'?rec.amount:-rec.amount);
     App.UI.refreshFilterDropdowns();App.Transactions.renderList();App.Transactions.renderRecent();App.Transactions.renderSummaryMetrics();App.Accounts.renderSummary();App.Budget.renderAll();
     App.UI.toast('"'+(rec.note||rec.category)+'" kaydedildi.','info');
@@ -1268,16 +1292,17 @@ App.Recurring=(function(){
 App.Debts=(function(){
   function add(){
     var dir=document.getElementById('debtDir').value,person=document.getElementById('debtPerson').value.trim();
-    var amt=parseFloat(document.getElementById('debtAmt').value),date=document.getElementById('debtDate').value,note=document.getElementById('debtNote').value.trim();
-    if(!person){App.UI.toast('Kişi adı girin.','err');return}if(!amt||amt<=0){App.UI.toast('Geçerli tutar girin.','err');return}if(!date){App.UI.toast('Tarih seçin.','err');return}
+    var amt=parseMoney(document.getElementById('debtAmt').value),date=document.getElementById('debtDate').value,note=document.getElementById('debtNote').value.trim();
+    if(!person){App.UI.toast('Kişi adı girin.','err');return}if(amt===null){App.UI.toast('Geçerli tutar girin.','err');return}if(!validDate(date)){App.UI.toast('Geçerli tarih seçin.','err');return}
     var arr=S.debts();arr.push({id:gid('d'),direction:dir,person,amount:amt,date,dueDate:date,note,payments:[],settled:false,ts:Date.now()});S.saveDebts(arr);
     document.getElementById('debtPerson').value='';document.getElementById('debtAmt').value='';document.getElementById('debtNote').value='';
     renderAll();App.UI.toast('Borç eklendi.');
   }
   function remove(id){S.saveDebts(S.debts().filter(function(d){return d.id!==id}));renderAll();App.UI.toast('Silindi.')}
   function addPayment(id){
-    var amt=parseFloat(document.getElementById('pay_amt_'+id).value),date=document.getElementById('pay_date_'+id).value;
-    if(!amt||amt<=0){App.UI.toast('Geçerli tutar girin.','err');return}
+    var amt=parseMoney(document.getElementById('pay_amt_'+id).value),date=document.getElementById('pay_date_'+id).value;
+    if(amt===null){App.UI.toast('Geçerli tutar girin.','err');return}
+    if(date&&!validDate(date)){App.UI.toast('Geçerli ödeme tarihi seçin.','err');return}
     var debts=S.debts(),d=debts.find(function(x){return x.id===id});if(!d)return;
     d.payments.push({id:gid('p'),amount:amt,date:date||td()});
     d.settled=d.payments.reduce(function(s,p){return s+p.amount},0)>=d.amount;
@@ -1315,8 +1340,8 @@ App.Debts=(function(){
 
 App.Budget=(function(){
   function save(){
-    var cat=document.getElementById('bCat').value,lim=parseFloat(document.getElementById('bLimit').value),carry=!!document.getElementById('bCarry').checked;
-    if(!lim||lim<=0){App.UI.toast('Geçerli limit girin.','err');return}
+    var cat=document.getElementById('bCat').value,lim=parseMoney(document.getElementById('bLimit').value),carry=!!document.getElementById('bCarry').checked;
+    if(lim===null){App.UI.toast('Geçerli limit girin.','err');return}
     var b=S.budgets();b[cat]=lim;S.saveBudgets(b);
     var bm=S.budgetMeta();bm[cat]=bm[cat]||{};bm[cat].carryOver=carry;S.saveBudgetMeta(bm);
     document.getElementById('bLimit').value='';document.getElementById('bCarry').checked=false;
@@ -1367,15 +1392,15 @@ App.Budget=(function(){
 
 App.Goals=(function(){
   function add(){
-    var name=document.getElementById('gName').value.trim(),target=parseFloat(document.getElementById('gTarget').value),emoji=document.getElementById('gEmoji').value.trim()||'🎯';
-    if(!name){App.UI.toast('Hedef adı girin.','err');return}if(!target||target<=0){App.UI.toast('Geçerli tutar girin.','err');return}
+    var name=document.getElementById('gName').value.trim(),target=parseMoney(document.getElementById('gTarget').value),emoji=document.getElementById('gEmoji').value.trim()||'🎯';
+    if(!name){App.UI.toast('Hedef adı girin.','err');return}if(target===null){App.UI.toast('Geçerli tutar girin.','err');return}
     var goals=S.goals();goals.push({id:gid('g'),name,target,emoji,contributions:[],done:null,ts:Date.now()});S.saveGoals(goals);
     document.getElementById('gName').value='';document.getElementById('gTarget').value='';document.getElementById('gEmoji').value='';renderAll();App.UI.toast('Hedef eklendi.');
   }
   function remove(id){S.saveGoals(S.goals().filter(function(g){return g.id!==id}));renderAll();App.UI.toast('Hedef silindi.')}
   function addContrib(gid_){
-    var amt=parseFloat(document.getElementById('ca_'+gid_).value),date=document.getElementById('cd_'+gid_).value,note=document.getElementById('cn_'+gid_).value.trim();
-    if(!amt||amt<=0){App.UI.toast('Geçerli tutar girin.','err');return}if(!date){App.UI.toast('Tarih seçin.','err');return}
+    var amt=parseMoney(document.getElementById('ca_'+gid_).value),date=document.getElementById('cd_'+gid_).value,note=document.getElementById('cn_'+gid_).value.trim();
+    if(amt===null){App.UI.toast('Geçerli tutar girin.','err');return}if(!validDate(date)){App.UI.toast('Geçerli tarih seçin.','err');return}
     var goals=S.goals(),g=goals.find(function(x){return x.id===gid_});if(!g)return;
     g.contributions.push({id:gid('c'),amount:amt,date,note});
     var total=g.contributions.reduce(function(s,c){return s+c.amount},0);
@@ -1504,7 +1529,7 @@ App.Rules=(function(){
   function add(){
     var field=document.getElementById('ruField').value,val=document.getElementById('ruValue').value.trim(),cat=document.getElementById('ruCat').value;
     if(!val){App.UI.toast('Değer girin.','err');return}
-    if(field.indexOf('amount')===0&&isNaN(parseFloat(val))){App.UI.toast('Sayısal değer girin.','err');return}
+    if(field.indexOf('amount')===0&&!isValidMoney(val)){App.UI.toast('Sayısal değer girin.','err');return}
     var arr=S.rules();arr.push({id:gid('ru'),field,value:val,category:cat,active:true,ts:Date.now()});S.saveRules(arr);
     document.getElementById('ruValue').value='';renderList();App.UI.toast('Kural eklendi.');
   }
@@ -1518,9 +1543,12 @@ App.Rules=(function(){
       var r=rules[i];if(!r.active)continue;var hit=false;
       if(r.field==='note')hit=note.indexOf(String(r.value).toLowerCase())!==-1;
       else if(r.field==='noteEq')hit=note===String(r.value).toLowerCase();
-      else if(r.field==='amount')hit=Math.abs(amt-parseFloat(r.value))<0.01;
-      else if(r.field==='amountGt')hit=amt>parseFloat(r.value);
-      else if(r.field==='amountLt')hit=amt<parseFloat(r.value);
+      else if(r.field==='amount'||r.field==='amountGt'||r.field==='amountLt'){
+        var rv=parseMoney(r.value);if(rv===null)continue;
+        if(r.field==='amount')hit=Math.abs(amt-rv)<0.01;
+        else if(r.field==='amountGt')hit=amt>rv;
+        else hit=amt<rv;
+      }
       if(hit){txn.category=r.category;txn._ruleApplied=r.id;return txn}
     }
     return txn;
@@ -1710,9 +1738,10 @@ App.Portfolio=(function(){
     return stale?refreshRates({silent:true}):Promise.resolve(r);
   }
   function add(){
-    var type=document.getElementById('portType').value,qty=parseFloat(document.getElementById('portQty').value);
-    var cost=parseFloat(document.getElementById('portCost').value)||0,label=document.getElementById('portLabel').value.trim();
-    if(!qty||qty<=0){App.UI.toast('Miktar girin.','err');return}
+    var type=document.getElementById('portType').value,qty=parseMoney(document.getElementById('portQty').value);
+    var cost=parseMoney(document.getElementById('portCost').value||0,{allowZero:true}),label=document.getElementById('portLabel').value.trim();
+    if(qty===null){App.UI.toast('Miktar girin.','err');return}
+    if(cost===null){App.UI.toast('Geçerli alış fiyatı girin.','err');return}
     var p=S.portfolio();p.push({id:gid('pa'),type,qty,cost,label,ts:Date.now()});S.savePortfolio(p);
     document.getElementById('portQty').value='';document.getElementById('portCost').value='';document.getElementById('portLabel').value='';
     render();App.UI.toast('Varlık eklendi.');
@@ -1735,16 +1764,16 @@ App.Portfolio=(function(){
   }
   function promptManualRates(){
     var s=S.settings(),r=s.rates||{};
-    var usd=prompt('1 USD kaç TL?',r.USD||'');if(usd!==null&&!isNaN(parseFloat(usd)))r.USD=parseFloat(usd);
-    var eur=prompt('1 EUR kaç TL?',r.EUR||'');if(eur!==null&&!isNaN(parseFloat(eur)))r.EUR=parseFloat(eur);
-    var gram=prompt('Gram altın kaç TL?',r.GOLD_GRAM||'');if(gram!==null&&!isNaN(parseFloat(gram))){r.GOLD_GRAM=parseFloat(gram);r.GOLD_QUARTER=r.GOLD_GRAM*1.75;r.GOLD_FULL=r.GOLD_GRAM*7}
+    var usd=prompt('1 USD kaç TL?',r.USD||''),usdVal=parseMoney(usd);if(usd!==null&&usdVal!==null)r.USD=usdVal;
+    var eur=prompt('1 EUR kaç TL?',r.EUR||''),eurVal=parseMoney(eur);if(eur!==null&&eurVal!==null)r.EUR=eurVal;
+    var gram=prompt('Gram altın kaç TL?',r.GOLD_GRAM||''),gramVal=parseMoney(gram);if(gram!==null&&gramVal!==null){r.GOLD_GRAM=gramVal;r.GOLD_QUARTER=roundMoney(r.GOLD_GRAM*1.75);r.GOLD_FULL=roundMoney(r.GOLD_GRAM*7)}
     r.updated=Date.now();r.provider='Manuel';S.saveSetting('rates',r);render();App.UI.toast('Kurlar güncellendi.');
   }
   function setRate(type){
     var s=S.settings(),r=s.rates||{};
     var v=prompt('Yeni '+TM[type].l+' kuru (₺):',r[type]||'');
-    if(v===null||isNaN(parseFloat(v)))return;
-    r[type]=parseFloat(v);r.updated=Date.now();r.provider='Manuel';S.saveSetting('rates',r);render();
+    var n=parseMoney(v);if(v===null||n===null)return;
+    r[type]=n;r.updated=Date.now();r.provider='Manuel';S.saveSetting('rates',r);render();
   }
   function rateOf(type){var r=(S.settings().rates)||{};return r[type]||0}
   function openApiSettings(){
@@ -1938,17 +1967,17 @@ App.Assistant=(function(){
 
 App.YearlyFund=(function(){
   function add(){
-    var name=document.getElementById('fundName').value.trim(),amt=parseFloat(document.getElementById('fundAmt').value),month=parseInt(document.getElementById('fundMonth').value);
+    var name=document.getElementById('fundName').value.trim(),amt=parseMoney(document.getElementById('fundAmt').value),month=parseInt(document.getElementById('fundMonth').value);
     if(!name){App.UI.toast('Ad girin.','err');return}
-    if(!amt||amt<=0){App.UI.toast('Tutar girin.','err');return}
+    if(amt===null){App.UI.toast('Tutar girin.','err');return}
     var arr=S.fund();arr.push({id:gid('yf'),name,amount:amt,dueMonth:month||12,contributed:0,ts:Date.now()});S.saveFund(arr);
     document.getElementById('fundName').value='';document.getElementById('fundAmt').value='';render();App.UI.toast('Yıllık gider eklendi.');
   }
   function remove(id){S.saveFund(S.fund().filter(function(f){return f.id!==id}));render();App.UI.toast('Silindi.')}
   function contribute(id){
-    var v=prompt('Bu ay bu fona ne kadar ayırdın? (₺)','');if(v===null)return;var a=parseFloat(v);if(!a||a<=0)return;
+    var v=prompt('Bu ay bu fona ne kadar ayırdın? (₺)','');if(v===null)return;var a=parseMoney(v);if(a===null)return;
     var arr=S.fund(),f=arr.find(function(x){return x.id===id});if(!f)return;
-    f.contributed=(f.contributed||0)+a;S.saveFund(arr);render();App.UI.toast('Katkı eklendi.');
+    f.contributed=roundMoney((f.contributed||0)+a);S.saveFund(arr);render();App.UI.toast('Katkı eklendi.');
   }
   function render(){
     var arr=S.fund(),mel=document.getElementById('fundMonth');
@@ -2017,7 +2046,7 @@ App.Inflation=(function(){
     if(!newMonth)return;
     if(!/^\d{4}-\d{2}$/.test(newMonth)){App.UI.toast('Geçersiz ay formatı.','err');return}
     var v=prompt('TÜFE endeksi (2003=100 bazlı):',cur);
-    if(v===null)return;var num=parseFloat(v);if(!num||num<=0){App.UI.toast('Geçerli bir sayı girin.','err');return}
+    if(v===null)return;var num=parseMoney(v,{round:false,max:100000000});if(num===null){App.UI.toast('Geçerli bir sayı girin.','err');return}
     var c=data();c[newMonth]=num;S.saveCpi(c);App.NetWorth.render();App.UI.toast('TÜFE güncellendi: '+newMonth+' = '+num);
   }
   return{data,latestMonth,get,adjust,setMode,getMode,editCpi,DEFAULT_CPI}
@@ -2251,7 +2280,7 @@ document.addEventListener('DOMContentLoaded',function(){
   S.load();App.UI.bindEvents();App.UI.initDates();App.UI.setTheme(S.settings().theme||'dark');App.UI.initSelects();
   var reconciled=App.Transactions.reconcileInstallments();
   if(window.__pfStorageError)App.UI.toast('Bazı veriler kaydedilemedi. Depolama alanını kontrol edin.','err');
-  if(reconciled)App.UI.toast('Vadesi gelen taksitler bakiyeye işlendi.','info');
+  if(reconciled)App.UI.toast('Vadesi gelen planlı işlemler bakiyeye işlendi.','info');
   App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();
   App.Transactions.renderSummaryMetrics();App.Transactions.renderRecent();App.Transactions.renderList();
   App.Accounts.renderAll();App.Accounts.renderSummary();App.Accounts.onTypeChange();App.Accounts.onOwnerChange();
