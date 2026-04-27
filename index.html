@@ -30,7 +30,8 @@
 html{-webkit-tap-highlight-color:transparent;overflow-x:hidden;max-width:100vw}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;min-height:100dvh;transition:background var(--tr),color var(--tr);overflow-x:hidden;max-width:100vw;-webkit-font-smoothing:antialiased}
 button{cursor:pointer;font-family:inherit;border:none;background:none;outline:none;color:inherit}
-input,select{font-family:inherit;outline:none;color:var(--txt)}
+input,select,textarea{font-family:inherit;outline:none;color:var(--txt)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[role="button"]:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
 input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:99px}
 .shell{display:flex;min-height:100vh;min-height:100dvh;max-width:100vw;overflow-x:hidden}
@@ -744,7 +745,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   <div class="bnav-item" id="moreBtn" onclick="App.UI.moreMenu()"><span class="bnav-icon">☰</span>Daha</div>
 </nav>
 <div class="toast-box" id="toasts"></div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="./vendor/chart.umd.min.js"></script>
 <script>
 var CM={'Yiyecek':{i:'🍽',c:'cc-orange'},'Market':{i:'🛒',c:'cc-teal'},'Ulaşım':{i:'🚌',c:'cc-blue'},'Faturalar':{i:'🧾',c:'cc-purple'},'Eğlence':{i:'🎬',c:'cc-pink'},'Sağlık':{i:'💊',c:'cc-red'},'Giyim':{i:'👕',c:'cc-yellow'},'Eğitim':{i:'📚',c:'cc-blue'},'Maaş':{i:'💼',c:'cc-green'},'Freelance':{i:'💻',c:'cc-teal'},'Kira Geliri':{i:'🏠',c:'cc-orange'},'Yatırım':{i:'📈',c:'cc-purple'},'Diğer':{i:'📦',c:'cc-blue'}};
 var AM={cash:{i:'💵',l:'Nakit'},bank:{i:'🏦',l:'Banka'},card:{i:'💳',l:'Kredi Kartı'},savings:{i:'🐖',l:'Birikim'},investment:{i:'📈',l:'Yatırım'}};
@@ -753,9 +754,16 @@ var IC=['Maaş','Freelance','Kira Geliri','Yatırım','Diğer'];
 var CL=['#14b8a6','#3b82f6','#8b5cf6','#ec4899','#f97316','#eab308','#22c55e','#ef4444','#06b6d4','#a855f7'];
 var MN=['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
 var MF=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function escAttr(s){return esc(s).replace(/'/g,'&#39;')}
+function safeColor(v){return /^#[0-9a-fA-F]{6}$/.test(String(v||''))?String(v):'#3b82f6'}
+function safeId(v){return /^[a-z]+[0-9]{13}_[a-z0-9]{4}$|^u_(self|partner)$/.test(String(v||''))?String(v):''}
+function toNum(v,fb){var n=typeof v==='number'?v:parseFloat(String(v||'').replace(',','.'));return isFinite(n)?n:(fb||0)}
+function validDate(iso){var m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return false;var d=new Date(+m[1],+m[2]-1,+m[3]);return d.getFullYear()===+m[1]&&d.getMonth()===+m[2]-1&&d.getDate()===+m[3]}
+function validMonth(m){return /^\d{4}-(0[1-9]|1[0-2])$/.test(String(m||''))}
+function csvSafe(v){v=String(v==null?'':v);if(/^[=+\-@]/.test(v))v="'"+v;return'"'+v.replace(/"/g,'""')+'"'}
 function fmt(n){return '₺'+Number(n||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}
-function fd(iso){var p=iso.split('-');return p[2]+' '+MF[+p[1]-1]+' '+p[0]}
+function fd(iso){if(!validDate(iso))return '-';var p=iso.split('-');return p[2]+' '+MF[+p[1]-1]+' '+p[0]}
 function td(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function tm(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
 function cv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
@@ -763,21 +771,49 @@ function ci(cat){return CM[cat]||{i:'💰',c:'cc-teal'}}
 function gid(p){return(p||'x')+Date.now()+'_'+Math.random().toString(36).slice(2,6)}
 
 var S=(function(){
+  var DEFAULT_RATES={USD:0,EUR:0,GBP:0,GOLD_GRAM:0,GOLD_QUARTER:0,GOLD_FULL:0,FUND:1,updated:null};
   function g(k,fb){try{var v=localStorage.getItem(k);return v?JSON.parse(v):fb}catch(e){return fb}}
-  function s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+  function s(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){window.__pfStorageError=true;if(window.App&&App.UI&&App.UI.toast)App.UI.toast('Veri kaydedilemedi. Tarayıcı depolama alanı dolu veya erişilemiyor olabilir.','err');return false}}
   var _t,_b,_g,_a,_r,_d,_s,_f,_p;
   var _nw,_ru,_bm,_cpi;
-  function load(){_t=g('pf_t',[]);_b=g('pf_b',{});_g=g('pf_g',[]);_a=g('pf_a',[]);_r=g('pf_r',[]);_d=g('pf_d',[]);_s=g('pf_s',{theme:'dark',rates:{USD:0,EUR:0,GBP:0,GOLD_GRAM:0,GOLD_QUARTER:0,GOLD_FULL:0,FUND:1,updated:null},deepseekApiKey:'',marketSummary:null,assistantLast:null});_f=g('pf_f',[]);_p=g('pf_p',[]);_nw=g('pf_nw',[]);_ru=g('pf_ru',[]);_bm=g('pf_bm',{});_cpi=g('pf_cpi',null);
-    if(!_s.rates)_s.rates={USD:0,EUR:0,GBP:0,GOLD_GRAM:0,GOLD_QUARTER:0,GOLD_FULL:0,FUND:1,updated:null};
-    if(typeof _s.deepseekApiKey==='undefined')_s.deepseekApiKey='';
+  var _txCache=null,_txVer=0,_txCacheVer=-1;
+  function arr(v){return Array.isArray(v)?v:[]}
+  function obj(v){return v&&typeof v==='object'&&!Array.isArray(v)?v:{}}
+  function cleanDate(v,fb){return validDate(v)?v:(fb||td())}
+  function cleanStoredId(v,p){v=String(v||'');return /^[A-Za-z0-9_-]{1,80}$/.test(v)?v:gid(p)}
+  function cleanStoredRef(v){v=String(v||'');return /^[A-Za-z0-9_-]{1,80}$/.test(v)?v:''}
+  function dateFromTs(ts){var d=new Date(ts||0);if(!isFinite(d.getTime()))return td();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+  function normalizeList(raw,name,fn,invalid){return arr(raw).map(function(x,i){try{return fn(obj(x),i)}catch(e){invalid.push({store:name,index:i,value:x,error:e.message});return null}}).filter(Boolean)}
+  function normalize(){
+    var invalid=[];
+    _s=obj(_s);_s.theme=_s.theme==='light'?'light':'dark';_s.rates=Object.assign({},DEFAULT_RATES,obj(_s.rates));
+    delete _s.deepseekApiKey;
+    if(typeof _s.aiProxyUrl!=='string')_s.aiProxyUrl='';
     if(typeof _s.marketSummary==='undefined')_s.marketSummary=null;
     if(typeof _s.assistantLast==='undefined')_s.assistantLast=null;
-    if(!_s.users||!_s.users.length){_s.users=[{id:'u_self',name:'Ben',emoji:'🙋',color:'#14b8a6'},{id:'u_partner',name:'Eş',emoji:'💑',color:'#ec4899'}];_s.activeUser='u_self';s('pf_s',_s)}
-    if(!_s.activeUser){_s.activeUser=_s.users[0].id;s('pf_s',_s)}
+    _s.users=normalizeList(_s.users,'pf_s.users',function(u,i){return{id:cleanStoredId(u.id,'u'),name:String(u.name||('Üye '+(i+1))).slice(0,80),emoji:String(u.emoji||'🙋').slice(0,4),color:safeColor(u.color)}} ,invalid);
+    if(!_s.users.length)_s.users=[{id:'u_self',name:'Ben',emoji:'🙋',color:'#14b8a6'},{id:'u_partner',name:'Eş',emoji:'💑',color:'#ec4899'}];
+    if(!_s.activeUser||!_s.users.find(function(u){return u.id===_s.activeUser}))_s.activeUser=_s.users[0].id;
+    _a=normalizeList(_a,'pf_a',function(a){var type=AM[a.type]?a.type:'cash';var owner=a.owner==='personal'?'personal':'shared';return{id:cleanStoredId(a.id,'a'),name:String(a.name||'Hesap').slice(0,120),type:type,owner:owner,userId:owner==='personal'?cleanStoredRef(a.userId||_s.activeUser):null,statementDay:a.statementDay>=1&&a.statementDay<=31?parseInt(a.statementDay):null,balance:toNum(a.balance,0),ts:toNum(a.ts,Date.now())}},invalid);
+    _t=normalizeList(_t,'pf_t',function(t){var type=t.type==='expense'?'expense':'income',date=cleanDate(t.date),inst=t.installment?obj(t.installment):null;if(inst){var created=dateFromTs(t.ts);inst.planId=cleanStoredId(inst.planId,'p');inst.index=Math.max(1,parseInt(inst.index)||1);inst.total=Math.max(inst.index,parseInt(inst.total)||inst.index);inst.totalAmount=toNum(inst.totalAmount,t.amount);inst.name=String(inst.name||t.category||'Taksit').slice(0,120);inst.startDate=cleanDate(inst.startDate,date);if(typeof inst.balanceApplied!=='boolean')inst.balanceApplied=date<=created}return{id:cleanStoredId(t.id,'t'),type:type,amount:Math.max(0,toNum(t.amount,0)),category:String(t.category||'Diğer').slice(0,80),date:date,note:String(t.note||'').slice(0,500),accountId:cleanStoredRef(t.accountId),userId:cleanStoredRef(t.userId||_s.activeUser),ts:toNum(t.ts,Date.now()),installment:inst}},invalid);
+    _g=normalizeList(_g,'pf_g',function(g){return{id:cleanStoredId(g.id,'g'),name:String(g.name||'Hedef').slice(0,120),target:Math.max(0,toNum(g.target,0)),emoji:String(g.emoji||'🎯').slice(0,4),contributions:normalizeList(g.contributions,'goal.contributions',function(c){return{id:cleanStoredId(c.id,'c'),amount:Math.max(0,toNum(c.amount,0)),date:cleanDate(c.date),note:String(c.note||'').slice(0,300)}},invalid),done:g.done||null,emergency:!!g.emergency,monthsCovered:toNum(g.monthsCovered,0),baseAvg:toNum(g.baseAvg,0),ts:toNum(g.ts,Date.now())}},invalid);
+    _r=normalizeList(_r,'pf_r',function(r){return{id:cleanStoredId(r.id,'r'),type:r.type==='income'?'income':'expense',amount:Math.max(0,toNum(r.amount,0)),category:String(r.category||'Diğer').slice(0,80),day:Math.min(31,Math.max(1,parseInt(r.day)||1)),note:String(r.note||'').slice(0,300),accountId:cleanStoredRef(r.accountId),userId:cleanStoredRef(r.userId||_s.activeUser),isSubscription:!!r.isSubscription,ts:toNum(r.ts,Date.now())}},invalid);
+    _d=normalizeList(_d,'pf_d',function(d){return{id:cleanStoredId(d.id,'d'),direction:d.direction==='borrowed'?'borrowed':'lent',person:String(d.person||'Kişi').slice(0,120),amount:Math.max(0,toNum(d.amount,0)),date:cleanDate(d.date),dueDate:cleanDate(d.dueDate||d.date),note:String(d.note||'').slice(0,300),payments:normalizeList(d.payments,'debt.payments',function(p){return{id:cleanStoredId(p.id,'p'),amount:Math.max(0,toNum(p.amount,0)),date:cleanDate(p.date)}},invalid),settled:!!d.settled,ts:toNum(d.ts,Date.now())}},invalid);
+    _f=normalizeList(_f,'pf_f',function(f){return{id:cleanStoredId(f.id,'yf'),name:String(f.name||'Yıllık gider').slice(0,120),amount:Math.max(0,toNum(f.amount,0)),dueMonth:Math.min(12,Math.max(1,parseInt(f.dueMonth)||12)),contributed:Math.max(0,toNum(f.contributed,0)),ts:toNum(f.ts,Date.now())}},invalid);
+    _p=normalizeList(_p,'pf_p',function(p){return{id:cleanStoredId(p.id,'pa'),type:p.type||'FUND',qty:Math.max(0,toNum(p.qty,0)),cost:Math.max(0,toNum(p.cost,0)),label:String(p.label||'').slice(0,120),ts:toNum(p.ts,Date.now())}},invalid);
+    _ru=normalizeList(_ru,'pf_ru',function(r){return{id:cleanStoredId(r.id,'ru'),field:String(r.field||'note'),value:String(r.value||'').slice(0,120),category:String(r.category||'Diğer').slice(0,80),active:r.active!==false,ts:toNum(r.ts,Date.now())}},invalid);
+    _nw=normalizeList(_nw,'pf_nw',function(n){var m=validMonth(n.month)?n.month:tm();return{month:m,total:toNum(n.total,0),accounts:toNum(n.accounts,0),portfolio:toNum(n.portfolio,0),lent:toNum(n.lent,0),borrowed:toNum(n.borrowed,0),ts:toNum(n.ts,Date.now())}},invalid);
+    _b=obj(_b);Object.keys(_b).forEach(function(k){_b[k]=Math.max(0,toNum(_b[k],0))});_bm=obj(_bm);_cpi=_cpi?obj(_cpi):null;
+    if(invalid.length)try{localStorage.setItem('pf_invalid_records',JSON.stringify({ts:Date.now(),records:invalid.slice(0,100)}))}catch(e){}
+    s('pf_s',_s);
   }
-  function txns(){return _t.slice().sort(function(a,b){return a.date===b.date?b.ts-a.ts:b.date.localeCompare(a.date)})}
+  function load(){_t=g('pf_t',[]);_b=g('pf_b',{});_g=g('pf_g',[]);_a=g('pf_a',[]);_r=g('pf_r',[]);_d=g('pf_d',[]);_s=g('pf_s',{theme:'dark',rates:DEFAULT_RATES,aiProxyUrl:'',marketSummary:null,assistantLast:null});_f=g('pf_f',[]);_p=g('pf_p',[]);_nw=g('pf_nw',[]);_ru=g('pf_ru',[]);_bm=g('pf_bm',{});_cpi=g('pf_cpi',null);
+    normalize();_txVer++;
+  }
+  function markTxDirty(){_txVer++;_txCache=null}
+  function txns(){if(_txCache&&_txCacheVer===_txVer)return _txCache.slice();_txCache=_t.slice().sort(function(a,b){return a.date===b.date?b.ts-a.ts:b.date.localeCompare(a.date)});_txCacheVer=_txVer;return _txCache.slice()}
   return{load,txns,budgets:function(){return _b},goals:function(){return _g},accounts:function(){return _a},recurring:function(){return _r},debts:function(){return _d},settings:function(){return _s},fund:function(){return _f},portfolio:function(){return _p},
-    saveTxns:function(v){_t=v;s('pf_t',v)},saveBudgets:function(v){_b=v;s('pf_b',v)},saveGoals:function(v){_g=v;s('pf_g',v)},
+    saveTxns:function(v){_t=v;markTxDirty();return s('pf_t',v)},saveBudgets:function(v){_b=v;return s('pf_b',v)},saveGoals:function(v){_g=v;return s('pf_g',v)},
     saveAccounts:function(v){_a=v;s('pf_a',v)},saveRecurring:function(v){_r=v;s('pf_r',v)},saveDebts:function(v){_d=v;s('pf_d',v)},
     saveFund:function(v){_f=v;s('pf_f',v)},savePortfolio:function(v){_p=v;s('pf_p',v)},
     netWorthHistory:function(){return _nw},saveNetWorthHistory:function(v){_nw=v;s('pf_nw',v)},
@@ -886,9 +922,32 @@ App.UI=(function(){
     ];
     var grid=items.map(function(it){return '<div class="more-grid-item" onclick="App.UI.moreClose();'+it.act+'"><div class="more-grid-ico">'+it.icon+'</div><div>'+it.label+'</div></div>'}).join('');
     var html='<div class="modal-bd show" id="moreMdl" onclick="if(event.target===this)App.UI.moreClose()"><div class="modal" style="max-width:420px"><div class="modal-title">☰ Daha</div><div class="more-grid">'+grid+'</div><div class="modal-actions"><button class="btn btn-ghost" onclick="App.UI.moreClose()">Kapat</button></div></div></div>';
-    var div=document.createElement('div');div.id='moreHolder';div.innerHTML=html;document.body.appendChild(div);
+    var div=document.createElement('div');div.id='moreHolder';div.innerHTML=html;mountModal(div,'.more-grid-item');
   }
-  function moreClose(){var el=document.getElementById('moreHolder');if(el)el.remove()}
+  function moreClose(){closeModal('moreHolder')}
+  function mountModal(div,focusSelector){
+    div.dataset.prevFocus=document.activeElement&&document.activeElement.id?document.activeElement.id:'';
+    document.body.appendChild(div);applyA11y(div);
+    var focusEl=(focusSelector&&div.querySelector(focusSelector))||div.querySelector('button,input,select,textarea,[tabindex]');
+    if(focusEl)setTimeout(function(){focusEl.focus()},30);
+  }
+  function closeModal(id){
+    var el=document.getElementById(id);if(!el)return;
+    var prev=el.dataset.prevFocus;el.remove();
+    if(prev){var p=document.getElementById(prev);if(p&&p.focus)p.focus()}
+  }
+  function applyA11y(root){
+    root=root||document;
+    root.querySelectorAll('.nav-item,.bnav-item,.sh-link,.sub-tab,.more-grid-item,.wallet-row[onclick],.rate-chip,[onclick][style*="cursor:pointer"]').forEach(function(el){
+      if(!el.hasAttribute('tabindex'))el.setAttribute('tabindex','0');
+      if(!el.hasAttribute('role'))el.setAttribute('role','button');
+    });
+    root.querySelectorAll('label').forEach(function(label){
+      if(label.getAttribute('for'))return;
+      var ctl=label.parentElement&&label.parentElement.querySelector('input,select,textarea');
+      if(ctl){if(!ctl.id)ctl.id='field_'+gid('f');label.setAttribute('for',ctl.id)}
+    });
+  }
   function toast(msg,type){
     var box=document.getElementById('toasts'),el=document.createElement('div');
     el.className='toast '+(type||'ok');el.innerHTML=(type==='err'?'❌ ':type==='info'?'ℹ️ ':'✅ ')+esc(msg);
@@ -909,13 +968,19 @@ App.UI=(function(){
     });
     ['txnAmt','txnNote'].forEach(function(id){var el=document.getElementById(id);if(el)el.addEventListener('keydown',function(e){if(e.key==='Enter')App.Transactions.add()})});
     var gel=document.getElementById('gTarget');if(gel)gel.addEventListener('keydown',function(e){if(e.key==='Enter')App.Goals.add()});
+    document.addEventListener('keydown',function(e){
+      if(e.key==='Escape'){['moreHolder','apiHolder','rapHolder','aiConfirmHolder'].some(function(id){var el=document.getElementById(id);if(el){el.remove();return true}return false});return}
+      if((e.key==='Enter'||e.key===' ')&&e.target&&e.target.matches('[role="button"]')){e.preventDefault();e.target.click()}
+    });
+    applyA11y(document);
+    if(window.MutationObserver){var timer=null;new MutationObserver(function(){clearTimeout(timer);timer=setTimeout(function(){applyA11y(document)},60)}).observe(document.body,{childList:true,subtree:true})}
   }
   function initDates(){
     document.getElementById('txnDate').value=td();document.getElementById('debtDate').value=td();document.getElementById('statMonth').value=tm();
     var d=new Date();
     document.getElementById('todayDate').textContent=d.getDate()+' '+MF[d.getMonth()]+' '+d.getFullYear()+', '+['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'][d.getDay()];
   }
-  return{nav,subTab,setType,getType,quickAdd,moreMenu,moreClose,initSelects,refreshAccSelects,refreshUserSelects,refreshFilterDropdowns,toast,setTheme,bindEvents,initDates,syncActiveProfilePill}
+  return{nav,subTab,setType,getType,quickAdd,moreMenu,moreClose,mountModal,closeModal,applyA11y,initSelects,refreshAccSelects,refreshUserSelects,refreshFilterDropdowns,toast,setTheme,bindEvents,initDates,syncActiveProfilePill}
 })();
 
 App.Accounts=(function(){
@@ -967,7 +1032,8 @@ App.Accounts=(function(){
   }
   function renderSummary(){
     var all=App.Transactions.allTimeTotals();var accs=S.accounts();
-    document.getElementById('heroNet').textContent=fmt(all.net);document.getElementById('heroNet').style.color=all.net<0?'#fca5a5':'#fff';
+    var accountNet=accs.reduce(function(s,a){return s+(a.balance||0)},0);
+    document.getElementById('heroNet').textContent=fmt(accountNet);document.getElementById('heroNet').style.color=accountNet<0?'#fca5a5':'#fff';
     document.getElementById('heroInc').textContent=fmt(all.income)+' Gelir';document.getElementById('heroExp').textContent=fmt(all.expense)+' Gider';
     document.getElementById('heroAcc').textContent=accs.length+' Hesap';
   }
@@ -1000,8 +1066,9 @@ App.Transactions=(function(){
       var today=td(),pastTotal=0;
       for(var i=0;i<insCount;i++){
         var d=addMonths(insStart,i);var thisAmt=(i===insCount-1)?lastPer:per;
-        arr.unshift({id:gid('t'),type:'expense',amount:thisAmt,category:cat,date:d,note:(note||cat)+' ('+(i+1)+'/'+insCount+')',accountId:accId,userId,ts:now+i,installment:{planId,index:i+1,total:insCount,totalAmount:amt,name:note||cat,startDate:insStart}});
-        if(d<=today)pastTotal+=thisAmt;
+        var applied=d<=today;
+        arr.unshift({id:gid('t'),type:'expense',amount:thisAmt,category:cat,date:d,note:(note||cat)+' ('+(i+1)+'/'+insCount+')',accountId:accId,userId,ts:now+i,installment:{planId,index:i+1,total:insCount,totalAmount:amt,name:note||cat,startDate:insStart,balanceApplied:applied}});
+        if(applied)pastTotal+=thisAmt;
       }
       S.saveTxns(arr);
       if(accId&&pastTotal>0)App.Accounts.adjustBalance(accId,-pastTotal);
@@ -1026,6 +1093,19 @@ App.Transactions=(function(){
     var delIds={};toDelete.forEach(function(x){delIds[x.id]=1});
     S.saveTxns(txns.filter(function(x){return!delIds[x.id]}));
     App.UI.refreshFilterDropdowns();renderList();renderRecent();renderSummaryMetrics();App.Accounts.renderSummary();App.Budget.renderAll();App.Installments.render();App.WeeklySummary.render();App.UI.toast(toDelete.length>1?toDelete.length+' işlem silindi.':'İşlem silindi.');
+  }
+  function reconcileInstallments(){
+    var today=td(),txns=S.txns(),changed=false,balances={};
+    txns.forEach(function(t){
+      if(!t.installment||t.installment.balanceApplied||t.date>today||!t.accountId)return;
+      t.installment.balanceApplied=true;changed=true;
+      balances[t.accountId]=(balances[t.accountId]||0)+(t.type==='income'?t.amount:-t.amount);
+    });
+    if(!changed)return 0;
+    S.saveTxns(txns);
+    var accs=S.accounts();Object.keys(balances).forEach(function(id){var a=accs.find(function(x){return x.id===id});if(a)a.balance=(a.balance||0)+balances[id]});
+    S.saveAccounts(accs);
+    return Object.keys(balances).length;
   }
   function monthTotals(month){
     var income=0,expense=0,count=0;
@@ -1064,13 +1144,14 @@ App.Transactions=(function(){
     });
     var el=document.getElementById('txnList');
     if(!txns.length){el.innerHTML='<div class="empty"><span class="empty-ico">📭</span><div class="empty-t">İşlem bulunamadı</div></div>';return}
-    el.innerHTML=txns.map(function(t){return _h(t,true)}).join('');
+    var shown=txns.slice(0,300);
+    el.innerHTML=shown.map(function(t){return _h(t,true)}).join('')+(txns.length>shown.length?'<div class="empty"><div class="empty-t">'+shown.length+' / '+txns.length+' işlem gösteriliyor</div><div class="empty-s">Liste performansı için filtre veya arama kullanın.</div></div>':'');
   }
   function renderRecent(){var el=document.getElementById('ozet-txns'),txns=S.txns().slice(0,5);if(!txns.length){el.innerHTML='<div class="empty"><span class="empty-ico">💳</span><div class="empty-t">Henüz işlem yok</div></div>';return}el.innerHTML=txns.map(function(t){return _h(t,false)}).join('')}
   function exportCSV(){
     var txns=S.txns();if(!txns.length){App.UI.toast('İşlem yok.','err');return}
     var rows=['\uFEFFTarih,Tür,Kategori,Tutar,Hesap,Üye,Not'];
-    txns.forEach(function(t){var an=t.accountId?App.Accounts.getName(t.accountId):'',u=t.userId?App.Users.get(t.userId):null;rows.push([t.date,t.type==='income'?'Gelir':'Gider',t.category,t.amount,an,u?u.name:'',t.note||''].map(function(v){return'"'+String(v).replace(/"/g,'""')+'"'}).join(','))});
+    txns.forEach(function(t){var an=t.accountId?App.Accounts.getName(t.accountId):'',u=t.userId?App.Users.get(t.userId):null;rows.push([t.date,t.type==='income'?'Gelir':'Gider',t.category,t.amount,an,u?u.name:'',t.note||''].map(csvSafe).join(','))});
     var blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='finanstakip_'+td()+'.csv';a.click();URL.revokeObjectURL(url);App.UI.toast('CSV indirildi.','info');
   }
   function _parseCSV(text){
@@ -1090,14 +1171,14 @@ App.Transactions=(function(){
         if(iDate<0||iType<0||iCat<0||iAmt<0){App.UI.toast('CSV kolonları eksik.','err');return}
         var shared=App.Accounts.sharedAccount();if(!shared){App.UI.toast('Ortak cüzdan hesabı oluşturun.','err');return}
         var accounts=S.accounts(),txns=S.txns(),seen={};
-        function parseAmount(v){v=String(v||'').trim();return v.indexOf(',')>=0?parseFloat(v.replace(/\./g,'').replace(',','.')):parseFloat(v)}
+        function parseAmount(v){v=String(v||'').trim();if(!v)return NaN;if(v.indexOf(',')>=0){if(!/^\d{1,3}(\.\d{3})*(,\d+)?$|^\d+(,\d+)?$/.test(v))return NaN;return Number(v.replace(/\./g,'').replace(',','.'))}if(!/^\d+(\.\d+)?$/.test(v))return NaN;return Number(v)}
         txns.forEach(function(t){seen[[t.date,t.type,t.amount,t.category,t.note||'',t.accountId||''].join('|')]=1});
         var added=0,skipped=0,bad=0,balances={};
         rows.forEach(function(r){
           var date=String(r[iDate]||'').trim(),rawType=String(r[iType]||'').trim().toLowerCase(),cat=String(r[iCat]||'').trim();
           var amount=parseAmount(r[iAmt]),note=iNote>=0?String(r[iNote]||'').trim():'';
           var type=rawType==='gelir'||rawType==='income'?'income':rawType==='gider'||rawType==='expense'?'expense':'';
-          if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!type||!cat||!amount||amount<=0){bad++;return}
+          if(!validDate(date)||!type||!cat||!isFinite(amount)||amount<=0){bad++;return}
           var userName=iUser>=0?String(r[iUser]||'').trim():'';
           var user=userName?(App.Users.list().find(function(u){return u.name===userName})):null;
           var acc=shared;
@@ -1115,7 +1196,7 @@ App.Transactions=(function(){
     };
     reader.readAsText(file,'utf-8');
   }
-  return{add,remove,monthTotals,catTotals,last6,allTimeTotals,renderSummaryMetrics,renderList,renderRecent,exportCSV,importCSV,statementPeriod}
+  return{add,remove,reconcileInstallments,monthTotals,catTotals,last6,allTimeTotals,renderSummaryMetrics,renderList,renderRecent,exportCSV,importCSV,statementPeriod}
 })();
 
 App.Recurring=(function(){
@@ -1345,7 +1426,7 @@ App.Users=(function(){
   function add(){
     var name=document.getElementById('userName').value.trim();
     var emoji=document.getElementById('userEmoji').value.trim()||'🙋';
-    var color=document.getElementById('userColor').value||'#3b82f6';
+    var color=safeColor(document.getElementById('userColor').value||'#3b82f6');
     if(!name){App.UI.toast('Ad girin.','err');return}
     var users=list();users.push({id:gid('u'),name,emoji,color});
     S.saveSetting('users',users);
@@ -1357,7 +1438,7 @@ App.Users=(function(){
     var name=prompt('Ad:',u.name);if(name===null)return;
     var emoji=prompt('Emoji:',u.emoji||'🙋');if(emoji===null)return;
     var color=prompt('Renk (hex):',u.color||'#3b82f6');if(color===null)return;
-    var users=list();var idx=users.findIndex(function(x){return x.id===id});users[idx]={id,name:name.trim()||u.name,emoji:emoji.trim()||'🙋',color:color.trim()||'#3b82f6'};
+    var users=list();var idx=users.findIndex(function(x){return x.id===id});users[idx]={id,name:name.trim()||u.name,emoji:emoji.trim()||'🙋',color:safeColor(color.trim())};
     S.saveSetting('users',users);App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();renderAll();App.Accounts.renderAll();App.Transactions.renderList();App.Transactions.renderRecent();App.UI.toast('Güncellendi.');
   }
   function remove(id){
@@ -1370,7 +1451,10 @@ App.Users=(function(){
     App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();renderAll();App.Accounts.renderAll();App.Transactions.renderList();App.Transactions.renderRecent();App.UI.toast('Üye silindi.');
   }
   function setActive(id){
-    S.saveSetting('activeUser',id);App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();renderAll();App.UI.toast('Aktif profil: '+get(id).name);
+    var u=get(id);if(!u)return;
+    S.saveSetting('activeUser',id);App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();renderAll();renderFamilyPanel();
+    App.Transactions.renderList();App.Transactions.renderRecent();App.Transactions.renderSummaryMetrics();App.WeeklySummary.render();
+    App.UI.toast('Aktif profil: '+u.name);
   }
   function stats(userId){
     var accs=S.accounts().filter(function(a){return a.owner==='personal'&&a.userId===userId});
@@ -1391,7 +1475,7 @@ App.Users=(function(){
     var apc=document.getElementById('activeProfileCard');
     if(apc){var au=active();apc.innerHTML=au?'<div style="display:flex;align-items:center;gap:14px"><div style="font-size:2.5rem">'+esc(au.emoji||'🙋')+'</div><div><div style="font-size:1.15rem;font-weight:800">'+esc(au.name)+'</div><div style="font-size:.75rem;color:var(--txt2);margin-top:2px">Yeni işlemler otomatik bu profile atanır.</div></div></div>':''}
     var fm=document.getElementById('familyMembers');
-    if(fm){fm.innerHTML='<div class="user-grid">'+users.map(function(u){var st=stats(u.id),net=st.income-st.expense;var isA=u.id===act;return'<div class="user-card'+(isA?' active':'')+'" style="border-color:'+(isA?'var(--teal)':(u.color||'#3b82f6')+'55')+'"><span class="uc-emoji">'+esc(u.emoji||'🙋')+'</span><div class="uc-name" style="color:'+(u.color||'var(--txt)')+'">'+esc(u.name)+'</div><div class="uc-role">'+(isA?'Aktif Profil':'Üye')+'</div><div class="uc-bal" style="color:'+(net<0?'var(--red)':'var(--green)')+'">'+fmt(net)+'</div><div style="font-size:.68rem;color:var(--txt2);margin-bottom:6px">Bu ay net</div><div class="uc-stats"><div class="uc-stat"><span class="v" style="color:var(--green)">'+fmt(st.income)+'</span><span class="l">Bu ay gelir</span></div><div class="uc-stat"><span class="v" style="color:var(--red)">'+fmt(st.expense)+'</span><span class="l">Bu ay gider</span></div></div><div class="uc-actions"><button class="btn-active '+(isA?'is-active':'')+'" onclick="'+(isA?'':'App.Users.setActive(\''+u.id+'\')')+'">'+(isA?'✓ Aktif':'Aktif yap')+'</button><button class="btn btn-sm btn-ghost" onclick="App.Users.edit(\''+u.id+'\')">Düzenle</button><button class="btn-del" onclick="App.Users.remove(\''+u.id+'\')">Sil</button></div></div>'}).join('')+'</div>'}
+    if(fm){fm.innerHTML='<div class="user-grid">'+users.map(function(u){var st=stats(u.id),net=st.income-st.expense;var isA=u.id===act,c=safeColor(u.color);return'<div class="user-card'+(isA?' active':'')+'" style="border-color:'+(isA?'var(--teal)':c+'55')+'"><span class="uc-emoji">'+esc(u.emoji||'🙋')+'</span><div class="uc-name" style="color:'+c+'">'+esc(u.name)+'</div><div class="uc-role">'+(isA?'Aktif Profil':'Üye')+'</div><div class="uc-bal" style="color:'+(net<0?'var(--red)':'var(--green)')+'">'+fmt(net)+'</div><div style="font-size:.68rem;color:var(--txt2);margin-bottom:6px">Bu ay net</div><div class="uc-stats"><div class="uc-stat"><span class="v" style="color:var(--green)">'+fmt(st.income)+'</span><span class="l">Bu ay gelir</span></div><div class="uc-stat"><span class="v" style="color:var(--red)">'+fmt(st.expense)+'</span><span class="l">Bu ay gider</span></div></div><div class="uc-actions"><button class="btn-active '+(isA?'is-active':'')+'" onclick="'+(isA?'':'App.Users.setActive(\''+u.id+'\')')+'">'+(isA?'✓ Aktif':'Aktif yap')+'</button><button class="btn btn-sm btn-ghost" onclick="App.Users.edit(\''+u.id+'\')">Düzenle</button><button class="btn-del" onclick="App.Users.remove(\''+u.id+'\')">Sil</button></div></div>'}).join('')+'</div>'}
     var ws=document.getElementById('walletSummary');
     if(ws){var sh=sharedStats();var rows='<div class="wallet-row"><div class="wr-left"><span class="wr-emoji">👨‍👩‍👧</span><div><div class="wr-name">Ortak Cüzdan</div><div class="wr-meta">'+sh.accounts+' hesap · Bu ay '+fmt(sh.income)+' gelir · '+fmt(sh.expense)+' gider</div></div></div><div class="wr-bal '+(sh.balance>=0?'pos':'neg')+'">'+fmt(sh.balance)+'</div></div>';rows+=users.map(function(u){var st=stats(u.id),net=st.income-st.expense;return'<div class="wallet-row"><div class="wr-left"><span class="wr-emoji">'+esc(u.emoji||'🙋')+'</span><div><div class="wr-name">'+esc(u.name)+' · Bu ay net</div><div class="wr-meta">'+st.accounts+' hesap · '+fmt(st.income)+' gelir · '+fmt(st.expense)+' gider</div></div></div><div class="wr-bal '+(net>=0?'pos':'neg')+'">'+fmt(net)+'</div></div>'}).join('');ws.innerHTML=rows}
   }
@@ -1540,6 +1624,26 @@ App.Installments=(function(){
   return{active,monthlyTotal,render}
 })();
 
+App.AI=(function(){
+  var _pending=null;
+  function proxyUrl(){return (S.settings().aiProxyUrl||'').trim()}
+  function ensureProxy(){if(proxyUrl())return true;App.Portfolio.openApiSettings();App.UI.toast('AI için önce güvenli proxy URL ekleyin.','info');return false}
+  function call(payload){
+    var url=proxyUrl();if(!url)return Promise.reject(new Error('missing proxy'));
+    return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(res){if(!res.ok)throw new Error('proxy '+res.status);return res.json()})
+  }
+  function confirm(title,summary,onConfirm){
+    _pending=onConfirm;
+    if(document.getElementById('aiConfirmHolder'))document.getElementById('aiConfirmHolder').remove();
+    var safeSummary=esc(JSON.stringify(summary,null,2));
+    var html='<div class="modal-bd show" id="aiConfirmMdl" onclick="if(event.target===this)App.AI.cancel()"><div class="modal"><div class="modal-title">AI Veri Gönderimi Onayı</div><div style="font-size:.78rem;color:var(--txt2);line-height:1.5;margin-bottom:10px">'+esc(title)+' için aşağıdaki özet proxy servisine gönderilecek. API anahtarı bu uygulamada saklanmaz.</div><pre style="white-space:pre-wrap;max-height:260px;overflow:auto;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px;font-size:.72rem;color:var(--txt2)">'+safeSummary+'</pre><div class="modal-actions"><button class="btn btn-ghost" onclick="App.AI.cancel()">Vazgeç</button><button class="btn btn-primary" onclick="App.AI.proceed()">Gönder</button></div></div></div>';
+    var div=document.createElement('div');div.id='aiConfirmHolder';div.innerHTML=html;App.UI.mountModal(div,'button');
+  }
+  function proceed(){var fn=_pending;_pending=null;App.UI.closeModal('aiConfirmHolder');if(fn)fn()}
+  function cancel(){_pending=null;App.UI.closeModal('aiConfirmHolder')}
+  return{ensureProxy,call,confirm,proceed,cancel,proxyUrl}
+})();
+
 App.Portfolio=(function(){
   var TM={USD:{i:'💵',l:'USD'},EUR:{i:'💶',l:'EUR'},GBP:{i:'💷',l:'GBP'},GOLD_GRAM:{i:'🪙',l:'Gram Altın'},GOLD_QUARTER:{i:'🟡',l:'Çeyrek Altın'},GOLD_FULL:{i:'🟠',l:'Tam Altın'},FUND:{i:'📈',l:'Fon/Hisse'}};
   var REFRESH_MS=30*60*1000,_refreshing=false,_refreshPromise=null;
@@ -1622,30 +1726,31 @@ App.Portfolio=(function(){
   function rateOf(type){var r=(S.settings().rates)||{};return r[type]||0}
   function openApiSettings(){
     if(document.getElementById('apiHolder'))return;
-    var s=S.settings(),key=s.deepseekApiKey||'';
-    var html='<div class="modal-bd show" id="apiMdl" onclick="if(event.target===this)App.Portfolio.closeApiSettings()"><div class="modal"><div class="modal-title">⚙️ API Ayarları</div><div class="f"><label>DeepSeek API Key</label><input type="password" id="deepseekKey" placeholder="sk-..." value="'+esc(key)+'"/></div><div style="font-size:.74rem;color:var(--txt2);margin-top:10px;line-height:1.5">Anahtar sadece bu tarayıcının localStorage alanında saklanır. Statik PWA olduğu için tarayıcıdan yapılan DeepSeek isteklerinde anahtar istemci tarafında kullanılır.</div><div class="modal-actions"><button class="btn btn-ghost" onclick="App.Portfolio.closeApiSettings()">Vazgeç</button><button class="btn btn-primary" onclick="App.Portfolio.saveApiSettings()">Kaydet</button></div></div></div>';
-    var div=document.createElement('div');div.id='apiHolder';div.innerHTML=html;document.body.appendChild(div);
+    var s=S.settings(),url=s.aiProxyUrl||'';
+    var html='<div class="modal-bd show" id="apiMdl" onclick="if(event.target===this)App.Portfolio.closeApiSettings()"><div class="modal"><div class="modal-title">⚙️ AI Proxy Ayarları</div><div class="f"><label>Proxy URL</label><input type="url" id="aiProxyUrl" placeholder="https://ornek.site/api/ai" value="'+escAttr(url)+'"/></div><div style="font-size:.74rem;color:var(--txt2);margin-top:10px;line-height:1.5">API anahtarı artık bu PWA içinde saklanmaz. Bu URL, kendi güvenli backend/proxy servisinize ait olmalı ve DeepSeek isteğini sunucu tarafında tamamlamalıdır.</div><div class="modal-actions"><button class="btn btn-ghost" onclick="App.Portfolio.closeApiSettings()">Vazgeç</button><button class="btn btn-primary" onclick="App.Portfolio.saveApiSettings()">Kaydet</button></div></div></div>';
+    var div=document.createElement('div');div.id='apiHolder';div.innerHTML=html;App.UI.mountModal(div,'#aiProxyUrl');
   }
-  function closeApiSettings(){var el=document.getElementById('apiHolder');if(el)el.remove()}
+  function closeApiSettings(){App.UI.closeModal('apiHolder')}
   function saveApiSettings(){
-    var el=document.getElementById('deepseekKey'),v=el?el.value.trim():'';
-    S.saveSetting('deepseekApiKey',v);closeApiSettings();App.UI.toast(v?'DeepSeek API anahtarı kaydedildi.':'DeepSeek API anahtarı temizlendi.','ok');
+    var el=document.getElementById('aiProxyUrl'),v=el?el.value.trim():'';
+    if(v&&!/^https:\/\/[^ ]+$/i.test(v)){App.UI.toast('Proxy URL https:// ile başlamalı.','err');return}
+    S.saveSetting('aiProxyUrl',v);closeApiSettings();App.UI.toast(v?'AI proxy URL kaydedildi.':'AI proxy URL temizlendi.','ok');
   }
   function generateMarketSummary(){
-    var key=(S.settings().deepseekApiKey||'').trim();
-    if(!key){openApiSettings();App.UI.toast('Önce DeepSeek API anahtarını ekleyin.','info');return}
+    if(!App.AI.ensureProxy())return;
     var r=S.settings().rates||{},items=S.portfolio();
     if(!r.updated){App.UI.toast('Özet için önce kurlar güncelleniyor.','info');refreshRates({manual:true}).then(generateMarketSummary).catch(function(){App.UI.toast('Kurlar güncellenemediği için özet hazırlanamadı.','err')});return}
-    App.UI.toast('DeepSeek piyasa özeti hazırlıyor...','info');
+    var share={ratesUpdated:r.updated?new Date(r.updated).toLocaleString('tr-TR'):'-',provider:r.provider||'',assetCount:items.length,totalValue:items.reduce(function(s,p){return s+(p.qty||0)*(r[p.type]||0)},0),assetTypes:items.map(function(p){return p.type})};
     var payload={model:'deepseek-chat',messages:[
       {role:'system',content:'Kisa, net ve Turkce finans takip asistanisin. Yatirim tavsiyesi verme; veri ozeti ve risk hatirlatmasi yap.'},
-      {role:'user',content:'Guncel kurlar ve portfoy icin 4-6 maddelik kisa ozet yaz. Veriler: '+JSON.stringify({rates:r,portfolio:items,updated:new Date(r.updated).toLocaleString('tr-TR')})}
+      {role:'user',content:'Guncel kurlar ve portfoy icin 4-6 maddelik kisa ozet yaz. Veriler: '+JSON.stringify({rates:r,portfolio:items.map(function(p){return{type:p.type,qty:p.qty,cost:p.cost}}),updated:new Date(r.updated).toLocaleString('tr-TR')})}
     ],temperature:.3,max_tokens:420};
-    fetch('https://api.deepseek.com/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(payload)}).then(function(res){if(!res.ok)throw new Error('deepseek '+res.status);return res.json()}).then(function(data){
-      var text=data&&data.choices&&data.choices[0]&&data.choices[0].message?data.choices[0].message.content:'Özet alınamadı.';
-      S.saveSetting('marketSummary',{text:text,ts:Date.now(),provider:'DeepSeek'});renderMarketSummary();App.UI.toast('Piyasa özeti güncellendi.','ok');
-    }).catch(function(){
-      App.UI.toast('DeepSeek isteği başarısız oldu. API anahtarını veya tarayıcı erişimini kontrol edin.','err');
+    App.AI.confirm('Piyasa özeti',share,function(){
+      App.UI.toast('AI piyasa özeti hazırlanıyor...','info');
+      App.AI.call(payload).then(function(data){
+        var text=data&&data.choices&&data.choices[0]&&data.choices[0].message?data.choices[0].message.content:(data.text||'Özet alınamadı.');
+        S.saveSetting('marketSummary',{text:text,ts:Date.now(),provider:'AI Proxy'});renderMarketSummary();App.UI.toast('Piyasa özeti güncellendi.','ok');
+      }).catch(function(){App.UI.toast('AI proxy isteği başarısız oldu. Proxy URL veya sunucu loglarını kontrol edin.','err')});
     });
   }
   function renderMarketSummary(){
@@ -1653,7 +1758,7 @@ App.Portfolio=(function(){
     var ms=S.settings().marketSummary;
     if(!ms||!ms.text){el.classList.remove('show');el.innerHTML='';return}
     el.classList.add('show');
-    el.innerHTML='<div class="market-panel-head"><div class="market-panel-title">DeepSeek Piyasa Özeti</div><button class="btn-del" onclick="App.Portfolio.clearMarketSummary()">×</button></div><div class="market-panel-text">'+esc(ms.text)+'</div><div class="market-panel-meta">'+(ms.provider||'AI')+' · '+new Date(ms.ts).toLocaleString('tr-TR')+'</div>';
+    el.innerHTML='<div class="market-panel-head"><div class="market-panel-title">AI Piyasa Özeti</div><button class="btn-del" onclick="App.Portfolio.clearMarketSummary()">×</button></div><div class="market-panel-text">'+esc(ms.text)+'</div><div class="market-panel-meta">'+esc(ms.provider||'AI')+' · '+new Date(ms.ts).toLocaleString('tr-TR')+'</div>';
   }
   function clearMarketSummary(){S.saveSetting('marketSummary',null);renderMarketSummary()}
   function render(){
@@ -1690,7 +1795,7 @@ App.Assistant=(function(){
     if(!out)return;
     var last=S.settings().assistantLast;
     if(last&&last.text){out.classList.remove('empty');out.textContent=last.text;if(meta)meta.textContent='Son analiz: '+new Date(last.ts).toLocaleString('tr-TR')+' · '+(last.title||'Asistan')}
-    else{out.classList.add('empty');out.textContent='Bir analiz seç veya kendi sorunu yaz.';if(meta)meta.textContent='DeepSeek API anahtarı Portföy > API Ayarları bölümünden eklenir.'}
+    else{out.classList.add('empty');out.textContent='Bir analiz seç veya kendi sorunu yaz.';if(meta)meta.textContent='AI proxy URL Portföy > API Ayarları bölümünden eklenir.'}
   }
   function _monthTxns(month){return S.txns().filter(function(t){return t.date&&t.date.substring(0,7)===month})}
   function _sumBy(arr,keyFn,amountFn){
@@ -1702,7 +1807,7 @@ App.Assistant=(function(){
   function _debts(){
     return S.debts().filter(function(d){return!d.settled}).map(function(d){
       var paid=(d.payments||[]).reduce(function(s,p){return s+(p.amount||0)},0);
-      return{person:d.person,direction:d.direction,amount:d.amount||0,remaining:Math.max((d.amount||0)-paid,0),dueDate:d.dueDate||d.date||'',note:d.note||''};
+      return{direction:d.direction,amount:d.amount||0,remaining:Math.max((d.amount||0)-paid,0),dueDate:d.dueDate||d.date||''};
     });
   }
   function _installments(){
@@ -1717,31 +1822,30 @@ App.Assistant=(function(){
       var spent=expenseTxns.filter(function(t){return t.category===cat}).reduce(function(s,t){return s+(t.amount||0)},0),limit=budgets[cat]||0;
       return{category:cat,limit:limit,spent:Math.round(spent*100)/100,remaining:Math.round((limit-spent)*100)/100,usage:limit?Math.round((spent/limit)*1000)/10:null};
     }).sort(function(a,b){return (b.usage||0)-(a.usage||0)});
-    var rates=S.settings().rates||{},portfolio=S.portfolio().map(function(p){var rate=rates[p.type]||0;return{type:p.type,label:p.label||'',qty:p.qty||0,cost:p.cost||0,rate:rate,value:Math.round((p.qty||0)*rate*100)/100}});
-    var accounts=S.accounts().map(function(a){return{name:a.name,type:a.type,balance:a.balance||0,owner:a.owner||'shared'}});
-    var recurring=S.recurring().map(function(r){return{type:r.type,category:r.category,amount:r.amount||0,day:r.day,note:r.note||'',isSubscription:!!r.isSubscription}});
-    var goals=S.goals().map(function(g){return{name:g.name,target:g.target||0,saved:g.saved||0,dueDate:g.dueDate||''}});
+    var rates=S.settings().rates||{},portfolio=S.portfolio().map(function(p){var rate=rates[p.type]||0;return{type:p.type,qty:p.qty||0,cost:p.cost||0,rate:rate,value:Math.round((p.qty||0)*rate*100)/100}});
+    var accounts=S.accounts().map(function(a){return{type:a.type,balance:a.balance||0,owner:a.owner||'shared'}});
+    var recurring=S.recurring().map(function(r){return{type:r.type,category:r.category,amount:r.amount||0,day:r.day,isSubscription:!!r.isSubscription}});
+    var goals=S.goals().map(function(g){var saved=(g.contributions||[]).reduce(function(s,c){return s+(c.amount||0)},0);return{target:g.target||0,saved:saved,done:!!g.done,emergency:!!g.emergency}});
     return{
       month:month,
       generatedAt:new Date().toLocaleString('tr-TR'),
       summary:{income:Math.round(inc*100)/100,expense:Math.round(exp*100)/100,net:Math.round((inc-exp)*100)/100,transactionCount:txns.length,savingsRate:inc?Math.round(((inc-exp)/inc)*1000)/10:null},
       topExpenses:_top(_sumBy(expenseTxns,function(t){return t.category}),8),
       topIncome:_top(_sumBy(incomeTxns,function(t){return t.category}),5),
-      largestTransactions:expenseTxns.slice().sort(function(a,b){return (b.amount||0)-(a.amount||0)}).slice(0,10).map(function(t){return{date:t.date,category:t.category,amount:t.amount,note:t.note||''}}),
+      largestTransactions:expenseTxns.slice().sort(function(a,b){return (b.amount||0)-(a.amount||0)}).slice(0,5).map(function(t){return{date:t.date,category:t.category,amount:t.amount}}),
       budgets:budgetRows,
       accounts:accounts,
       portfolio:{rates:rates,items:portfolio,total:Math.round(portfolio.reduce(function(s,p){return s+p.value},0)*100)/100},
       debts:_debts(),
       installments:_installments(),
       recurring:recurring,
-      goals:goals,
-      activeUser:App.Users&&App.Users.active?App.Users.active():null
+      goals:goals
     };
   }
   function _setLoading(title){
     var out=document.getElementById('assistantOutput'),meta=document.getElementById('assistantMeta');
     if(out){out.classList.remove('empty');out.textContent='Analiz hazırlanıyor...'}
-    if(meta)meta.textContent=title+' · veriler yerelden hazırlanıyor, yanıt DeepSeek üzerinden alınıyor.';
+    if(meta)meta.textContent=title+' · veriler yerelden hazırlanıyor, yanıt AI proxy üzerinden alınıyor.';
   }
   function _show(text,title){
     var out=document.getElementById('assistantOutput'),meta=document.getElementById('assistantMeta');
@@ -1750,24 +1854,26 @@ App.Assistant=(function(){
     S.saveSetting('assistantLast',{text:text,title:title,ts:Date.now()});
   }
   function _callDeepSeek(question,title,ratesReady){
-    var key=(S.settings().deepseekApiKey||'').trim();
-    if(!key){App.Portfolio.openApiSettings();App.UI.toast('Önce DeepSeek API anahtarını ekleyin.','info');return}
+    if(!App.AI.ensureProxy())return;
     if(title==='Portföy Yorumu'&&!ratesReady){
       _setLoading(title);
       App.Portfolio.ensureFreshRates().then(function(){_callDeepSeek(question,title,true)}).catch(function(){_show('Kurlar güncellenemediği için portföy yorumu hazırlanamadı. İnternet bağlantısını veya kur servislerini kontrol edin.',title);App.UI.toast('Portföy yorumu hazırlanamadı.','err')});
       return;
     }
-    _setLoading(title);
+    var ctx=_context();
     var payload={model:'deepseek-chat',messages:[
       {role:'system',content:'Turkce konusan bir kisisel finans asistanisin. Verilen yerel finans verilerini analiz et. Yatirim tavsiyesi verme; kesin al/sat soyleme. Kisa, uygulanabilir, madde madde yanit ver. Gerektiginde uyarilari onceliklendir.'},
-      {role:'user',content:'Kullanicinin sorusu: '+question+'\n\nFinans verisi JSON:\n'+JSON.stringify(_context())}
+      {role:'user',content:'Kullanicinin sorusu: '+question+'\n\nFinans verisi JSON:\n'+JSON.stringify(ctx)}
     ],temperature:.25,max_tokens:900};
-    fetch('https://api.deepseek.com/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(payload)}).then(function(res){if(!res.ok)throw new Error('deepseek '+res.status);return res.json()}).then(function(data){
-      var text=data&&data.choices&&data.choices[0]&&data.choices[0].message?data.choices[0].message.content:'Yanıt alınamadı.';
-      _show(text,title);App.UI.toast('Asistan yanıtı hazır.','ok');
-    }).catch(function(){
-      _show('DeepSeek isteği başarısız oldu. API anahtarını, internet bağlantısını veya tarayıcı CORS erişimini kontrol edin. Statik uygulamada anahtar tarayıcıdan kullanılır; daha güvenli ve sorunsuz kullanım için backend/proxy eklenebilir.',title);
-      App.UI.toast('Asistan isteği başarısız oldu.','err');
+    App.AI.confirm(title,{month:ctx.month,summary:ctx.summary,budgetRows:ctx.budgets.length,accountCount:ctx.accounts.length,portfolioItems:ctx.portfolio.items.length,debtCount:ctx.debts.length,recurringCount:ctx.recurring.length,goalCount:ctx.goals.length},function(){
+      _setLoading(title);
+      App.AI.call(payload).then(function(data){
+        var text=data&&data.choices&&data.choices[0]&&data.choices[0].message?data.choices[0].message.content:(data.text||'Yanıt alınamadı.');
+        _show(text,title);App.UI.toast('Asistan yanıtı hazır.','ok');
+      }).catch(function(){
+        _show('AI proxy isteği başarısız oldu. Proxy URL, internet bağlantısı veya sunucu tarafı API yapılandırmasını kontrol edin.',title);
+        App.UI.toast('Asistan isteği başarısız oldu.','err');
+      });
     });
   }
   function run(kind){
@@ -1929,9 +2035,9 @@ App.Report=(function(){
     months.sort().reverse();
     var opts=months.map(function(mm){var p=mm.split('-');return'<option value="'+mm+'"'+(mm===cur?' selected':'')+'>'+MF[+p[1]-1]+' '+p[0]+'</option>'}).join('');
     var html='<div class="modal-bd show" id="rapMdl" onclick="if(event.target===this)App.Report.close()"><div class="modal"><div class="modal-title">📄 Aylık Detaylı Rapor</div><div class="f"><label>Ay seç</label><select id="rapMonth">'+opts+'</select></div><div style="font-size:.75rem;color:var(--txt2);margin-top:10px;line-height:1.5">PDF oluşturma: tarayıcının yazdırma ekranı açılır, "PDF olarak kaydet" seçeneğini seçin.</div><div class="modal-actions"><button class="btn btn-ghost" onclick="App.Report.close()">Vazgeç</button><button class="btn btn-primary" onclick="App.Report.generate()">📄 PDF Oluştur</button></div></div></div>';
-    var div=document.createElement('div');div.id='rapHolder';div.innerHTML=html;document.body.appendChild(div);
+    var div=document.createElement('div');div.id='rapHolder';div.innerHTML=html;App.UI.mountModal(div,'#rapMonth');
   }
-  function close(){var el=document.getElementById('rapHolder');if(el)el.remove()}
+  function close(){App.UI.closeModal('rapHolder')}
   function generate(){
     var sel=document.getElementById('rapMonth');if(!sel)return;
     generateMonth(sel.value);close();
@@ -2094,6 +2200,9 @@ if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js')}
 
 document.addEventListener('DOMContentLoaded',function(){
   S.load();App.UI.bindEvents();App.UI.initDates();App.UI.setTheme(S.settings().theme||'dark');App.UI.initSelects();
+  var reconciled=App.Transactions.reconcileInstallments();
+  if(window.__pfStorageError)App.UI.toast('Bazı veriler kaydedilemedi. Depolama alanını kontrol edin.','err');
+  if(reconciled)App.UI.toast('Vadesi gelen taksitler bakiyeye işlendi.','info');
   App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();
   App.Transactions.renderSummaryMetrics();App.Transactions.renderRecent();App.Transactions.renderList();
   App.Accounts.renderAll();App.Accounts.renderSummary();App.Accounts.onTypeChange();App.Accounts.onOwnerChange();
