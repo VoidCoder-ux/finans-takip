@@ -86,6 +86,8 @@ eq('reconcile second pass is idempotent', reconcileInstallments(txns, accounts, 
 eq('reconcile idempotent balance', accounts[0].balance, 900);
 
 var indexHtml = fs.readFileSync('index.html', 'utf8');
+ok('expense categories include credit payment options', /var EC=\[[^\]]*'Kredi Ödemesi'[^\]]*'Kredi Kartı Ödemesi'[^\]]*'Borç Ödemesi'[^\]]*\]/.test(indexHtml));
+ok('credit payment categories have icons and colors', /'Kredi Ödemesi':\{i:'🏦',c:'cc-blue'\}/.test(indexHtml) && /'Kredi Kartı Ödemesi':\{i:'💳',c:'cc-red'\}/.test(indexHtml) && /'Borç Ödemesi':\{i:'🤝',c:'cc-purple'\}/.test(indexHtml));
 ok('client no longer stores DeepSeek API key setting', !/saveSetting\('deepseekApiKey'/.test(indexHtml));
 ok('direct DeepSeek call is available only through assistant key flow', /pf_direct_ai_key/.test(indexHtml) && /api\.deepseek\.com\/chat\/completions/.test(indexHtml));
 ok('AI proxy URL setting exists', /aiProxyUrl/.test(indexHtml));
