@@ -754,20 +754,22 @@ var CL=['#14b8a6','#3b82f6','#8b5cf6','#ec4899','#f97316','#eab308','#22c55e','#
 var MN=['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
 var MF=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-function fmt(n){return '₺'+Number(n||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function fmt(n){var v=Number(n||0);return(v<0?'-':'')+'₺'+Math.abs(v).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function fd(iso){var p=iso.split('-');return p[2]+' '+MF[+p[1]-1]+' '+p[0]}
 function td(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function tm(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
 function cv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
 function ci(cat){return CM[cat]||{i:'💰',c:'cc-teal'}}
 function gid(p){return(p||'x')+Date.now()+'_'+Math.random().toString(36).slice(2,6)}
+function sanitizeColor(c){return/^#[0-9a-fA-F]{3,8}$/.test(String(c||''))?c:'#3b82f6'}
 
 var S=(function(){
   function g(k,fb){try{var v=localStorage.getItem(k);return v?JSON.parse(v):fb}catch(e){return fb}}
   function s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
   var _t,_b,_g,_a,_r,_d,_s,_f,_p;
   var _nw,_ru,_bm,_cpi;
-  function load(){_t=g('pf_t',[]);_b=g('pf_b',{});_g=g('pf_g',[]);_a=g('pf_a',[]);_r=g('pf_r',[]);_d=g('pf_d',[]);_s=g('pf_s',{theme:'dark',rates:{USD:0,EUR:0,GBP:0,GOLD_GRAM:0,GOLD_QUARTER:0,GOLD_FULL:0,FUND:1,updated:null},deepseekApiKey:'',marketSummary:null,assistantLast:null});_f=g('pf_f',[]);_p=g('pf_p',[]);_nw=g('pf_nw',[]);_ru=g('pf_ru',[]);_bm=g('pf_bm',{});_cpi=g('pf_cpi',null);
+  var _tDirty=true,_tSorted=[];
+  function load(){_t=g('pf_t',[]);_b=g('pf_b',{});_g=g('pf_g',[]);_a=g('pf_a',[]);_r=g('pf_r',[]);_d=g('pf_d',[]);_s=g('pf_s',{theme:'dark',rates:{USD:0,EUR:0,GBP:0,GOLD_GRAM:0,GOLD_QUARTER:0,GOLD_FULL:0,FUND:1,updated:null},deepseekApiKey:'',marketSummary:null,assistantLast:null});_f=g('pf_f',[]);_p=g('pf_p',[]);_nw=g('pf_nw',[]);_ru=g('pf_ru',[]);_bm=g('pf_bm',{});_cpi=g('pf_cpi',null);_tDirty=true;
     if(!_s.rates)_s.rates={USD:0,EUR:0,GBP:0,GOLD_GRAM:0,GOLD_QUARTER:0,GOLD_FULL:0,FUND:1,updated:null};
     if(typeof _s.deepseekApiKey==='undefined')_s.deepseekApiKey='';
     if(typeof _s.marketSummary==='undefined')_s.marketSummary=null;
@@ -775,9 +777,9 @@ var S=(function(){
     if(!_s.users||!_s.users.length){_s.users=[{id:'u_self',name:'Ben',emoji:'🙋',color:'#14b8a6'},{id:'u_partner',name:'Eş',emoji:'💑',color:'#ec4899'}];_s.activeUser='u_self';s('pf_s',_s)}
     if(!_s.activeUser){_s.activeUser=_s.users[0].id;s('pf_s',_s)}
   }
-  function txns(){return _t.slice().sort(function(a,b){return a.date===b.date?b.ts-a.ts:b.date.localeCompare(a.date)})}
+  function txns(){if(_tDirty){_tSorted=_t.slice().sort(function(a,b){return a.date===b.date?b.ts-a.ts:b.date.localeCompare(a.date)});_tDirty=false;}return _tSorted;}
   return{load,txns,budgets:function(){return _b},goals:function(){return _g},accounts:function(){return _a},recurring:function(){return _r},debts:function(){return _d},settings:function(){return _s},fund:function(){return _f},portfolio:function(){return _p},
-    saveTxns:function(v){_t=v;s('pf_t',v)},saveBudgets:function(v){_b=v;s('pf_b',v)},saveGoals:function(v){_g=v;s('pf_g',v)},
+    saveTxns:function(v){_t=v;_tDirty=true;s('pf_t',v)},saveBudgets:function(v){_b=v;s('pf_b',v)},saveGoals:function(v){_g=v;s('pf_g',v)},
     saveAccounts:function(v){_a=v;s('pf_a',v)},saveRecurring:function(v){_r=v;s('pf_r',v)},saveDebts:function(v){_d=v;s('pf_d',v)},
     saveFund:function(v){_f=v;s('pf_f',v)},savePortfolio:function(v){_p=v;s('pf_p',v)},
     netWorthHistory:function(){return _nw},saveNetWorthHistory:function(v){_nw=v;s('pf_nw',v)},
@@ -833,8 +835,6 @@ App.UI=(function(){
   }
   function refreshAccSelects(){
     var accs=S.accounts();
-    var opts='<option value="">Hesap seç (isteğe bağlı)</option>'+accs.map(function(a){return'<option value="'+a.id+'">'+AM[a.type].i+' '+esc(a.name)+'</option>'}).join('');
-    ['txnAcc','recAcc'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML=opts});
     var el=document.getElementById('fAcc');
     if(el)el.innerHTML='<option value="">Tüm Hesaplar</option>'+accs.map(function(a){return'<option value="'+a.id+'">'+esc(a.name)+'</option>'}).join('');
     refreshUserSelects();
@@ -995,12 +995,13 @@ App.Transactions=(function(){
     var accId=sharedAcc.id;
     var arr=S.txns();
     if(type==='expense'&&insCount>=2&&insCount<=36){
+      var ruleCheck={type:'expense',amount:amt,category:cat,note:note};App.Rules.apply(ruleCheck);var instCat=ruleCheck.category;
       var per=Math.round((amt/insCount)*100)/100,planId=gid('p'),now=Date.now();
       var lastPer=Math.round((amt-per*(insCount-1))*100)/100;
       var today=td(),pastTotal=0;
       for(var i=0;i<insCount;i++){
         var d=addMonths(insStart,i);var thisAmt=(i===insCount-1)?lastPer:per;
-        arr.unshift({id:gid('t'),type:'expense',amount:thisAmt,category:cat,date:d,note:(note||cat)+' ('+(i+1)+'/'+insCount+')',accountId:accId,userId,ts:now+i,installment:{planId,index:i+1,total:insCount,totalAmount:amt,name:note||cat,startDate:insStart}});
+        arr.unshift({id:gid('t'),type:'expense',amount:thisAmt,category:instCat,date:d,note:(note||instCat)+' ('+(i+1)+'/'+insCount+')',accountId:accId,userId,ts:now+i,installment:{planId,index:i+1,total:insCount,totalAmount:amt,name:note||instCat,startDate:insStart}});
         if(d<=today)pastTotal+=thisAmt;
       }
       S.saveTxns(arr);
@@ -1021,7 +1022,7 @@ App.Transactions=(function(){
     var txns=S.txns(),t=txns.find(function(x){return x.id===id});
     if(!t)return;
     var toDelete=[t];
-    if(t.installment){if(confirm('Bu taksit planının tüm taksitlerini silmek ister misin?')){toDelete=txns.filter(function(x){return x.installment&&x.installment.planId===t.installment.planId})}}
+    if(t.installment){if(!confirm('Bu taksit planının tüm '+t.installment.total+' taksiti silinecek.\n\nTamam → tüm plan silinir\nİptal → silme iptal edilir')){return}toDelete=txns.filter(function(x){return x.installment&&x.installment.planId===t.installment.planId})}
     toDelete.forEach(function(x){if(x.accountId&&x.date<=td())App.Accounts.adjustBalance(x.accountId,x.type==='income'?-x.amount:x.amount)});
     var delIds={};toDelete.forEach(function(x){delIds[x.id]=1});
     S.saveTxns(txns.filter(function(x){return!delIds[x.id]}));
@@ -1050,7 +1051,7 @@ App.Transactions=(function(){
     var stmtTag=stmt?'<span class="stmt-tag">Ekstre: '+MF[+stmt.split('-')[1]-1]+'</span>':'';
     var insTag=t.installment?'<span class="ti-note" style="background:rgba(249,115,22,.15);color:var(--orange)">Taksit '+t.installment.index+'/'+t.installment.total+'</span>':'';
     var u=t.userId?App.Users.get(t.userId):null;
-    var uTag=u?'<span class="user-tag" style="background:'+(u.color||'#3b82f6')+'22;color:'+(u.color||'#3b82f6')+'"><span class="ue">'+esc(u.emoji||'🙋')+'</span>'+esc(u.name)+'</span>':'';
+    var uTag=u?'<span class="user-tag" style="background:'+sanitizeColor(u.color||'#3b82f6')+'22;color:'+sanitizeColor(u.color||'#3b82f6')+'"><span class="ue">'+esc(u.emoji||'🙋')+'</span>'+esc(u.name)+'</span>':'';
     return'<div class="ti"><div class="cat-ico '+info.c+'">'+info.i+'</div><div class="ti-body"><div class="ti-cat">'+esc(t.category)+'</div><div class="ti-meta">'+fd(t.date)+'</div>'+(t.note?'<span class="ti-note">'+esc(t.note)+'</span>':'')+insTag+at+stmtTag+uTag+'</div><div class="ti-right"><div class="ti-amt '+t.type+'">'+sign+fmt(t.amount)+'</div>'+(del?'<button class="btn-del" onclick="App.Transactions.remove(\''+t.id+'\')">✕</button>':'')+'</div></div>'
   }
   function renderList(){
@@ -1071,7 +1072,7 @@ App.Transactions=(function(){
     var txns=S.txns();if(!txns.length){App.UI.toast('İşlem yok.','err');return}
     var rows=['\uFEFFTarih,Tür,Kategori,Tutar,Hesap,Üye,Not'];
     txns.forEach(function(t){var an=t.accountId?App.Accounts.getName(t.accountId):'',u=t.userId?App.Users.get(t.userId):null;rows.push([t.date,t.type==='income'?'Gelir':'Gider',t.category,t.amount,an,u?u.name:'',t.note||''].map(function(v){return'"'+String(v).replace(/"/g,'""')+'"'}).join(','))});
-    var blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='finanstakip_'+td()+'.csv';a.click();URL.revokeObjectURL(url);App.UI.toast('CSV indirildi.','info');
+    var blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='finanstakip_'+td()+'.csv';a.click();setTimeout(function(){URL.revokeObjectURL(url)},1500);App.UI.toast('CSV indirildi.','info');
   }
   function _parseCSV(text){
     text=String(text||'').replace(/^\uFEFF/,'');var rows=[],row=[],cur='',q=false;
@@ -1362,7 +1363,8 @@ App.Users=(function(){
   }
   function remove(id){
     var users=list();if(users.length<=1){App.UI.toast('En az bir üye olmalı.','err');return}
-    if(!confirm('"'+get(id).name+'" silinsin mi? Bu üyeye bağlı hesap ve işlemler "Ortak" olarak işaretlenecek.'))return;
+    var uDel=get(id);if(!uDel)return;
+    if(!confirm('"'+uDel.name+'" silinsin mi? Bu üyeye bağlı hesap ve işlemler "Ortak" olarak işaretlenecek.'))return;
     var accs=S.accounts();accs.forEach(function(a){if(a.userId===id){a.userId=null;a.owner='shared'}});S.saveAccounts(accs);
     var txns=S.txns();txns.forEach(function(t){if(t.userId===id)t.userId=null});S.saveTxns(txns);
     var newUsers=users.filter(function(u){return u.id!==id});S.saveSetting('users',newUsers);
@@ -1391,7 +1393,7 @@ App.Users=(function(){
     var apc=document.getElementById('activeProfileCard');
     if(apc){var au=active();apc.innerHTML=au?'<div style="display:flex;align-items:center;gap:14px"><div style="font-size:2.5rem">'+esc(au.emoji||'🙋')+'</div><div><div style="font-size:1.15rem;font-weight:800">'+esc(au.name)+'</div><div style="font-size:.75rem;color:var(--txt2);margin-top:2px">Yeni işlemler otomatik bu profile atanır.</div></div></div>':''}
     var fm=document.getElementById('familyMembers');
-    if(fm){fm.innerHTML='<div class="user-grid">'+users.map(function(u){var st=stats(u.id),net=st.income-st.expense;var isA=u.id===act;return'<div class="user-card'+(isA?' active':'')+'" style="border-color:'+(isA?'var(--teal)':(u.color||'#3b82f6')+'55')+'"><span class="uc-emoji">'+esc(u.emoji||'🙋')+'</span><div class="uc-name" style="color:'+(u.color||'var(--txt)')+'">'+esc(u.name)+'</div><div class="uc-role">'+(isA?'Aktif Profil':'Üye')+'</div><div class="uc-bal" style="color:'+(net<0?'var(--red)':'var(--green)')+'">'+fmt(net)+'</div><div style="font-size:.68rem;color:var(--txt2);margin-bottom:6px">Bu ay net</div><div class="uc-stats"><div class="uc-stat"><span class="v" style="color:var(--green)">'+fmt(st.income)+'</span><span class="l">Bu ay gelir</span></div><div class="uc-stat"><span class="v" style="color:var(--red)">'+fmt(st.expense)+'</span><span class="l">Bu ay gider</span></div></div><div class="uc-actions"><button class="btn-active '+(isA?'is-active':'')+'" onclick="'+(isA?'':'App.Users.setActive(\''+u.id+'\')')+'">'+(isA?'✓ Aktif':'Aktif yap')+'</button><button class="btn btn-sm btn-ghost" onclick="App.Users.edit(\''+u.id+'\')">Düzenle</button><button class="btn-del" onclick="App.Users.remove(\''+u.id+'\')">Sil</button></div></div>'}).join('')+'</div>'}
+    if(fm){fm.innerHTML='<div class="user-grid">'+users.map(function(u){var st=stats(u.id),net=st.income-st.expense;var isA=u.id===act,sc=sanitizeColor(u.color||'#3b82f6');return'<div class="user-card'+(isA?' active':'')+'" style="border-color:'+(isA?'var(--teal)':sc+'55')+'"><span class="uc-emoji">'+esc(u.emoji||'🙋')+'</span><div class="uc-name" style="color:'+sc+'">'+esc(u.name)+'</div><div class="uc-role">'+(isA?'Aktif Profil':'Üye')+'</div><div class="uc-bal" style="color:'+(net<0?'var(--red)':'var(--green)')+'">'+fmt(net)+'</div><div style="font-size:.68rem;color:var(--txt2);margin-bottom:6px">Bu ay net</div><div class="uc-stats"><div class="uc-stat"><span class="v" style="color:var(--green)">'+fmt(st.income)+'</span><span class="l">Bu ay gelir</span></div><div class="uc-stat"><span class="v" style="color:var(--red)">'+fmt(st.expense)+'</span><span class="l">Bu ay gider</span></div></div><div class="uc-actions"><button class="btn-active '+(isA?'is-active':'')+'" onclick="'+(isA?'':'App.Users.setActive(\''+u.id+'\')')+'">'+(isA?'✓ Aktif':'Aktif yap')+'</button><button class="btn btn-sm btn-ghost" onclick="App.Users.edit(\''+u.id+'\')">Düzenle</button><button class="btn-del" onclick="App.Users.remove(\''+u.id+'\')">Sil</button></div></div>'}).join('')+'</div>'}
     var ws=document.getElementById('walletSummary');
     if(ws){var sh=sharedStats();var rows='<div class="wallet-row"><div class="wr-left"><span class="wr-emoji">👨‍👩‍👧</span><div><div class="wr-name">Ortak Cüzdan</div><div class="wr-meta">'+sh.accounts+' hesap · Bu ay '+fmt(sh.income)+' gelir · '+fmt(sh.expense)+' gider</div></div></div><div class="wr-bal '+(sh.balance>=0?'pos':'neg')+'">'+fmt(sh.balance)+'</div></div>';rows+=users.map(function(u){var st=stats(u.id),net=st.income-st.expense;return'<div class="wallet-row"><div class="wr-left"><span class="wr-emoji">'+esc(u.emoji||'🙋')+'</span><div><div class="wr-name">'+esc(u.name)+' · Bu ay net</div><div class="wr-meta">'+st.accounts+' hesap · '+fmt(st.income)+' gelir · '+fmt(st.expense)+' gider</div></div></div><div class="wr-bal '+(net>=0?'pos':'neg')+'">'+fmt(net)+'</div></div>'}).join('');ws.innerHTML=rows}
   }
@@ -1720,7 +1722,7 @@ App.Assistant=(function(){
     var rates=S.settings().rates||{},portfolio=S.portfolio().map(function(p){var rate=rates[p.type]||0;return{type:p.type,label:p.label||'',qty:p.qty||0,cost:p.cost||0,rate:rate,value:Math.round((p.qty||0)*rate*100)/100}});
     var accounts=S.accounts().map(function(a){return{name:a.name,type:a.type,balance:a.balance||0,owner:a.owner||'shared'}});
     var recurring=S.recurring().map(function(r){return{type:r.type,category:r.category,amount:r.amount||0,day:r.day,note:r.note||'',isSubscription:!!r.isSubscription}});
-    var goals=S.goals().map(function(g){return{name:g.name,target:g.target||0,saved:g.saved||0,dueDate:g.dueDate||''}});
+    var goals=S.goals().map(function(g){var gSaved=g.contributions.reduce(function(s,c){return s+(c.amount||0)},0);return{name:g.name,target:g.target||0,saved:Math.round(gSaved*100)/100,dueDate:g.dueDate||''}});
     return{
       month:month,
       generatedAt:new Date().toLocaleString('tr-TR'),
@@ -1895,7 +1897,7 @@ App.NetWorth=(function(){
     document.getElementById('nwVal').textContent=fmt(curTotal);
     document.getElementById('nwVal').style.color=curTotal<0?'var(--red)':'var(--txt)';
     document.getElementById('nwSub').textContent=mode==='real'?'Reel (TÜFE ayarlı, bugünkü TL değeri)':'Hesaplar + Portföy − Kalan Borçlar';
-    var hist=snapshot();
+    var hist=S.netWorthHistory()||[];var lastSnap=hist.length?hist[hist.length-1]:null;if(!lastSnap||lastSnap.month!==tm())hist=snapshot();
     var adjHist=hist.map(function(h){return{month:h.month,total:mode==='real'?App.Inflation.adjust(h.total,h.month):h.total}});
     var prev=adjHist.length>=2?adjHist[adjHist.length-2]:null;
     var delta=document.getElementById('nwDelta');
@@ -2090,10 +2092,12 @@ App.Notifications=(function(){
   return{supported,syncBtn,toggle,checkDueBills,upcomingBills}
 })();
 
-if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js')}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(function(e){console.warn('Servis çalışanı kaydı başarısız:',e)})}
 
 document.addEventListener('DOMContentLoaded',function(){
-  S.load();App.UI.bindEvents();App.UI.initDates();App.UI.setTheme(S.settings().theme||'dark');App.UI.initSelects();
+  S.load();
+  (function(){try{localStorage.setItem('__ls_test__','1');localStorage.removeItem('__ls_test__')}catch(e){setTimeout(function(){App.UI.toast('Tarayıcı veri kaydetmeye izin vermiyor. Özel/gizli modda veriler saklanamaz.','err')},800)}})();
+  App.UI.bindEvents();App.UI.initDates();App.UI.setTheme(S.settings().theme||'dark');App.UI.initSelects();
   App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();
   App.Transactions.renderSummaryMetrics();App.Transactions.renderRecent();App.Transactions.renderList();
   App.Accounts.renderAll();App.Accounts.renderSummary();App.Accounts.onTypeChange();App.Accounts.onOwnerChange();

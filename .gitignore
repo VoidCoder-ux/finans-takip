@@ -1,1 +1,16 @@
-(index.html is a source file, so no need to ignore it)
+# İşletim sistemi dosyaları
+.DS_Store
+Thumbs.db
+
+# Ortam ve gizli dosyalar
+*.env
+.env.*
+
+# Bağımlılıklar (eğer eklenirse)
+node_modules/
+
+# Editör ve IDE
+.vscode/
+.idea/
+*.swp
+*.swo
