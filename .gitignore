@@ -1,1 +1,30 @@
-(index.html is a source file, so no need to ignore it)
+# Dependencies
+node_modules/
+.npm/
+
+# Build outputs
+dist/
+build/
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+*.bak

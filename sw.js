@@ -15,9 +15,8 @@ self.addEventListener('install', function(e) {
       return Promise.all(ASSETS.map(function(asset) {
         return c.add(asset).catch(function() { return null; });
       }));
-    })
+    }).then(function() { return self.skipWaiting(); })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', function(e) {
