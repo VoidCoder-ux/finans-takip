@@ -1737,9 +1737,14 @@ App.Portfolio=(function(){
     S.saveSetting('aiProxyUrl',v);closeApiSettings();App.UI.toast(v?'AI proxy URL kaydedildi.':'AI proxy URL temizlendi.','ok');
   }
   function generateMarketSummary(){
-    if(!App.AI.ensureProxy())return;
     var r=S.settings().rates||{},items=S.portfolio();
     if(!r.updated){App.UI.toast('Özet için önce kurlar güncelleniyor.','info');refreshRates({manual:true}).then(generateMarketSummary).catch(function(){App.UI.toast('Kurlar güncellenemediği için özet hazırlanamadı.','err')});return}
+    if(!App.AI.proxyUrl()){
+      var total=0,byType={};items.forEach(function(p){var val=(p.qty||0)*(r[p.type]||0);total+=val;byType[p.type]=(byType[p.type]||0)+val});
+      var top=Object.keys(byType).sort(function(a,b){return byType[b]-byType[a]}).slice(0,3).map(function(k){return k+' '+fmt(byType[k])}).join(', ')||'varlık yok';
+      var lines=['Yerel piyasa özeti','Toplam portföy: '+fmt(total),'Varlık sayısı: '+items.length,'En büyük dağılımlar: '+top,'Kur kaynağı: '+(r.provider||'bilinmiyor')+' · '+new Date(r.updated).toLocaleString('tr-TR'),'Bu özet cihaz içinde üretildi; API key veya proxy kullanılmadı.'];
+      S.saveSetting('marketSummary',{text:lines.join('\n'),ts:Date.now(),provider:'Yerel analiz'});renderMarketSummary();App.UI.toast('Yerel piyasa özeti hazır.','ok');return;
+    }
     var share={ratesUpdated:r.updated?new Date(r.updated).toLocaleString('tr-TR'):'-',provider:r.provider||'',assetCount:items.length,totalValue:items.reduce(function(s,p){return s+(p.qty||0)*(r[p.type]||0)},0),assetTypes:items.map(function(p){return p.type})};
     var payload={model:'deepseek-chat',messages:[
       {role:'system',content:'Kisa, net ve Turkce finans takip asistanisin. Yatirim tavsiyesi verme; veri ozeti ve risk hatirlatmasi yap.'},
@@ -1795,7 +1800,7 @@ App.Assistant=(function(){
     if(!out)return;
     var last=S.settings().assistantLast;
     if(last&&last.text){out.classList.remove('empty');out.textContent=last.text;if(meta)meta.textContent='Son analiz: '+new Date(last.ts).toLocaleString('tr-TR')+' · '+(last.title||'Asistan')}
-    else{out.classList.add('empty');out.textContent='Bir analiz seç veya kendi sorunu yaz.';if(meta)meta.textContent='AI proxy URL Portföy > API Ayarları bölümünden eklenir.'}
+    else{out.classList.add('empty');out.textContent='Bir analiz seç veya kendi sorunu yaz.';if(meta)meta.textContent='Proxy ayarı yoksa analizler cihaz içinde yerel olarak hazırlanır.'}
   }
   function _monthTxns(month){return S.txns().filter(function(t){return t.date&&t.date.substring(0,7)===month})}
   function _sumBy(arr,keyFn,amountFn){
@@ -1853,14 +1858,33 @@ App.Assistant=(function(){
     if(meta)meta.textContent='Güncellendi: '+new Date().toLocaleString('tr-TR')+' · '+title;
     S.saveSetting('assistantLast',{text:text,title:title,ts:Date.now()});
   }
+  function _localAnalysis(question,title,ctx){
+    var s=ctx.summary,top=ctx.topExpenses.slice(0,3),over=ctx.budgets.filter(function(b){return b.usage!==null&&b.usage>=100}),warn=ctx.budgets.filter(function(b){return b.usage!==null&&b.usage>=75&&b.usage<100});
+    var recurringTotal=ctx.recurring.filter(function(r){return r.type==='expense'}).reduce(function(a,r){return a+(r.amount||0)},0);
+    var debtTotal=ctx.debts.reduce(function(a,d){return a+(d.remaining||0)},0);
+    var goalTotal=ctx.goals.reduce(function(a,g){return a+Math.max((g.target||0)-(g.saved||0),0)},0);
+    var lines=['Yerel analiz: '+title,'Dönem: '+ctx.month,'Net durum: '+fmt(s.net)+' (Gelir '+fmt(s.income)+' / Gider '+fmt(s.expense)+')'];
+    if(top.length)lines.push('En yüksek giderler: '+top.map(function(x){return x.name+' '+fmt(x.amount)}).join(', '));else lines.push('Bu ay gider kaydı yok.');
+    if(over.length)lines.push('Aşan bütçeler: '+over.map(function(b){return b.category+' %'+b.usage}).join(', '));
+    else if(warn.length)lines.push('Yaklaşan bütçeler: '+warn.map(function(b){return b.category+' %'+b.usage}).join(', '));
+    else lines.push('Bütçe tarafında kritik aşım görünmüyor.');
+    if(recurringTotal)lines.push('Aylık tekrar eden gider yükü: '+fmt(recurringTotal));
+    if(debtTotal)lines.push('Açık borç/alacak kalan toplamı: '+fmt(debtTotal));
+    if(goalTotal)lines.push('Hedefler için kalan toplam: '+fmt(goalTotal));
+    lines.push('Önerilen hızlı adımlar: en büyük 1-2 gider kategorisini kontrol et, bütçesi aşan kalemleri güncelle, yaklaşan taksit/abonelikleri gözden geçir.');
+    lines.push('Not: Bu yanıt cihaz içinde üretildi; API key, proxy veya dış servis kullanılmadı.');
+    return lines.join('\n');
+  }
   function _callDeepSeek(question,title,ratesReady){
-    if(!App.AI.ensureProxy())return;
     if(title==='Portföy Yorumu'&&!ratesReady){
       _setLoading(title);
       App.Portfolio.ensureFreshRates().then(function(){_callDeepSeek(question,title,true)}).catch(function(){_show('Kurlar güncellenemediği için portföy yorumu hazırlanamadı. İnternet bağlantısını veya kur servislerini kontrol edin.',title);App.UI.toast('Portföy yorumu hazırlanamadı.','err')});
       return;
     }
     var ctx=_context();
+    if(!App.AI.proxyUrl()){
+      _show(_localAnalysis(question,title,ctx),title);App.UI.toast('Yerel analiz hazır.','ok');return;
+    }
     var payload={model:'deepseek-chat',messages:[
       {role:'system',content:'Turkce konusan bir kisisel finans asistanisin. Verilen yerel finans verilerini analiz et. Yatirim tavsiyesi verme; kesin al/sat soyleme. Kisa, uygulanabilir, madde madde yanit ver. Gerektiginde uyarilari onceliklendir.'},
       {role:'user',content:'Kullanicinin sorusu: '+question+'\n\nFinans verisi JSON:\n'+JSON.stringify(ctx)}
