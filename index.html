@@ -312,6 +312,9 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .assistant-input-row textarea{flex:1;min-height:74px;resize:vertical;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:11px 12px;color:var(--txt);font-family:inherit;font-size:16px;line-height:1.4}
 .assistant-input-row textarea:focus{border-color:var(--teal)}
 .assistant-side{display:flex;flex-direction:column;gap:10px}
+.assistant-key-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px;display:flex;flex-direction:column;gap:10px}
+.assistant-key-row{display:flex;gap:8px}.assistant-key-row input{flex:1;min-width:0;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:10px 12px;color:var(--txt);font-size:14px}
+.assistant-key-actions{display:flex;gap:8px}.assistant-key-actions .btn{flex:1;margin-top:0;padding:8px 10px;font-size:.75rem}.assistant-key-status{font-size:.72rem;color:var(--txt2);line-height:1.4}
 .assistant-action{display:flex;align-items:center;gap:10px;text-align:left;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px;transition:all var(--tr);cursor:pointer}
 .assistant-action:hover{border-color:var(--teal);transform:translateY(-1px)}
 .assistant-action-ico{width:34px;height:34px;border-radius:10px;background:var(--bg3);display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -652,7 +655,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 </section>
 
 <section class="page" id="page-asistan">
-  <div class="ph"><div><div class="ph-title">AI Finans Asistanı</div><div class="ph-sub">Harcamalar, bütçe, portföy ve borçlar için DeepSeek analizi</div></div><button class="notif-btn" onclick="App.Portfolio.openApiSettings()">⚙️ API Ayarları</button></div>
+  <div class="ph"><div><div class="ph-title">AI Finans Asistanı</div><div class="ph-sub">Harcamalar, bütçe, portföy ve borçlar için analiz</div></div><button class="notif-btn" onclick="App.Portfolio.openApiSettings()">⚙️ Proxy Ayarları</button></div>
   <div class="assistant-shell">
     <div class="assistant-chat">
       <div class="assistant-output empty" id="assistantOutput">Bir analiz seç veya kendi sorunu yaz.</div>
@@ -663,6 +666,12 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       <div class="assistant-meta" id="assistantMeta"></div>
     </div>
     <div class="assistant-side">
+      <div class="assistant-key-card">
+        <div class="assistant-action-title">DeepSeek API Key</div>
+        <div class="assistant-key-row"><input type="password" id="assistantApiKey" placeholder="sk-..." autocomplete="off"/></div>
+        <div class="assistant-key-actions"><button class="btn btn-teal" onclick="App.AI.saveKey()">Kaydet</button><button class="btn btn-ghost" onclick="App.AI.clearKey()">Temizle</button></div>
+        <div class="assistant-key-status" id="assistantKeyStatus">Key yoksa yerel analiz kullanılır.</div>
+      </div>
       <button class="assistant-action" onclick="App.Assistant.run('general')"><span class="assistant-action-ico">🧭</span><span><span class="assistant-action-title">Genel Analiz</span><span class="assistant-action-sub">Tüm finans durumunu tek raporda değerlendirir.</span></span></button>
       <button class="assistant-action" onclick="App.Assistant.run('spending')"><span class="assistant-action-ico">📊</span><span><span class="assistant-action-title">Harcamaları Analiz Et</span><span class="assistant-action-sub">Bu ay kategori ve işlem davranışını yorumlar.</span></span></button>
       <button class="assistant-action" onclick="App.Assistant.run('budget')"><span class="assistant-action-ico">🎯</span><span><span class="assistant-action-title">Bütçe Kontrolü</span><span class="assistant-action-sub">Limit aşımı, kalan bütçe ve riskleri çıkarır.</span></span></button>
@@ -1626,22 +1635,35 @@ App.Installments=(function(){
 
 App.AI=(function(){
   var _pending=null;
+  var KEY_STORE='pf_direct_ai_key';
   function proxyUrl(){return (S.settings().aiProxyUrl||'').trim()}
+  function directKey(){try{return(localStorage.getItem(KEY_STORE)||'').trim()}catch(e){return''}}
+  function hasRemote(){return !!(directKey()||proxyUrl())}
   function ensureProxy(){if(proxyUrl())return true;App.Portfolio.openApiSettings();App.UI.toast('AI için önce güvenli proxy URL ekleyin.','info');return false}
   function call(payload){
-    var url=proxyUrl();if(!url)return Promise.reject(new Error('missing proxy'));
+    var key=directKey();
+    if(key)return fetch('https://api.deepseek.com/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(payload)}).then(function(res){if(!res.ok)throw new Error('deepseek '+res.status);return res.json()});
+    var url=proxyUrl();if(!url)return Promise.reject(new Error('missing ai endpoint'));
     return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(res){if(!res.ok)throw new Error('proxy '+res.status);return res.json()})
   }
+  function saveKey(){
+    var el=document.getElementById('assistantApiKey'),v=el?el.value.trim():'';
+    if(!v){App.UI.toast('API key girin veya yerel analizi kullanın.','err');return}
+    try{localStorage.setItem(KEY_STORE,v);if(el)el.value='';syncKeyUi();App.UI.toast('API key bu cihazda kaydedildi.','ok')}catch(e){App.UI.toast('API key kaydedilemedi.','err')}
+  }
+  function clearKey(){try{localStorage.removeItem(KEY_STORE)}catch(e){}var el=document.getElementById('assistantApiKey');if(el)el.value='';syncKeyUi();App.UI.toast('API key temizlendi. Yerel analiz kullanılacak.','info')}
+  function syncKeyUi(){var st=document.getElementById('assistantKeyStatus');if(st)st.textContent=directKey()?'DeepSeek API key kayıtlı. Analizler gönderim onayıyla DeepSeek üzerinden alınır.':(proxyUrl()?'Proxy URL kayıtlı. Key yoksa proxy kullanılır.':'Key yoksa yerel analiz kullanılır.')}
   function confirm(title,summary,onConfirm){
     _pending=onConfirm;
     if(document.getElementById('aiConfirmHolder'))document.getElementById('aiConfirmHolder').remove();
     var safeSummary=esc(JSON.stringify(summary,null,2));
-    var html='<div class="modal-bd show" id="aiConfirmMdl" onclick="if(event.target===this)App.AI.cancel()"><div class="modal"><div class="modal-title">AI Veri Gönderimi Onayı</div><div style="font-size:.78rem;color:var(--txt2);line-height:1.5;margin-bottom:10px">'+esc(title)+' için aşağıdaki özet proxy servisine gönderilecek. API anahtarı bu uygulamada saklanmaz.</div><pre style="white-space:pre-wrap;max-height:260px;overflow:auto;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px;font-size:.72rem;color:var(--txt2)">'+safeSummary+'</pre><div class="modal-actions"><button class="btn btn-ghost" onclick="App.AI.cancel()">Vazgeç</button><button class="btn btn-primary" onclick="App.AI.proceed()">Gönder</button></div></div></div>';
+    var target=directKey()?'DeepSeek API':'proxy servisi';
+    var html='<div class="modal-bd show" id="aiConfirmMdl" onclick="if(event.target===this)App.AI.cancel()"><div class="modal"><div class="modal-title">AI Veri Gönderimi Onayı</div><div style="font-size:.78rem;color:var(--txt2);line-height:1.5;margin-bottom:10px">'+esc(title)+' için aşağıdaki özet '+target+' hedefine gönderilecek.</div><pre style="white-space:pre-wrap;max-height:260px;overflow:auto;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px;font-size:.72rem;color:var(--txt2)">'+safeSummary+'</pre><div class="modal-actions"><button class="btn btn-ghost" onclick="App.AI.cancel()">Vazgeç</button><button class="btn btn-primary" onclick="App.AI.proceed()">Gönder</button></div></div></div>';
     var div=document.createElement('div');div.id='aiConfirmHolder';div.innerHTML=html;App.UI.mountModal(div,'button');
   }
   function proceed(){var fn=_pending;_pending=null;App.UI.closeModal('aiConfirmHolder');if(fn)fn()}
   function cancel(){_pending=null;App.UI.closeModal('aiConfirmHolder')}
-  return{ensureProxy,call,confirm,proceed,cancel,proxyUrl}
+  return{ensureProxy,call,confirm,proceed,cancel,proxyUrl,directKey,hasRemote,saveKey,clearKey,syncKeyUi}
 })();
 
 App.Portfolio=(function(){
@@ -1739,7 +1761,7 @@ App.Portfolio=(function(){
   function generateMarketSummary(){
     var r=S.settings().rates||{},items=S.portfolio();
     if(!r.updated){App.UI.toast('Özet için önce kurlar güncelleniyor.','info');refreshRates({manual:true}).then(generateMarketSummary).catch(function(){App.UI.toast('Kurlar güncellenemediği için özet hazırlanamadı.','err')});return}
-    if(!App.AI.proxyUrl()){
+    if(!App.AI.hasRemote()){
       var total=0,byType={};items.forEach(function(p){var val=(p.qty||0)*(r[p.type]||0);total+=val;byType[p.type]=(byType[p.type]||0)+val});
       var top=Object.keys(byType).sort(function(a,b){return byType[b]-byType[a]}).slice(0,3).map(function(k){return k+' '+fmt(byType[k])}).join(', ')||'varlık yok';
       var lines=['Yerel piyasa özeti','Toplam portföy: '+fmt(total),'Varlık sayısı: '+items.length,'En büyük dağılımlar: '+top,'Kur kaynağı: '+(r.provider||'bilinmiyor')+' · '+new Date(r.updated).toLocaleString('tr-TR'),'Bu özet cihaz içinde üretildi; API key veya proxy kullanılmadı.'];
@@ -1754,7 +1776,7 @@ App.Portfolio=(function(){
       App.UI.toast('AI piyasa özeti hazırlanıyor...','info');
       App.AI.call(payload).then(function(data){
         var text=data&&data.choices&&data.choices[0]&&data.choices[0].message?data.choices[0].message.content:(data.text||'Özet alınamadı.');
-        S.saveSetting('marketSummary',{text:text,ts:Date.now(),provider:'AI Proxy'});renderMarketSummary();App.UI.toast('Piyasa özeti güncellendi.','ok');
+        S.saveSetting('marketSummary',{text:text,ts:Date.now(),provider:App.AI.directKey()?'DeepSeek':'AI Proxy'});renderMarketSummary();App.UI.toast('Piyasa özeti güncellendi.','ok');
       }).catch(function(){App.UI.toast('AI proxy isteği başarısız oldu. Proxy URL veya sunucu loglarını kontrol edin.','err')});
     });
   }
@@ -1800,7 +1822,8 @@ App.Assistant=(function(){
     if(!out)return;
     var last=S.settings().assistantLast;
     if(last&&last.text){out.classList.remove('empty');out.textContent=last.text;if(meta)meta.textContent='Son analiz: '+new Date(last.ts).toLocaleString('tr-TR')+' · '+(last.title||'Asistan')}
-    else{out.classList.add('empty');out.textContent='Bir analiz seç veya kendi sorunu yaz.';if(meta)meta.textContent='Proxy ayarı yoksa analizler cihaz içinde yerel olarak hazırlanır.'}
+    else{out.classList.add('empty');out.textContent='Bir analiz seç veya kendi sorunu yaz.';if(meta)meta.textContent='API key yoksa analizler cihaz içinde yerel olarak hazırlanır.'}
+    if(App.AI&&App.AI.syncKeyUi)App.AI.syncKeyUi();
   }
   function _monthTxns(month){return S.txns().filter(function(t){return t.date&&t.date.substring(0,7)===month})}
   function _sumBy(arr,keyFn,amountFn){
@@ -1882,7 +1905,7 @@ App.Assistant=(function(){
       return;
     }
     var ctx=_context();
-    if(!App.AI.proxyUrl()){
+    if(!App.AI.hasRemote()){
       _show(_localAnalysis(question,title,ctx),title);App.UI.toast('Yerel analiz hazır.','ok');return;
     }
     var payload={model:'deepseek-chat',messages:[
@@ -1895,7 +1918,7 @@ App.Assistant=(function(){
         var text=data&&data.choices&&data.choices[0]&&data.choices[0].message?data.choices[0].message.content:(data.text||'Yanıt alınamadı.');
         _show(text,title);App.UI.toast('Asistan yanıtı hazır.','ok');
       }).catch(function(){
-        _show('AI proxy isteği başarısız oldu. Proxy URL, internet bağlantısı veya sunucu tarafı API yapılandırmasını kontrol edin.',title);
+        _show('AI isteği başarısız oldu. API key, proxy URL, internet bağlantısı veya CORS erişimini kontrol edin.',title);
         App.UI.toast('Asistan isteği başarısız oldu.','err');
       });
     });
