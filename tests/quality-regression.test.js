@@ -127,9 +127,14 @@ var indexHtml = fs.readFileSync('index.html', 'utf8');
 ok('expense categories include credit payment options', /var EC=\[[^\]]*'Kredi Ödemesi'[^\]]*'Kredi Kartı Ödemesi'[^\]]*'Borç Ödemesi'[^\]]*\]/.test(indexHtml));
 ok('credit payment categories have icons and colors', /'Kredi Ödemesi':\{i:'🏦',c:'cc-blue'\}/.test(indexHtml) && /'Kredi Kartı Ödemesi':\{i:'💳',c:'cc-red'\}/.test(indexHtml) && /'Borç Ödemesi':\{i:'🤝',c:'cc-purple'\}/.test(indexHtml));
 ok('client no longer stores DeepSeek API key setting', !/saveSetting\('deepseekApiKey'/.test(indexHtml));
-ok('direct DeepSeek call is available only through assistant key flow', /pf_direct_ai_key/.test(indexHtml) && /api\.deepseek\.com\/chat\/completions/.test(indexHtml));
+ok('direct DeepSeek key is session-only', /sessionStorage\.setItem\(KEY_STORE/.test(indexHtml) && !/localStorage\.setItem\(KEY_STORE/.test(indexHtml));
+ok('AI privacy modes exist', /value="local"/.test(indexHtml) && /value="proxy"/.test(indexHtml) && /value="direct"/.test(indexHtml));
 ok('AI proxy URL setting exists', /aiProxyUrl/.test(indexHtml));
 ok('local no-key analysis fallback exists', /Yerel analiz/.test(indexHtml) && /API key, proxy veya dış servis kullanılmadı/.test(indexHtml));
+
+ok('backup and onboarding modules exist', /App\.Backup=\(function/.test(indexHtml) && /App\.Onboarding=\(function/.test(indexHtml));
+ok('cashflow and account selection exist', /App\.Cashflow=\(function/.test(indexHtml) && /id="txnAccount"/.test(indexHtml));
+ok('goal account binding and portfolio targets exist', /id="gAccount"/.test(indexHtml) && /portfolioTargets/.test(indexHtml));
 
 var sw = fs.readFileSync('sw.js', 'utf8');
 ok('service worker only caches ok HTML responses', /if \(resp && resp\.ok\)/.test(sw));
