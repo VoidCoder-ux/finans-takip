@@ -269,6 +269,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .print-view{display:none}
 .toast.ok{background:rgba(34,197,94,.9);color:#fff}.toast.err{background:rgba(239,68,68,.9);color:#fff}.toast.info{background:rgba(59,130,246,.9);color:#fff}
 @keyframes tin{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}@keyframes tout{to{opacity:0;transform:translateY(-8px)}}
+.setup-steps{display:grid;gap:12px}.setup-step{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:13px}.setup-step.done{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08)}.setup-step-title{font-size:.9rem;font-weight:800}.setup-step-sub{font-size:.74rem;color:var(--txt2);line-height:1.45;margin-top:4px}.tool-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.tool-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px;display:flex;flex-direction:column;gap:8px}.tool-title{font-size:.85rem;font-weight:800}.tool-sub{font-size:.72rem;color:var(--txt2);line-height:1.45}.cash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}.cash-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px}.cash-lbl{font-size:.68rem;color:var(--txt2);font-weight:700;text-transform:uppercase;letter-spacing:.05em}.cash-val{font-size:1.1rem;font-weight:800;margin-top:6px}.cash-list{display:flex;flex-direction:column;gap:8px}.cash-row{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px}.cash-main{min-width:0}.cash-name{font-size:.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cash-meta{font-size:.7rem;color:var(--txt2);margin-top:2px}.cash-amt{font-size:.82rem;font-weight:800;text-align:right;white-space:nowrap}.daily-line{font-size:.72rem;color:var(--txt2);margin-top:8px;line-height:1.4}.daily-line b{color:var(--txt)}.import-preview{max-height:320px;overflow:auto;border:1px solid var(--border);border-radius:var(--r);margin-top:10px}.import-preview table{width:100%;border-collapse:collapse;font-size:.75rem}.import-preview th,.import-preview td{padding:7px 8px;border-bottom:1px solid var(--border);text-align:left}.import-preview th{color:var(--txt2);font-weight:700}.import-preview tr.bad td{color:var(--red)}.privacy-modes{display:grid;gap:8px}.privacy-mode{display:flex;gap:8px;align-items:flex-start;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px;font-size:.78rem}.privacy-mode input{margin-top:2px}.portfolio-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}.portfolio-summary .ps-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:13px}.ps-lbl{font-size:.68rem;color:var(--txt2);font-weight:700;text-transform:uppercase}.ps-val{font-size:1rem;font-weight:800;margin-top:5px}.dist-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}.dist-row{display:grid;grid-template-columns:80px 1fr 54px;gap:8px;align-items:center;font-size:.75rem}.dist-track{height:7px;background:var(--bg4);border-radius:99px;overflow:hidden}.dist-fill{height:100%;background:var(--grad);border-radius:99px}.rec-item.paused{opacity:.55}.rec-status{font-size:.68rem;font-weight:700;padding:3px 8px;border-radius:99px;background:var(--bg4);color:var(--txt2)}
 .cc-teal{background:rgba(20,184,166,.15);color:var(--teal)}.cc-blue{background:rgba(59,130,246,.15);color:var(--blue)}.cc-purple{background:rgba(139,92,246,.15);color:var(--purple)}
 .cc-pink{background:rgba(236,72,153,.15);color:var(--pink)}.cc-orange{background:rgba(249,115,22,.15);color:var(--orange)}.cc-yellow{background:rgba(234,179,8,.15);color:var(--yellow)}
 .cc-green{background:rgba(34,197,94,.15);color:var(--green)}.cc-red{background:rgba(239,68,68,.15);color:var(--red)}
@@ -443,6 +444,11 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   <div class="report-btn-row">
     <button class="report-btn" onclick="App.Report.open()"><span class="ri">📄</span><span>Aylık Detaylı Rapor (PDF)</span></button>
   </div>
+  <div class="tool-grid" style="margin-bottom:18px">
+    <div class="tool-card"><div class="tool-title">Kurulum</div><div class="tool-sub">Hesap, profil, bütçe ve hedef kontrolü</div><button class="btn btn-sm btn-ghost" onclick="App.Onboarding.open()">Kontrol Et</button></div>
+    <div class="tool-card"><div class="tool-title">Yedek</div><div class="tool-sub">Tüm yerel veriyi JSON olarak taşı</div><button class="btn btn-sm btn-ghost" onclick="App.Backup.open()">Yedek / Geri Yükle</button></div>
+    <div class="tool-card"><div class="tool-title">Nakit Akışı</div><div class="tool-sub">30/60 günlük ödeme projeksiyonu</div><button class="btn btn-sm btn-ghost" onclick="App.Cashflow.open()">Planı Aç</button></div>
+  </div>
   <div class="nw-card" id="nwCard">
     <div class="nw-head">
       <div style="min-width:0;flex:1">
@@ -463,6 +469,8 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   </div>
   <div class="sh"><div class="sh-title">Aile Paneli</div><div class="sh-link" onclick="App.UI.nav('aile')">Yönet →</div></div>
   <div id="ozet-family"></div>
+  <div class="sh"><div class="sh-title">Yaklaşan Nakit Akışı</div><div class="sh-link" onclick="App.Cashflow.open()">Detay →</div></div>
+  <div id="cashflowMini"></div>
   <div class="sh"><div class="sh-title">Bu Hafta Para Nereye Gitti?</div><button class="notif-btn" id="notifBtn" onclick="App.Notifications.toggle()">🔔 Hatırlat</button></div>
   <div id="ozet-week"></div>
   <div class="sh"><div class="sh-title">Bu Ay Tekrarlayan</div><div class="sh-link" onclick="App.UI.nav('tekrarlayan')">Tümü →</div></div>
@@ -594,6 +602,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       <div class="zbb-bar"><div class="zbb-fill" id="zbbFill"></div></div>
       <div class="zbb-hint" id="zbbHint"></div>
     </div>
+    <div class="cash-grid" id="budgetDailyGrid"></div>
     <div class="card dashed">
       <div class="sh-title" style="margin-bottom:14px">Limit Ekle / Güncelle</div>
       <div class="fg c2"><div class="f"><label>Kategori</label><select id="bCat"></select></div><div class="f"><label>Aylık Limit (₺)</label><input type="number" id="bLimit" placeholder="0.00" min="0" step="0.01"/></div></div>
@@ -636,6 +645,9 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <span style="font-size:.72rem;color:var(--txt2);font-weight:700">GÜNCEL KURLAR</span>
   </div>
   <div class="market-panel" id="marketPanel"></div>
+  <div style="display:flex;justify-content:flex-end;margin:0 0 12px"><button class="btn btn-sm btn-ghost" onclick="App.Portfolio.editTargets()">Hedef Dağılım</button></div>
+  <div class="portfolio-summary" id="portfolioSummary"></div>
+  <div class="dist-list" id="portfolioDistribution"></div>
   <div class="hero" style="background:linear-gradient(135deg,#8b5cf6 0%,#ec4899 100%)">
     <div class="hero-lbl">Toplam Portföy Değeri (TL)</div>
     <div class="hero-bal" id="portTotal">₺0,00</div>
@@ -669,7 +681,12 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       <div class="assistant-key-card">
         <div class="assistant-action-title">DeepSeek API Key</div>
         <div class="assistant-key-row"><input type="password" id="assistantApiKey" placeholder="sk-..." autocomplete="off"/></div>
-        <div class="assistant-key-actions"><button class="btn btn-teal" onclick="App.AI.saveKey()">Kaydet</button><button class="btn btn-ghost" onclick="App.AI.clearKey()">Temizle</button></div>
+        <div class="privacy-modes">
+          <label class="privacy-mode"><input type="radio" name="aiMode" value="local" onchange="App.AI.setMode('local')"/> <span><b>Yerel analiz</b><br/>Veri cihazdan çıkmaz.</span></label>
+          <label class="privacy-mode"><input type="radio" name="aiMode" value="proxy" onchange="App.AI.setMode('proxy')"/> <span><b>Proxy ile AI</b><br/>Sadece güvenli backend URL kullanılır.</span></label>
+          <label class="privacy-mode"><input type="radio" name="aiMode" value="direct" onchange="App.AI.setMode('direct')"/> <span><b>Geçici API key</b><br/>Key sadece bu sekme oturumunda tutulur.</span></label>
+        </div>
+        <div class="assistant-key-actions"><button class="btn btn-teal" onclick="App.AI.saveKey()">Oturumda Tut</button><button class="btn btn-ghost" onclick="App.AI.clearKey()">Temizle</button></div>
         <div class="assistant-key-status" id="assistantKeyStatus">Key yoksa yerel analiz kullanılır.</div>
       </div>
       <button class="assistant-action" onclick="App.Assistant.run('general')"><span class="assistant-action-ico">🧭</span><span><span class="assistant-action-title">Genel Analiz</span><span class="assistant-action-sub">Tüm finans durumunu tek raporda değerlendirir.</span></span></button>
@@ -739,6 +756,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       <div class="f"><label>Hedef Tutar (₺)</label><input type="number" inputmode="decimal" id="gTarget" placeholder="0.00" min="0" step="0.01"/></div>
       <div class="f"><label>Emoji</label><input type="text" id="gEmoji" placeholder="🎯" maxlength="2"/></div>
     </div>
+    <div class="fg c2" style="margin-bottom:11px"><div class="f"><label>Birikim Hesabı</label><select id="gAccount"></select></div><div class="f"><label>Katkı Türü</label><select id="gTxnMode"><option value="none">Sadece hedefe yaz</option><option value="expense">Hesaptan katkı düş</option><option value="transfer">Birikim hesabına gelir yaz</option></select></div></div>
     <button class="btn btn-primary" onclick="App.Goals.add()">Hedef Ekle</button>
   </div>
   <div class="goals-grid" id="goalsGrid"></div>
@@ -817,9 +835,12 @@ var S=(function(){
     var invalid=[];
     _s=obj(_s);_s.theme=_s.theme==='light'?'light':'dark';_s.rates=Object.assign({},DEFAULT_RATES,obj(_s.rates));
     delete _s.deepseekApiKey;
+    if(typeof _s.onboarded!=='boolean')_s.onboarded=false;
+    if(['local','proxy','direct'].indexOf(_s.aiMode)===-1)_s.aiMode='local';
     if(typeof _s.aiProxyUrl!=='string')_s.aiProxyUrl='';
     if(typeof _s.marketSummary==='undefined')_s.marketSummary=null;
     if(typeof _s.assistantLast==='undefined')_s.assistantLast=null;
+    _s.portfolioTargets=obj(_s.portfolioTargets);
     _s.users=normalizeList(_s.users,'pf_s.users',function(u,i){return{id:cleanStoredId(u.id,'u'),name:String(u.name||('Üye '+(i+1))).slice(0,80),emoji:String(u.emoji||'🙋').slice(0,4),color:safeColor(u.color)}} ,invalid);
     if(!_s.users.length)_s.users=[{id:'u_self',name:'Ben',emoji:'🙋',color:'#14b8a6'},{id:'u_partner',name:'Eş',emoji:'💑',color:'#ec4899'}];
     if(!_s.activeUser||!_s.users.find(function(u){return u.id===_s.activeUser}))_s.activeUser=_s.users[0].id;
@@ -854,6 +875,105 @@ var S=(function(){
 
 var App={};
 
+App.Backup=(function(){
+  var KEYS=['pf_t','pf_b','pf_g','pf_a','pf_r','pf_d','pf_s','pf_f','pf_p','pf_nw','pf_ru','pf_bm','pf_cpi'];
+  function snapshot(){
+    var data={version:2,app:'finanstakip',createdAt:new Date().toISOString(),stores:{}};
+    KEYS.forEach(function(k){try{var v=localStorage.getItem(k);if(v!==null)data.stores[k]=JSON.parse(v)}catch(e){}});
+    return data;
+  }
+  function open(){
+    var data=snapshot(),counts={
+      txns:(data.stores.pf_t||[]).length,accounts:(data.stores.pf_a||[]).length,goals:(data.stores.pf_g||[]).length,
+      recurring:(data.stores.pf_r||[]).length,debts:(data.stores.pf_d||[]).length,portfolio:(data.stores.pf_p||[]).length
+    };
+    var html='<div class="modal-bd show" id="backupMdl" onclick="if(event.target===this)App.Backup.close()"><div class="modal"><div class="modal-title">Veri Yedekleme</div><div class="tool-grid" style="margin-bottom:12px">'+
+      '<div class="tool-card"><div class="tool-title">'+counts.txns+' işlem</div><div class="tool-sub">'+counts.accounts+' hesap, '+counts.goals+' hedef, '+counts.recurring+' tekrarlayan</div></div>'+
+      '<div class="tool-card"><div class="tool-title">Tam JSON</div><div class="tool-sub">CSV yerine tüm uygulama verisini taşır.</div></div></div>'+
+      '<input type="file" id="backupFile" accept="application/json,.json" style="display:none" onchange="App.Backup.restore(this)"/>'+
+      '<div class="modal-actions"><button class="btn btn-ghost" onclick="App.Backup.close()">Kapat</button><button class="btn btn-ghost" onclick="App.Backup.pick()">Geri Yükle</button><button class="btn btn-primary" onclick="App.Backup.download()">Yedek İndir</button></div></div></div>';
+    var div=document.createElement('div');div.id='backupHolder';div.innerHTML=html;App.UI.mountModal(div,'button');
+  }
+  function close(){App.UI.closeModal('backupHolder')}
+  function download(){
+    var blob=new Blob([JSON.stringify(snapshot(),null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download='finanstakip-yedek-'+td()+'.json';a.click();setTimeout(function(){URL.revokeObjectURL(url)},1500);App.UI.toast('Tam yedek indirildi.','info');
+  }
+  function pick(){var el=document.getElementById('backupFile');if(el)el.click()}
+  function restore(input){
+    var file=input.files&&input.files[0];if(!file)return;
+    var reader=new FileReader();
+    reader.onload=function(){
+      try{
+        var data=JSON.parse(reader.result);
+        if(!data||data.app!=='finanstakip'||!data.stores)throw new Error('bad backup');
+        var total=Object.keys(data.stores).length;
+        if(!confirm(total+' veri deposu geri yüklenecek. Mevcut yerel veriler değişir. Devam edilsin mi?'))return;
+        KEYS.forEach(function(k){if(Object.prototype.hasOwnProperty.call(data.stores,k))localStorage.setItem(k,JSON.stringify(data.stores[k]))});
+        App.UI.toast('Yedek geri yüklendi. Uygulama yenileniyor.','info');setTimeout(function(){location.reload()},500);
+      }catch(e){App.UI.toast('Yedek dosyası okunamadı.','err')}
+    };
+    reader.readAsText(file,'utf-8');
+  }
+  return{open,close,download,pick,restore,snapshot}
+})();
+
+App.Onboarding=(function(){
+  function status(){
+    var acc=S.accounts(),shared=acc.some(function(a){return(a.owner||'shared')!=='personal'}),users=(S.settings().users||[]).length;
+    var budgets=Object.keys(S.budgets()).length,goals=S.goals().length;
+    return[
+      {ok:users>0,title:'Profil hazır',sub:users+' aile profili var.',nav:'aile'},
+      {ok:shared,title:'Ortak cüzdan',sub:shared?'İşlemler için ortak hesap hazır.':'İlk işlem için en az bir ortak hesap gerekli.',nav:'hesaplar'},
+      {ok:budgets>0,title:'Bütçe limitleri',sub:budgets?budgets+' kategori limiti var.':'Harcama kontrolü için en az bir limit ekleyin.',nav:'butce'},
+      {ok:goals>0,title:'Tasarruf hedefi',sub:goals?goals+' hedef izleniyor.':'Birikim davranışı için hedef ekleyin.',nav:'hedefler'}
+    ];
+  }
+  function open(){
+    var rows=status().map(function(s){return'<div class="setup-step '+(s.ok?'done':'')+'"><div class="setup-step-title">'+(s.ok?'✓ ':'○ ')+esc(s.title)+'</div><div class="setup-step-sub">'+esc(s.sub)+'</div><button class="btn btn-sm btn-ghost" style="margin-top:8px" data-target="'+s.nav+'" onclick="App.Onboarding.go(this.dataset.target)">'+(s.ok?'Aç':'Tamamla')+'</button></div>'}).join('');
+    var html='<div class="modal-bd show" id="setupMdl" onclick="if(event.target===this)App.Onboarding.close()"><div class="modal"><div class="modal-title">Kurulum Kontrolü</div><div class="setup-steps">'+rows+'</div><div class="modal-actions"><button class="btn btn-ghost" onclick="App.Onboarding.skip()">Bir Daha Gösterme</button><button class="btn btn-primary" onclick="App.Onboarding.close()">Tamam</button></div></div></div>';
+    var div=document.createElement('div');div.id='setupHolder';div.innerHTML=html;App.UI.mountModal(div,'button');
+  }
+  function close(){App.UI.closeModal('setupHolder')}
+  function skip(){S.saveSetting('onboarded',true);close();App.UI.toast('Kurulum hatırlatması kapatıldı.','info')}
+  function go(pg){close();App.UI.nav(pg)}
+  function maybe(){if(!S.settings().onboarded&&status().some(function(s){return!s.ok}))setTimeout(open,500)}
+  return{open,close,skip,go,maybe,status}
+})();
+
+App.Cashflow=(function(){
+  function items(days){
+    var out=[],today=td(),now=new Date(),curY=now.getFullYear(),curM=now.getMonth();
+    function add(date,label,amount,type,src){if(date<today)return;var diff=Math.round((new Date(date)-new Date(today))/(86400000));if(diff>=0&&diff<=days)out.push({date:date,label:label,amount:amount,type:type,src:src,diff:diff})}
+    S.recurring().forEach(function(r){if(r.active===false)return;for(var i=0;i<3;i++){var tmn=curM+i,y=curY+Math.floor(tmn/12),m=((tmn%12)+12)%12,last=new Date(y,m+1,0).getDate(),d=y+'-'+String(m+1).padStart(2,'0')+'-'+String(Math.min(r.day,last)).padStart(2,'0');add(d,r.note||r.category,r.amount,r.type,r.isSubscription?'Abonelik':'Tekrarlayan')}});
+    S.txns().forEach(function(t){if(t.date>=today&&(t.balanceApplied===false||t.installment))add(t.date,t.installment?(t.installment.name||t.category):t.category,t.amount,t.type,t.installment?'Taksit':'Planlı')});
+    S.fund().forEach(function(f){var m=f.dueMonth-1,y=m>=curM?curY:curY+1;add(y+'-'+String(m+1).padStart(2,'0')+'-01',f.name,f.amount,'expense','Yıllık fon')});
+    S.debts().forEach(function(d){if(d.settled)return;var paid=(d.payments||[]).reduce(function(s,p){return s+p.amount},0),rem=Math.max(d.amount-paid,0);add(d.dueDate||d.date,d.person,rem,d.direction==='lent'?'income':'expense',d.direction==='lent'?'Alacak':'Borç')});
+    out.sort(function(a,b){return a.date.localeCompare(b.date)||b.amount-a.amount});return out;
+  }
+  function summary(days){
+    var start=S.accounts().reduce(function(s,a){return s+(a.balance||0)},0),bal=start,min=start,inc=0,exp=0;
+    items(days).forEach(function(x){if(x.type==='income'){bal+=x.amount;inc+=x.amount}else{bal-=x.amount;exp+=x.amount}if(bal<min)min=bal});
+    return{start:start,end:bal,min:min,income:inc,expense:exp};
+  }
+  function renderMini(){
+    var el=document.getElementById('cashflowMini');if(!el)return;
+    var s=summary(30),next=items(30).slice(0,3);
+    el.innerHTML='<div class="cash-grid"><div class="cash-card"><div class="cash-lbl">30 gün sonu</div><div class="cash-val" style="color:'+(s.end<0?'var(--red)':'var(--green)')+'">'+fmt(s.end)+'</div></div><div class="cash-card"><div class="cash-lbl">En düşük bakiye</div><div class="cash-val" style="color:'+(s.min<0?'var(--red)':'var(--txt)')+'">'+fmt(s.min)+'</div></div></div>'+
+      '<div class="cash-list">'+(next.length?next.map(row).join(''):'<div class="empty"><div class="empty-t">30 gün içinde planlı ödeme yok</div></div>')+'</div>';
+  }
+  function row(x){return'<div class="cash-row"><div class="cash-main"><div class="cash-name">'+esc(x.label)+'</div><div class="cash-meta">'+fd(x.date)+' · '+esc(x.src)+' · '+x.diff+' gün</div></div><div class="cash-amt" style="color:'+(x.type==='income'?'var(--green)':'var(--red)')+'">'+(x.type==='income'?'+':'-')+fmt(x.amount)+'</div></div>'}
+  function open(){
+    var s30=summary(30),s60=summary(60),list=items(60);
+    var html='<div class="modal-bd show" id="cashMdl" onclick="if(event.target===this)App.Cashflow.close()"><div class="modal" style="max-width:680px"><div class="modal-title">Nakit Akışı</div><div class="cash-grid">'+
+      '<div class="cash-card"><div class="cash-lbl">Bugün</div><div class="cash-val">'+fmt(s30.start)+'</div></div><div class="cash-card"><div class="cash-lbl">30 gün</div><div class="cash-val">'+fmt(s30.end)+'</div></div><div class="cash-card"><div class="cash-lbl">60 gün</div><div class="cash-val">'+fmt(s60.end)+'</div></div><div class="cash-card"><div class="cash-lbl">Risk tabanı</div><div class="cash-val" style="color:'+(s60.min<0?'var(--red)':'var(--txt)')+'">'+fmt(s60.min)+'</div></div></div>'+
+      '<div class="cash-list">'+(list.length?list.map(row).join(''):'<div class="empty"><div class="empty-t">60 gün içinde planlı hareket yok</div></div>')+'</div><div class="modal-actions"><button class="btn btn-primary" onclick="App.Cashflow.close()">Kapat</button></div></div></div>';
+    var div=document.createElement('div');div.id='cashHolder';div.innerHTML=html;App.UI.mountModal(div,'button');
+  }
+  function close(){App.UI.closeModal('cashHolder')}
+  return{items,summary,renderMini,open,close}
+})();
+
 App.UI=(function(){
   var _type='income';
   function nav(pg){
@@ -863,7 +983,7 @@ App.UI=(function(){
     page.classList.add('active');
     document.querySelectorAll('[data-nav="'+pg+'"]').forEach(function(b){b.classList.add('active')});
     if(pg==='istatistikler')App.Charts.refresh();
-    if(pg==='ozet'){App.Transactions.renderRecent();App.Recurring.renderOzet();App.WeeklySummary.render();App.Users.renderFamilyPanel();App.Notifications.syncBtn();App.NetWorth.render()}
+    if(pg==='ozet'){App.Transactions.renderRecent();App.Recurring.renderOzet();App.Cashflow.renderMini();App.WeeklySummary.render();App.Users.renderFamilyPanel();App.Notifications.syncBtn();App.NetWorth.render()}
     if(pg==='hesaplar')App.Accounts.renderAll();
     if(pg==='islemler')App.Transactions.renderList();
     if(pg==='borclar')App.Debts.renderAll();
@@ -899,6 +1019,9 @@ App.UI=(function(){
   function refreshAccSelects(){
     var accs=S.accounts();
     var opts='<option value="">Hesap seç (isteğe bağlı)</option>'+accs.map(function(a){return'<option value="'+a.id+'">'+AM[a.type].i+' '+esc(a.name)+'</option>'}).join('');
+    var userEl=document.getElementById('txnUser'),txnWrap=userEl&&userEl.closest('.f')&&userEl.closest('.f').previousElementSibling;
+    if(txnWrap&&!document.getElementById('txnAccount'))txnWrap.innerHTML='<label>Hesap</label><select id="txnAccount"></select>';
+    ['txnAccount','gAccount'].forEach(function(id){var sel=document.getElementById(id);if(sel){var prev=sel.value;sel.innerHTML=opts;if(prev)sel.value=prev}});
     var el=document.getElementById('fAcc');
     if(el)el.innerHTML='<option value="">Tüm Hesaplar</option>'+accs.map(function(a){return'<option value="'+a.id+'">'+esc(a.name)+'</option>'}).join('');
     refreshUserSelects();
@@ -1087,8 +1210,10 @@ App.Transactions=(function(){
     if(amt===null){App.UI.toast('Geçerli tutar girin.','err');return}
     if(!validDate(date)){App.UI.toast('Geçerli tarih seçin.','err');return}
     if(insCount>=2&&insCount<=36&&!validDate(insStart)){App.UI.toast('Geçerli ilk taksit tarihi seçin.','err');return}
-    var sharedAcc=App.Accounts.sharedAccount();if(!sharedAcc){App.UI.toast('Ortak cüzdan hesabı oluşturun.','err');return}
-    var accId=sharedAcc.id;
+    var selectedAcc=document.getElementById('txnAccount')&&document.getElementById('txnAccount').value;
+    var sharedAcc=App.Accounts.sharedAccount(),chosenAcc=selectedAcc?App.Accounts.get(selectedAcc):null;
+    if(!chosenAcc&&!sharedAcc){App.UI.toast('Önce hesap oluşturun.','err');App.UI.nav('hesaplar');return}
+    var accId=(chosenAcc||sharedAcc).id;
     var arr=S.txns();
     if(type==='expense'&&insCount>=2&&insCount<=36){
       var ruleCheck={type:'expense',amount:amt,category:cat,note:note};App.Rules.apply(ruleCheck);var instCat=ruleCheck.category;
@@ -1199,9 +1324,10 @@ App.Transactions=(function(){
         var rows=_parseCSV(reader.result);if(rows.length<2){App.UI.toast('CSV boş veya geçersiz.','err');return}
         var head=rows.shift().map(function(h){return String(h).trim().toLowerCase()});
         function col(name){return head.indexOf(name)}
-        var iDate=col('tarih'),iType=col('tür'),iCat=col('kategori'),iAmt=col('tutar'),iUser=col('üye'),iNote=col('not');
+        var iDate=col('tarih'),iType=col('tür'),iCat=col('kategori'),iAmt=col('tutar'),iAcc=col('hesap'),iUser=col('üye'),iNote=col('not');
         if(iDate<0||iType<0||iCat<0||iAmt<0){App.UI.toast('CSV kolonları eksik.','err');return}
         var shared=App.Accounts.sharedAccount();if(!shared){App.UI.toast('Ortak cüzdan hesabı oluşturun.','err');return}
+        if(!confirm((rows.length)+' CSV satırı önizlendi. Hesap kolonu varsa aynı adlı hesapla eşlenecek; bulunamazsa ortak cüzdan kullanılacak. Import başlatılsın mı?'))return;
         var accounts=S.accounts(),txns=S.txns(),seen={};
         function parseAmount(v){v=String(v||'').trim();if(!v)return NaN;if(v.indexOf(',')>=0){if(!/^\d{1,3}(\.\d{3})*(,\d+)?$|^\d+(,\d+)?$/.test(v))return NaN;return Number(v.replace(/\./g,'').replace(',','.'))}if(!/^\d+(\.\d+)?$/.test(v))return NaN;return Number(v)}
         txns.forEach(function(t){seen[[t.date,t.type,t.amount,t.category,t.note||'',t.accountId||''].join('|')]=1});
@@ -1213,7 +1339,8 @@ App.Transactions=(function(){
           if(!validDate(date)||!type||!cat||!isFinite(amount)||amount<=0||amount>MAX_MONEY){bad++;return}
           var userName=iUser>=0?String(r[iUser]||'').trim():'';
           var user=userName?(App.Users.list().find(function(u){return u.name===userName})):null;
-          var acc=shared;
+          var accName=iAcc>=0?String(r[iAcc]||'').trim():'';
+          var acc=accName?(accounts.find(function(a){return a.name===accName})||shared):shared;
           var sig=[date,type,amount,cat,note,acc.id].join('|');if(seen[sig]){skipped++;return}
           var applied=date<=td();
           seen[sig]=1;txns.unshift({id:gid('t'),type,amount,category:cat,date,note,accountId:acc.id,userId:(user?user.id:S.settings().activeUser),ts:Date.now()+added,balanceApplied:applied});
@@ -1375,9 +1502,16 @@ App.Budget=(function(){
     else if(remain<0)hint.textContent='⚠️ Limitler toplamı, gelirinizi aşıyor. '+fmt(Math.abs(remain))+' kadar indirmeniz gerekiyor.';
     else hint.textContent='✅ Her lira bir kategoriye atanmış. Sıfır-bazlı bütçe sağlandı.';
   }
+  function renderDaily(){
+    var el=document.getElementById('budgetDailyGrid');if(!el)return;
+    var cats=App.Transactions.catTotals(tm()),b=S.budgets(),now=new Date(),daysLeft=new Date(now.getFullYear(),now.getMonth()+1,0).getDate()-now.getDate()+1;
+    var rows=Object.keys(b).map(function(cat){var lim=effectiveLimit(cat),spent=cats[cat]||0,remain=lim-spent,daily=remain/daysLeft;return{cat:cat,remain:remain,daily:daily}}).sort(function(a,b){return a.daily-b.daily}).slice(0,4);
+    if(!rows.length){el.innerHTML='';return}
+    el.innerHTML=rows.map(function(r){return'<div class="cash-card"><div class="cash-lbl">'+esc(r.cat)+'</div><div class="cash-val" style="color:'+(r.remain<0?'var(--red)':r.daily<50?'var(--yellow)':'var(--green)')+'">'+fmt(r.daily)+'</div><div class="daily-line"><b>günlük kalan</b><br/>'+fmt(r.remain)+' / '+daysLeft+' gün</div></div>'}).join('');
+  }
   function renderAll(){
     var b=S.budgets(),bm=S.budgetMeta(),cats=App.Transactions.catTotals(tm()),keys=Object.keys(b),el=document.getElementById('budgetGrid');
-    renderZBB();
+    renderZBB();renderDaily();
     if(!keys.length){el.innerHTML='<div style="grid-column:1/-1"><div class="empty"><span class="empty-ico">🎯</span><div class="empty-t">Henüz limit eklenmedi</div></div></div>';return}
     el.innerHTML=keys.map(function(cat){
       var spent=cats[cat]||0,baseLim=b[cat],isCarry=bm[cat]&&bm[cat].carryOver,rollover=isCarry?rolloverBalance(cat):0,lim=baseLim+rollover;
@@ -1387,14 +1521,15 @@ App.Budget=(function(){
       return'<div class="bc"><div class="bc-head"><div class="bc-ico '+info.c+'">'+info.i+'</div><div class="bc-info"><div class="bc-name">'+esc(cat)+cb+'</div><div class="bc-amounts">'+fmt(spent)+' / '+fmt(lim)+'</div>'+cl+'</div><span class="badge '+badge+'">'+lbl+'</span></div><div class="prog-track"><div class="prog-fill '+cls+'" style="width:'+Math.min(pct,100)+'%"></div></div><div class="bc-foot"><span class="bc-pct">'+pct.toFixed(0)+'% kullanıldı</span><button class="btn-del" onclick="App.Budget.remove(\''+esc(cat)+'\')">Sil</button></div></div>'
     }).join('');
   }
-  return{save,remove,renderAll,renderZBB,rolloverBalance,effectiveLimit}
+  return{save,remove,renderAll,renderZBB,renderDaily,rolloverBalance,effectiveLimit}
 })();
 
 App.Goals=(function(){
   function add(){
     var name=document.getElementById('gName').value.trim(),target=parseMoney(document.getElementById('gTarget').value),emoji=document.getElementById('gEmoji').value.trim()||'🎯';
     if(!name){App.UI.toast('Hedef adı girin.','err');return}if(target===null){App.UI.toast('Geçerli tutar girin.','err');return}
-    var goals=S.goals();goals.push({id:gid('g'),name,target,emoji,contributions:[],done:null,ts:Date.now()});S.saveGoals(goals);
+    var accountId=(document.getElementById('gAccount')||{}).value||'',txnMode=(document.getElementById('gTxnMode')||{}).value||'none';
+    var goals=S.goals();goals.push({id:gid('g'),name,target,emoji,accountId,txnMode,contributions:[],done:null,ts:Date.now()});S.saveGoals(goals);
     document.getElementById('gName').value='';document.getElementById('gTarget').value='';document.getElementById('gEmoji').value='';renderAll();App.UI.toast('Hedef eklendi.');
   }
   function remove(id){S.saveGoals(S.goals().filter(function(g){return g.id!==id}));renderAll();App.UI.toast('Hedef silindi.')}
@@ -1402,13 +1537,22 @@ App.Goals=(function(){
     var amt=parseMoney(document.getElementById('ca_'+gid_).value),date=document.getElementById('cd_'+gid_).value,note=document.getElementById('cn_'+gid_).value.trim();
     if(amt===null){App.UI.toast('Geçerli tutar girin.','err');return}if(!validDate(date)){App.UI.toast('Geçerli tarih seçin.','err');return}
     var goals=S.goals(),g=goals.find(function(x){return x.id===gid_});if(!g)return;
-    g.contributions.push({id:gid('c'),amount:amt,date,note});
+    var txnId='',accountId=g.accountId||'';
+    if(accountId&&g.txnMode&&g.txnMode!=='none'){
+      var type=g.txnMode==='transfer'?'income':'expense',cat=g.txnMode==='transfer'?'Yatırım':'Diğer',applied=date<=td();
+      txnId=gid('t');
+      var txns=S.txns();txns.unshift({id:txnId,type:type,amount:amt,category:cat,date:date,note:note||('Hedef katkısı: '+g.name),accountId:accountId,userId:S.settings().activeUser,ts:Date.now(),balanceApplied:applied});S.saveTxns(txns);
+      if(applied)App.Accounts.adjustBalance(accountId,type==='income'?amt:-amt);
+    }
+    g.contributions.push({id:gid('c'),amount:amt,date,note,accountId:accountId,txnId:txnId});
     var total=g.contributions.reduce(function(s,c){return s+c.amount},0);
     if(total>=g.target&&!g.done){g.done=Date.now();App.UI.toast('"'+g.name+'" hedefine ulaştınız! 🎉')}else App.UI.toast('Katkı eklendi.');
     S.saveGoals(goals);document.getElementById('ca_'+gid_).value='';document.getElementById('cn_'+gid_).value='';renderAll();
   }
   function removeContrib(gid_,cid){
     var goals=S.goals(),g=goals.find(function(x){return x.id===gid_});if(!g)return;
+    var cOld=(g.contributions||[]).find(function(c){return c.id===cid});
+    if(cOld&&cOld.txnId){var txns=S.txns(),t=txns.find(function(x){return x.id===cOld.txnId});if(t&&t.accountId&&t.balanceApplied!==false)App.Accounts.adjustBalance(t.accountId,t.type==='income'?-t.amount:t.amount);S.saveTxns(txns.filter(function(x){return x.id!==cOld.txnId}))}
     g.contributions=g.contributions.filter(function(c){return c.id!==cid});g.done=g.contributions.reduce(function(s,c){return s+c.amount},0)>=g.target?g.done:null;
     S.saveGoals(goals);renderAll();App.UI.toast('Katkı silindi.');
   }
@@ -1665,36 +1809,37 @@ App.Installments=(function(){
 App.AI=(function(){
   var _pending=null;
   var KEY_STORE='pf_direct_ai_key';
+  function mode(){return S.settings().aiMode||'local'}
   function proxyUrl(){return (S.settings().aiProxyUrl||'').trim()}
-  function directKey(){try{return(localStorage.getItem(KEY_STORE)||'').trim()}catch(e){return''}}
-  function hasRemote(){return !!(directKey()||proxyUrl())}
-  function ensureProxy(){if(proxyUrl())return true;App.Portfolio.openApiSettings();App.UI.toast('AI için önce güvenli proxy URL ekleyin.','info');return false}
+  function directKey(){try{return(sessionStorage.getItem(KEY_STORE)||'').trim()}catch(e){return''}}
+  function hasRemote(){return mode()==='proxy'?!!proxyUrl():(mode()==='direct'?!!directKey():false)}
+  function ensureProxy(){if(proxyUrl()){S.saveSetting('aiMode','proxy');syncKeyUi();return true}App.Portfolio.openApiSettings();App.UI.toast('AI için önce güvenli proxy URL ekleyin.','info');return false}
   function call(payload){
-    var key=directKey();
+    var key=mode()==='direct'?directKey():'';
     if(key)return fetch('https://api.deepseek.com/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},body:JSON.stringify(payload)}).then(function(res){if(!res.ok)throw new Error('deepseek '+res.status);return res.json()});
-    var url=proxyUrl();if(!url)return Promise.reject(new Error('missing ai endpoint'));
+    var url=mode()==='proxy'?proxyUrl():'';if(!url)return Promise.reject(new Error('missing ai endpoint'));
     return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(res){if(!res.ok)throw new Error('proxy '+res.status);return res.json()})
   }
   function saveKey(){
     var el=document.getElementById('assistantApiKey'),v=el?el.value.trim():'';
     if(!v){App.UI.toast('API key girin veya yerel analizi kullanın.','err');return}
-    try{localStorage.setItem(KEY_STORE,v);if(el)el.value='';syncKeyUi();App.UI.toast('API key bu cihazda kaydedildi.','ok')}catch(e){App.UI.toast('API key kaydedilemedi.','err')}
+    try{sessionStorage.setItem(KEY_STORE,v);S.saveSetting('aiMode','direct');if(el)el.value='';syncKeyUi();App.UI.toast('API key sadece bu sekme oturumunda tutuldu.','ok')}catch(e){App.UI.toast('API key kaydedilemedi.','err')}
   }
-  function clearKey(){try{localStorage.removeItem(KEY_STORE)}catch(e){}var el=document.getElementById('assistantApiKey');if(el)el.value='';syncKeyUi();App.UI.toast('API key temizlendi. Yerel analiz kullanılacak.','info')}
-  function syncKeyUi(){var st=document.getElementById('assistantKeyStatus');if(st)st.textContent=directKey()?'DeepSeek API key kayıtlı. Analizler gönderim onayıyla DeepSeek üzerinden alınır.':(proxyUrl()?'Proxy URL kayıtlı. Key yoksa proxy kullanılır.':'Key yoksa yerel analiz kullanılır.')}
+  function clearKey(){try{sessionStorage.removeItem(KEY_STORE);localStorage.removeItem(KEY_STORE)}catch(e){}var el=document.getElementById('assistantApiKey');if(el)el.value='';S.saveSetting('aiMode','local');syncKeyUi();App.UI.toast('API key temizlendi. Yerel analiz kullanılacak.','info')}
+  function setMode(m){S.saveSetting('aiMode',m);syncKeyUi()}
+  function syncKeyUi(){var st=document.getElementById('assistantKeyStatus'),m=mode();document.querySelectorAll('input[name="aiMode"]').forEach(function(x){x.checked=x.value===m});if(st)st.textContent=m==='local'?'Yerel analiz aktif. Veri cihazdan çıkmaz.':m==='proxy'?(proxyUrl()?'Proxy modu aktif. Veri ayarlı proxy hedefine gider.':'Proxy modu seçili ama URL yok.'):(directKey()?'Geçici key bu sekmede var. Kapatınca silinir.':'Geçici key modu seçili ama key girilmedi.')}
   function confirm(title,summary,onConfirm){
     _pending=onConfirm;
     if(document.getElementById('aiConfirmHolder'))document.getElementById('aiConfirmHolder').remove();
     var safeSummary=esc(JSON.stringify(summary,null,2));
-    var target=directKey()?'DeepSeek API':'proxy servisi';
+    var target=mode()==='direct'?'DeepSeek API':mode()==='proxy'?'proxy servisi':'yerel analiz';
     var html='<div class="modal-bd show" id="aiConfirmMdl" onclick="if(event.target===this)App.AI.cancel()"><div class="modal"><div class="modal-title">AI Veri Gönderimi Onayı</div><div style="font-size:.78rem;color:var(--txt2);line-height:1.5;margin-bottom:10px">'+esc(title)+' için aşağıdaki özet '+target+' hedefine gönderilecek.</div><pre style="white-space:pre-wrap;max-height:260px;overflow:auto;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px;font-size:.72rem;color:var(--txt2)">'+safeSummary+'</pre><div class="modal-actions"><button class="btn btn-ghost" onclick="App.AI.cancel()">Vazgeç</button><button class="btn btn-primary" onclick="App.AI.proceed()">Gönder</button></div></div></div>';
     var div=document.createElement('div');div.id='aiConfirmHolder';div.innerHTML=html;App.UI.mountModal(div,'button');
   }
   function proceed(){var fn=_pending;_pending=null;App.UI.closeModal('aiConfirmHolder');if(fn)fn()}
   function cancel(){_pending=null;App.UI.closeModal('aiConfirmHolder')}
-  return{ensureProxy,call,confirm,proceed,cancel,proxyUrl,directKey,hasRemote,saveKey,clearKey,syncKeyUi}
+  return{ensureProxy,call,confirm,proceed,cancel,proxyUrl,directKey,hasRemote,saveKey,clearKey,setMode,syncKeyUi}
 })();
-
 App.Portfolio=(function(){
   var TM={USD:{i:'💵',l:'USD'},EUR:{i:'💶',l:'EUR'},GBP:{i:'💷',l:'GBP'},GOLD_GRAM:{i:'🪙',l:'Gram Altın'},GOLD_QUARTER:{i:'🟡',l:'Çeyrek Altın'},GOLD_FULL:{i:'🟠',l:'Tam Altın'},FUND:{i:'📈',l:'Fon/Hisse'}};
   var REFRESH_MS=30*60*1000,_refreshing=false,_refreshPromise=null;
@@ -1818,6 +1963,21 @@ App.Portfolio=(function(){
     el.innerHTML='<div class="market-panel-head"><div class="market-panel-title">AI Piyasa Özeti</div><button class="btn-del" onclick="App.Portfolio.clearMarketSummary()">×</button></div><div class="market-panel-text">'+esc(ms.text)+'</div><div class="market-panel-meta">'+esc(ms.provider||'AI')+' · '+new Date(ms.ts).toLocaleString('tr-TR')+'</div>';
   }
   function clearMarketSummary(){S.saveSetting('marketSummary',null);renderMarketSummary()}
+  function editTargets(){
+    var cur=S.settings().portfolioTargets||{},v=prompt('Hedef dağılım yüzdeleri (örn: USD=30,EUR=20,GOLD_GRAM=40,FUND=10)',Object.keys(cur).map(function(k){return k+'='+cur[k]}).join(','));
+    if(v===null)return;
+    var out={};v.split(',').forEach(function(part){var p=part.split('='),k=(p[0]||'').trim(),n=parseMoney((p[1]||'').trim(),{allowZero:true,min:0,max:100});if(k&&n!==null)out[k]=n});
+    S.saveSetting('portfolioTargets',out);render();App.UI.toast('Hedef dağılım kaydedildi.','info');
+  }
+  function renderPortfolioSummary(items,r,total){
+    var sum=document.getElementById('portfolioSummary'),dist=document.getElementById('portfolioDistribution');if(!sum||!dist)return;
+    var cost=0,byType={},targets=S.settings().portfolioTargets||{};
+    items.forEach(function(a){var rate=r[a.type]||0,val=a.qty*rate;byType[a.type]=(byType[a.type]||0)+val;if(a.cost)cost+=a.qty*a.cost});
+    var pnl=cost?total-cost:0;
+    sum.innerHTML='<div class="ps-card"><div class="ps-lbl">Maliyet</div><div class="ps-val">'+(cost?fmt(cost):'â€”')+'</div></div><div class="ps-card"><div class="ps-lbl">Kâr / Zarar</div><div class="ps-val" style="color:'+(pnl>=0?'var(--green)':'var(--red)')+'">'+(cost?fmt(pnl):'â€”')+'</div></div><div class="ps-card"><div class="ps-lbl">Hedef Tanımı</div><div class="ps-val">'+Object.keys(targets).length+' varlık</div></div>';
+    var keys=Object.keys(byType).sort(function(a,b){return byType[b]-byType[a]});
+    dist.innerHTML=keys.map(function(k){var pct=total?byType[k]/total*100:0,target=targets[k];return'<div class="dist-row"><div>'+esc(k)+'</div><div class="dist-track"><div class="dist-fill" style="width:'+Math.min(pct,100)+'%"></div></div><div>'+pct.toFixed(0)+'%'+(target!=null?' / '+target+'%':'')+'</div></div>'}).join('');
+  }
   function render(){
     var items=S.portfolio(),r=S.settings().rates||{};
     var rb=document.getElementById('rateBar');
@@ -1826,7 +1986,7 @@ App.Portfolio=(function(){
     rb.innerHTML='<span style="font-size:.72rem;color:var(--txt2);font-weight:700">GÜNCEL KURLAR</span>'+chips+updated;
     renderMarketSummary();
     var total=0,el=document.getElementById('portGrid');
-    if(!items.length){el.innerHTML='<div class="empty" style="grid-column:1/-1"><span class="empty-ico">💎</span><div class="empty-t">Varlık eklenmedi</div><div class="empty-s">Döviz, altın veya fonlarını ekle</div></div>';document.getElementById('portTotal').textContent=fmt(0);document.getElementById('portAssetCount').innerHTML='<span class="dot b"></span>0 Varlık';return}
+    if(!items.length){el.innerHTML='<div class="empty" style="grid-column:1/-1"><span class="empty-ico">💎</span><div class="empty-t">Varlık eklenmedi</div><div class="empty-s">Döviz, altın veya fonlarını ekle</div></div>';document.getElementById('portTotal').textContent=fmt(0);document.getElementById('portAssetCount').innerHTML='<span class="dot b"></span>0 Varlık';renderPortfolioSummary([],r,0);return}
     el.innerHTML=items.map(function(a){
       var m=TM[a.type]||{i:'💰',l:a.type};var rate=r[a.type]||0,val=a.qty*rate;total+=val;
       var chg='';if(a.cost&&rate){var diff=(rate-a.cost)*a.qty;var pct=a.cost>0?((rate-a.cost)/a.cost)*100:0;chg='<div class="port-chg" style="color:'+(diff>=0?'var(--green)':'var(--red)')+'">'+(diff>=0?'▲ ':'▼ ')+fmt(Math.abs(diff))+' ('+pct.toFixed(1)+'%)</div>'}
@@ -1834,8 +1994,9 @@ App.Portfolio=(function(){
     }).join('');
     document.getElementById('portTotal').textContent=fmt(total);
     document.getElementById('portAssetCount').innerHTML='<span class="dot b"></span>'+items.length+' Varlık';
+    renderPortfolioSummary(items,r,total);
   }
-  return{add,remove,refreshRates,ensureFreshRates,setRate,rateOf,openApiSettings,closeApiSettings,saveApiSettings,generateMarketSummary,clearMarketSummary,render}
+  return{add,remove,refreshRates,ensureFreshRates,setRate,rateOf,openApiSettings,closeApiSettings,saveApiSettings,generateMarketSummary,clearMarketSummary,editTargets,render}
 })();
 
 App.Assistant=(function(){
@@ -2284,11 +2445,12 @@ document.addEventListener('DOMContentLoaded',function(){
   App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();
   App.Transactions.renderSummaryMetrics();App.Transactions.renderRecent();App.Transactions.renderList();
   App.Accounts.renderAll();App.Accounts.renderSummary();App.Accounts.onTypeChange();App.Accounts.onOwnerChange();
-  App.Budget.renderAll();App.Goals.renderAll();App.Goals.renderEmergencyInfo();App.Recurring.renderList();App.Recurring.renderOzet();App.Recurring.renderSubSummary();App.Debts.renderAll();
+  App.Budget.renderAll();App.Goals.renderAll();App.Goals.renderEmergencyInfo();App.Recurring.renderList();App.Recurring.renderOzet();App.Recurring.renderSubSummary();App.Cashflow.renderMini();App.Debts.renderAll();
   App.Installments.render();App.Portfolio.render();App.YearlyFund.render();App.WeeklySummary.render();App.Notifications.syncBtn();
   App.Users.renderAll();App.Users.renderFamilyPanel();
   App.NetWorth.render();App.Assistant.render();
   App.UI.nav('ozet');
+  App.Onboarding.maybe();
   handleShortcut();
   setTimeout(function(){App.Notifications.checkDueBills(false)},1500);
 });
