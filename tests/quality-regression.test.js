@@ -140,5 +140,34 @@ var sw = fs.readFileSync('sw.js', 'utf8');
 ok('service worker only caches ok HTML responses', /if \(resp && resp\.ok\)/.test(sw));
 ok('service worker keeps external APIs no-store', /cache: 'no-store'/.test(sw) && /API_HOSTS/.test(sw));
 
+// FT-009: Recurring duplicate prevention
+ok('recurring log uses recurringId for duplicate check', /t\.recurringId===rec\.id/.test(indexHtml));
+ok('recurring log checks same month duplicate', /t\.date\.substring\(0,7\)===currentMonth/.test(indexHtml));
+
+// FT-010: Debt payment overflow check
+ok('debt addPayment checks remaining before adding', /rem=d\.amount-paid/.test(indexHtml));
+ok('debt addPayment rejects overpayment', /amt>rem\+0\.001/.test(indexHtml));
+
+// FT-011: Stats bar chart month selection
+ok('last6 accepts optional baseMonth parameter', /last6\(baseMonth/.test(indexHtml));
+ok('chart refresh passes selected month to last6', /last6\(month\)/.test(indexHtml));
+
+// FT-005: Account balance reconciliation
+ok('accounts have openingBalance field', /openingBalance/.test(indexHtml));
+ok('reconcileAccountBalances function exists', /reconcileAccountBalances/.test(indexHtml));
+ok('reconcileAccountBalances called on startup', /App\.Accounts\.reconcileAccountBalances\(\)/.test(indexHtml));
+
+// FT-013: Notifications expanded scope
+ok('notifications cover installments', /kind:'inst'/.test(indexHtml));
+ok('notifications cover funds', /kind:'fund'/.test(indexHtml));
+ok('notifications cover debts', /kind:'debt'/.test(indexHtml));
+
+// FT-014: ICS UID stability
+ok('ICS UID uses date instead of loop index', /r\.id\+['"]-['"]\+date/.test(indexHtml));
+
+// FT-003: CSV Hesap column import
+ok('CSV import reads Hesap column', /iAcc=col\('hesap'\)/.test(indexHtml));
+ok('CSV import matches account by name', /accounts\.find\(function\(a\)\{return a\.name===accName\}/.test(indexHtml));
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
