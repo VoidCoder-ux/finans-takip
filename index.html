@@ -2,6 +2,7 @@
 <html lang="tr" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; worker-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <title>Finans Takip</title>
 <link rel="manifest" href="manifest.json"/>
@@ -1444,13 +1445,13 @@ App.Debts=(function(){
     var paid=d.payments.reduce(function(s,p){return s+p.amount},0),rem=d.amount-paid;
     if(amt>rem+0.001){App.UI.toast('Fazla ödeme yapılamaz. Kalan: '+fmt(rem)+'','err');return}
     d.payments.push({id:gid('p'),amount:amt,date:date||td()});
-    d.settled=d.payments.reduce(function(s,p){return s+p.amount},0)>=d.amount;
+    d.settled=d.payments.reduce(function(s,p){return s+p.amount},0)>=d.amount-0.005;
     S.saveDebts(debts);document.getElementById('pay_amt_'+id).value='';
     renderAll();App.UI.toast(d.settled?'"'+d.person+'" borcu kapandı! 🎉':'Ödeme eklendi.');
   }
   function removePayment(did,pid){
     var debts=S.debts(),d=debts.find(function(x){return x.id===did});if(!d)return;
-    d.payments=d.payments.filter(function(p){return p.id!==pid});d.settled=d.payments.reduce(function(s,p){return s+p.amount},0)>=d.amount;
+    d.payments=d.payments.filter(function(p){return p.id!==pid});d.settled=d.payments.reduce(function(s,p){return s+p.amount},0)>=d.amount-0.005;
     S.saveDebts(debts);renderAll();App.UI.toast('Ödeme silindi.');
   }
   function togglePay(id){document.getElementById('dpay_'+id).classList.toggle('open')}
@@ -1942,7 +1943,12 @@ App.Portfolio=(function(){
   function closeApiSettings(){App.UI.closeModal('apiHolder')}
   function saveApiSettings(){
     var el=document.getElementById('aiProxyUrl'),v=el?el.value.trim():'';
-    if(v&&!/^https:\/\/[^ ]+$/i.test(v)){App.UI.toast('Proxy URL https:// ile başlamalı.','err');return}
+    if(v){
+      var parsed;try{parsed=new URL(v)}catch(e){App.UI.toast('Geçersiz proxy URL.','err');return}
+      if(parsed.protocol!=='https:'){App.UI.toast('Proxy URL https:// ile başlamalı.','err');return}
+      var host=parsed.hostname.toLowerCase();
+      if(host==='localhost'||host==='[::1]'||/^127\.|^10\.|^192\.168\.|^169\.254\.|^172\.(1[6-9]|2[0-9]|3[01])\./.test(host)){App.UI.toast('İç ağ/yerel adresler proxy olarak kullanılamaz.','err');return}
+    }
     S.saveSetting('aiProxyUrl',v);closeApiSettings();App.UI.toast(v?'AI proxy URL kaydedildi.':'AI proxy URL temizlendi.','ok');
   }
   function generateMarketSummary(){
@@ -2427,7 +2433,7 @@ App.Notifications=(function(){
   function toggle(){
     if(!supported()){App.UI.toast('Tarayıcı bildirim desteklemiyor.','err');return}
     if(Notification.permission==='granted'){App.UI.toast('Bildirim zaten açık.','info');checkDueBills(true);return}
-    Notification.requestPermission().then(function(p){syncBtn();if(p==='granted'){App.UI.toast('Bildirim açıldı.');checkDueBills(true)}});
+    Notification.requestPermission().then(function(p){syncBtn();if(p==='granted'){App.UI.toast('Bildirim açıldı.');checkDueBills(true)}}).catch(function(){syncBtn();App.UI.toast('Bildirim izni alınamadı.','err')});
   }
   function upcomingBills(daysAhead){
     var today=new Date(),tday=today.getDate(),out=[];
@@ -2452,6 +2458,21 @@ App.Notifications=(function(){
 
 if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(function(e){console.warn('SW kaydı başarısız:',e)})}
 
+function renderAllViews(){
+  App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();
+  App.Transactions.renderSummaryMetrics();App.Transactions.renderRecent();App.Transactions.renderList();
+  App.Accounts.renderAll();App.Accounts.renderSummary();
+  App.Budget.renderAll();App.Goals.renderAll();App.Goals.renderEmergencyInfo();App.Recurring.renderList();App.Recurring.renderOzet();App.Recurring.renderSubSummary();App.Cashflow.renderMini();App.Debts.renderAll();
+  App.Installments.render();App.Portfolio.render();App.YearlyFund.render();App.WeeklySummary.render();App.Notifications.syncBtn();
+  App.Users.renderAll();App.Users.renderFamilyPanel();
+  App.NetWorth.render();App.Assistant.render();
+}
+// Çoklu sekme senkronizasyonu: başka bir sekme veriyi değiştirdiğinde bu sekmeyi tazele
+window.addEventListener('storage',function(e){
+  if(!e.key||e.key.indexOf('pf_')!==0||(e.storageArea&&e.storageArea!==localStorage))return;
+  if(window.__pfSyncT)clearTimeout(window.__pfSyncT);
+  window.__pfSyncT=setTimeout(function(){try{S.load();renderAllViews();App.UI.toast('Veriler başka bir sekmede güncellendi.','info')}catch(err){}},150);
+});
 document.addEventListener('DOMContentLoaded',function(){
   try{localStorage.setItem('pf_test','1');localStorage.removeItem('pf_test')}catch(e){setTimeout(function(){App.UI.toast('Özel/gizli mod tespit edildi: veriler bu oturumda kaydedilemeyebilir.','err')},800)}
   S.load();App.UI.bindEvents();App.UI.initDates();App.UI.setTheme(S.settings().theme||'dark');App.UI.initSelects();
@@ -2459,13 +2480,8 @@ document.addEventListener('DOMContentLoaded',function(){
   var accReconciled=App.Accounts.reconcileAccountBalances();
   if(window.__pfStorageError)App.UI.toast('Bazı veriler kaydedilemedi. Depolama alanını kontrol edin.','err');
   if(reconciled)App.UI.toast('Vadesi gelen planlı işlemler bakiyeye işlendi.','info');
-  App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();
-  App.Transactions.renderSummaryMetrics();App.Transactions.renderRecent();App.Transactions.renderList();
-  App.Accounts.renderAll();App.Accounts.renderSummary();App.Accounts.onTypeChange();App.Accounts.onOwnerChange();
-  App.Budget.renderAll();App.Goals.renderAll();App.Goals.renderEmergencyInfo();App.Recurring.renderList();App.Recurring.renderOzet();App.Recurring.renderSubSummary();App.Cashflow.renderMini();App.Debts.renderAll();
-  App.Installments.render();App.Portfolio.render();App.YearlyFund.render();App.WeeklySummary.render();App.Notifications.syncBtn();
-  App.Users.renderAll();App.Users.renderFamilyPanel();
-  App.NetWorth.render();App.Assistant.render();
+  App.Accounts.onTypeChange();App.Accounts.onOwnerChange();
+  renderAllViews();
   App.UI.nav('ozet');
   App.Onboarding.maybe();
   handleShortcut();
