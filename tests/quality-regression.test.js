@@ -17,12 +17,13 @@ function ok(label, value) {
 
 function csvSafe(v) {
   v = String(v == null ? '' : v);
-  if (/^[=+\-@]/.test(v)) v = "'" + v;
+  if (/^[\t\r=+\-@]/.test(v)) v = "'" + v;
   return '"' + v.replace(/"/g, '""') + '"';
 }
 
 eq('CSV formula is escaped', csvSafe('=IMPORTXML("x")'), '"\'=IMPORTXML(""x"")"');
 eq('CSV plus formula is escaped', csvSafe('+cmd'), '"\'+cmd"');
+eq('CSV tab-prefixed formula is escaped', csvSafe('\t=HYPERLINK("x")'), '"\'\t=HYPERLINK(""x"")"');
 eq('CSV normal text remains normal', csvSafe('Market'), '"Market"');
 
 function validDate(iso) {
@@ -168,6 +169,38 @@ ok('ICS UID uses date instead of loop index', /r\.id\+['"]-['"]\+date/.test(inde
 // FT-003: CSV Hesap column import
 ok('CSV import reads Hesap column', /iAcc=col\('hesap'\)/.test(indexHtml));
 ok('CSV import matches account by name', /accounts\.find\(function\(a\)\{return a\.name===accName\}/.test(indexHtml));
+
+// FIX: type pill state classes no longer collide with .ti txn-item styles
+ok('type pill uses on-inc state class', /\.tp\.on-inc\{/.test(indexHtml) && /' on-inc'/.test(indexHtml));
+ok('type pill no longer reuses .ti class', !/\.tp\.ti\{/.test(indexHtml));
+
+// FIX: budget carryover tracks its start month (no phantom rollover)
+ok('budget carryover stores carryStart', /carryStart=tm\(\)/.test(indexHtml));
+ok('rollover skips months before carryStart', /if\(m<start\)continue/.test(indexHtml));
+
+// FIX: CSV dedup signature includes userId
+ok('CSV dedup seen-map includes userId', /t\.userId\|\|''\]\.join\('\|'\)/.test(indexHtml));
+ok('CSV dedup sig includes userId', /acc\.id,uid\|\|''\]\.join\('\|'\)/.test(indexHtml));
+
+// FIX: csvSafe blocks tab/CR-prefixed formulas
+ok('csvSafe escapes tab and CR prefixes', /\^\[\\t\\r=\+\\-@\]/.test(indexHtml));
+
+// FIX: installment + CSV loop ids are collision-free within the same millisecond
+ok('installment txn ids carry loop index', /id:gid\('t'\)\+'_'\+i/.test(indexHtml));
+ok('CSV import txn ids carry row index', /id:gid\('t'\)\+'_'\+added/.test(indexHtml));
+
+// FIX: backup restore rolls back on quota failure
+ok('restore keeps previous values for rollback', /prev\[k\]=localStorage\.getItem\(k\)/.test(indexHtml));
+
+// FIX: user removal clears userId on recurring templates
+ok('user removal cleans recurring userId', /recs\.forEach\(function\(r\)\{if\(r\.userId===id\)\{r\.userId=null/.test(indexHtml));
+
+// FIX: offline/online listeners + SW failure toast
+ok('offline listener exists', /addEventListener\('offline'/.test(indexHtml));
+ok('online listener exists', /addEventListener\('online'/.test(indexHtml));
+
+// FIX: vendor chart.js pinned with SRI
+ok('chart.js script has integrity attribute', /chart\.umd\.min\.js" integrity="sha384-/.test(indexHtml));
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
