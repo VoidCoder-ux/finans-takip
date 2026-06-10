@@ -83,8 +83,8 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .card.dashed{border-style:dashed;border-color:var(--border2)}
 .type-pills{display:flex;gap:8px;margin-bottom:16px}
 .tp{flex:1;padding:13px;border-radius:99px;font-size:.9rem;font-weight:600;border:2px solid var(--border2);color:var(--txt2);transition:all var(--tr);text-align:center;min-height:44px}
-.tp.ti{border-color:var(--green);color:var(--green);background:rgba(34,197,94,.1)}
-.tp.te{border-color:var(--red);color:var(--red);background:rgba(239,68,68,.1)}
+.tp.on-inc{border-color:var(--green);color:var(--green);background:rgba(34,197,94,.1)}
+.tp.on-exp{border-color:var(--red);color:var(--red);background:rgba(239,68,68,.1)}
 .fg{display:grid;gap:11px;margin-bottom:11px}
 .fg.c2{grid-template-columns:1fr 1fr}.fg.c3{grid-template-columns:1fr 1fr 1fr}.fg.c4{grid-template-columns:1fr 1fr 1fr 1fr}
 .f{display:flex;flex-direction:column;gap:5px}
@@ -523,7 +523,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 <section class="page" id="page-islemler">
   <div class="ph"><div><div class="ph-title">İşlemler</div><div class="ph-sub">Tüm gelir ve giderleriniz</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm btn-ghost" onclick="document.getElementById('csvImport').click()">⬆️ CSV Yükle</button><button class="btn btn-sm btn-ghost" onclick="App.Transactions.exportCSV()">⬇️ CSV İndir</button><input type="file" id="csvImport" accept=".csv,text/csv" style="display:none" onchange="App.Transactions.importCSV(this)"/></div></div>
   <div class="card">
-    <div class="type-pills"><button class="tp ti" id="pillInc" onclick="App.UI.setType('income')">+ Gelir</button><button class="tp" id="pillExp" onclick="App.UI.setType('expense')">− Gider</button></div>
+    <div class="type-pills"><button class="tp on-inc" id="pillInc" onclick="App.UI.setType('income')">+ Gelir</button><button class="tp" id="pillExp" onclick="App.UI.setType('expense')">− Gider</button></div>
     <div class="fg c3"><div class="f"><label>Tutar (₺)</label><input type="number" inputmode="decimal" id="txnAmt" placeholder="0.00" min="0" step="0.01"/></div><div class="f"><label>Tarih</label><input type="date" id="txnDate"/></div><div class="f"><label>Kategori</label><select id="txnCat"></select></div></div>
     <div class="fg c3" style="margin-bottom:11px"><div class="f"><label>Hesap</label><div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px 12px;font-size:.84rem;color:var(--txt2)">Ortak cüzdan otomatik</div></div><div class="f"><label>Kim Yaptı</label><select id="txnUser"></select></div><div class="f"><label>Not</label><input type="text" id="txnNote" placeholder="Açıklama..."/></div></div>
     <div class="fg c2" style="margin-bottom:11px"><div class="f"><label>Taksit Sayısı</label><input type="number" id="txnInst" placeholder="Tek çekim için boş bırak" min="2" max="36"/></div><div class="f"><label>İlk Taksit Tarihi</label><input type="date" id="txnInstStart"/></div></div>
@@ -773,7 +773,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   <div class="bnav-item" id="moreBtn" onclick="App.UI.moreMenu()"><span class="bnav-icon">☰</span>Daha</div>
 </nav>
 <div class="toast-box" id="toasts"></div>
-<script src="./vendor/chart.umd.min.js"></script>
+<script src="./vendor/chart.umd.min.js" integrity="sha384-JUh163oCRItcbPme8pYnROHQMC6fNKTBWtRG3I3I0erJkzNgL7uxKlNwcrcFKeqF"></script>
 <script>
 var CM={'Yiyecek':{i:'🍽',c:'cc-orange'},'Market':{i:'🛒',c:'cc-teal'},'Ulaşım':{i:'🚌',c:'cc-blue'},'Faturalar':{i:'🧾',c:'cc-purple'},'Eğlence':{i:'🎬',c:'cc-pink'},'Sağlık':{i:'💊',c:'cc-red'},'Giyim':{i:'👕',c:'cc-yellow'},'Eğitim':{i:'📚',c:'cc-blue'},'Kredi Ödemesi':{i:'🏦',c:'cc-blue'},'Kredi Kartı Ödemesi':{i:'💳',c:'cc-red'},'Borç Ödemesi':{i:'🤝',c:'cc-purple'},'Maaş':{i:'💼',c:'cc-green'},'Freelance':{i:'💻',c:'cc-teal'},'Kira Geliri':{i:'🏠',c:'cc-orange'},'Yatırım':{i:'📈',c:'cc-purple'},'Diğer':{i:'📦',c:'cc-blue'}};
 var AM={cash:{i:'💵',l:'Nakit'},bank:{i:'🏦',l:'Banka'},card:{i:'💳',l:'Kredi Kartı'},savings:{i:'🐖',l:'Birikim'},investment:{i:'📈',l:'Yatırım'}};
@@ -809,7 +809,7 @@ function isValidMoney(v,opt){return parseMoney(v,opt)!==null}
 function toNum(v,fb){var n=typeof v==='number'?v:parseFloat(String(v||'').replace(',','.'));return isFinite(n)?n:(fb||0)}
 function validDate(iso){var m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return false;var d=new Date(+m[1],+m[2]-1,+m[3]);return d.getFullYear()===+m[1]&&d.getMonth()===+m[2]-1&&d.getDate()===+m[3]}
 function validMonth(m){return /^\d{4}-(0[1-9]|1[0-2])$/.test(String(m||''))}
-function csvSafe(v){v=String(v==null?'':v);if(/^[=+\-@]/.test(v))v="'"+v;return'"'+v.replace(/"/g,'""')+'"'}
+function csvSafe(v){v=String(v==null?'':v);if(/^[\t\r=+\-@]/.test(v))v="'"+v;return'"'+v.replace(/"/g,'""')+'"'}
 function fmt(n){var v=Number(n||0);if(v<0)return'-₺'+Math.abs(v).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});return'₺'+v.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function fd(iso){if(!validDate(iso))return '-';var p=iso.split('-');return p[2]+' '+MF[+p[1]-1]+' '+p[0]}
 function td(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -910,7 +910,13 @@ App.Backup=(function(){
         if(!data||data.app!=='finanstakip'||!data.stores)throw new Error('bad backup');
         var total=Object.keys(data.stores).length;
         if(!confirm(total+' veri deposu geri yüklenecek. Mevcut yerel veriler değişir. Devam edilsin mi?'))return;
-        KEYS.forEach(function(k){if(Object.prototype.hasOwnProperty.call(data.stores,k))localStorage.setItem(k,JSON.stringify(data.stores[k]))});
+        var prev={};
+        try{
+          KEYS.forEach(function(k){if(Object.prototype.hasOwnProperty.call(data.stores,k)){prev[k]=localStorage.getItem(k);localStorage.setItem(k,JSON.stringify(data.stores[k]))}});
+        }catch(werr){
+          Object.keys(prev).forEach(function(k){try{if(prev[k]===null)localStorage.removeItem(k);else localStorage.setItem(k,prev[k])}catch(e2){}});
+          App.UI.toast('Geri yükleme başarısız (depolama yetersiz). Mevcut veriler korundu.','err');return;
+        }
         App.UI.toast('Yedek geri yüklendi. Uygulama yenileniyor.','info');setTimeout(function(){location.reload()},500);
       }catch(e){App.UI.toast('Yedek dosyası okunamadı.','err')}
     };
@@ -1004,8 +1010,8 @@ App.UI=(function(){
   }
   function setType(t){
     _type=t;
-    document.getElementById('pillInc').className='tp'+(t==='income'?' ti':'');
-    document.getElementById('pillExp').className='tp'+(t==='expense'?' te':'');
+    document.getElementById('pillInc').className='tp'+(t==='income'?' on-inc':'');
+    document.getElementById('pillExp').className='tp'+(t==='expense'?' on-exp':'');
     _fs(document.getElementById('txnCat'),t==='income'?IC:EC);
   }
   function getType(){return _type}
@@ -1230,7 +1236,7 @@ App.Transactions=(function(){
       for(var i=0;i<insCount;i++){
         var d=addMonths(insStart,i);var thisAmt=(i===insCount-1)?lastPer:per;
         var applied=d<=today;
-        arr.unshift({id:gid('t'),type:'expense',amount:thisAmt,category:instCat,date:d,note:(note||cat)+' ('+(i+1)+'/'+insCount+')',accountId:accId,userId,ts:now+i,balanceApplied:applied,installment:{planId,index:i+1,total:insCount,totalAmount:amt,name:note||cat,startDate:insStart,balanceApplied:applied}});
+        arr.unshift({id:gid('t')+'_'+i,type:'expense',amount:thisAmt,category:instCat,date:d,note:(note||cat)+' ('+(i+1)+'/'+insCount+')',accountId:accId,userId,ts:now+i,balanceApplied:applied,installment:{planId,index:i+1,total:insCount,totalAmount:amt,name:note||cat,startDate:insStart,balanceApplied:applied}});
         if(applied)pastTotal+=thisAmt;
       }
       S.saveTxns(arr);
@@ -1338,7 +1344,7 @@ App.Transactions=(function(){
         if(!confirm((rows.length)+' CSV satırı önizlendi. Hesap kolonu varsa aynı adlı hesapla eşlenecek; bulunamazsa ortak cüzdan kullanılacak. Import başlatılsın mı?'))return;
         var accounts=S.accounts(),txns=S.txns(),seen={};
         function parseAmount(v){v=String(v||'').trim();if(!v)return NaN;if(v.indexOf(',')>=0){if(!/^\d{1,3}(\.\d{3})*(,\d+)?$|^\d+(,\d+)?$/.test(v))return NaN;return Number(v.replace(/\./g,'').replace(',','.'))}if(!/^\d+(\.\d+)?$/.test(v))return NaN;return Number(v)}
-        txns.forEach(function(t){seen[[t.date,t.type,t.amount,t.category,t.note||'',t.accountId||''].join('|')]=1});
+        txns.forEach(function(t){seen[[t.date,t.type,t.amount,t.category,t.note||'',t.accountId||'',t.userId||''].join('|')]=1});
         var added=0,skipped=0,bad=0,balances={};
         rows.forEach(function(r){
           var date=String(r[iDate]||'').trim(),rawType=String(r[iType]||'').trim().toLowerCase(),cat=String(r[iCat]||'').trim();
@@ -1349,9 +1355,10 @@ App.Transactions=(function(){
           var user=userName?(App.Users.list().find(function(u){return u.name===userName})):null;
           var accName=iAcc>=0?String(r[iAcc]||'').trim():'';
           var acc=accName?(accounts.find(function(a){return a.name===accName})||shared):shared;
-          var sig=[date,type,amount,cat,note,acc.id].join('|');if(seen[sig]){skipped++;return}
+          var uid=user?user.id:S.settings().activeUser;
+          var sig=[date,type,amount,cat,note,acc.id,uid||''].join('|');if(seen[sig]){skipped++;return}
           var applied=date<=td();
-          seen[sig]=1;txns.unshift({id:gid('t'),type,amount,category:cat,date,note,accountId:acc.id,userId:(user?user.id:S.settings().activeUser),ts:Date.now()+added,balanceApplied:applied});
+          seen[sig]=1;txns.unshift({id:gid('t')+'_'+added,type,amount,category:cat,date,note,accountId:acc.id,userId:uid,ts:Date.now()+added,balanceApplied:applied});
           if(applied)balances[acc.id]=(balances[acc.id]||0)+(type==='income'?amount:-amount);added++;
         });
         if(!added){App.UI.toast('Yeni işlem bulunamadı. '+(skipped?skipped+' tekrar atlandı.':''),'info');return}
@@ -1483,7 +1490,7 @@ App.Budget=(function(){
     var cat=document.getElementById('bCat').value,lim=parseMoney(document.getElementById('bLimit').value),carry=!!document.getElementById('bCarry').checked;
     if(lim===null){App.UI.toast('Geçerli limit girin.','err');return}
     var b=S.budgets();b[cat]=lim;S.saveBudgets(b);
-    var bm=S.budgetMeta();bm[cat]=bm[cat]||{};bm[cat].carryOver=carry;S.saveBudgetMeta(bm);
+    var bm=S.budgetMeta();bm[cat]=bm[cat]||{};if(carry&&!bm[cat].carryOver)bm[cat].carryStart=tm();if(!carry)delete bm[cat].carryStart;bm[cat].carryOver=carry;S.saveBudgetMeta(bm);
     document.getElementById('bLimit').value='';document.getElementById('bCarry').checked=false;
     renderAll();App.UI.toast('Limit kaydedildi.');
   }
@@ -1492,9 +1499,11 @@ App.Budget=(function(){
   function rolloverBalance(cat){
     var bm=S.budgetMeta();if(!bm[cat]||!bm[cat].carryOver)return 0;
     var b=S.budgets(),limit=b[cat]||0;if(!limit)return 0;
+    var start=bm[cat].carryStart;
+    if(!start){start=tm();bm[cat].carryStart=start;S.saveBudgetMeta(bm)}
     var now=new Date(),balance=0;
-    for(var i=6;i>=1;i--){var d=new Date(now.getFullYear(),now.getMonth()-i,1);var m=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');var spent=(App.Transactions.catTotals(m)||{})[cat]||0;balance+=(limit-spent)}
-    return balance;
+    for(var i=6;i>=1;i--){var d=new Date(now.getFullYear(),now.getMonth()-i,1);var m=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');if(m<start)continue;var spent=(App.Transactions.catTotals(m)||{})[cat]||0;balance+=(limit-spent)}
+    return roundMoney(balance);
   }
   function effectiveLimit(cat){var base=S.budgets()[cat]||0;return base+rolloverBalance(cat)}
   function renderZBB(){
@@ -1629,7 +1638,7 @@ App.Users=(function(){
     var name=prompt('Ad:',u.name);if(name===null)return;
     var emoji=prompt('Emoji:',u.emoji||'🙋');if(emoji===null)return;
     var color=prompt('Renk (hex):',u.color||'#3b82f6');if(color===null)return;
-    var users=list();var idx=users.findIndex(function(x){return x.id===id});users[idx]={id,name:name.trim()||u.name,emoji:emoji.trim()||'🙋',color:safeColor(color.trim())};
+    var users=list();var idx=users.findIndex(function(x){return x.id===id});if(idx<0)return;users[idx]={id,name:name.trim()||u.name,emoji:emoji.trim()||'🙋',color:safeColor(color.trim())};
     S.saveSetting('users',users);App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();renderAll();App.Accounts.renderAll();App.Transactions.renderList();App.Transactions.renderRecent();App.UI.toast('Güncellendi.');
   }
   function remove(id){
@@ -1638,9 +1647,10 @@ App.Users=(function(){
     if(!confirm('"'+uDel.name+'" silinsin mi? Bu üyeye bağlı hesap ve işlemler "Ortak" olarak işaretlenecek.'))return;
     var accs=S.accounts();accs.forEach(function(a){if(a.userId===id){a.userId=null;a.owner='shared'}});S.saveAccounts(accs);
     var txns=S.txns();txns.forEach(function(t){if(t.userId===id)t.userId=null});S.saveTxns(txns);
+    var recs=S.recurring(),rTouched=false;recs.forEach(function(r){if(r.userId===id){r.userId=null;rTouched=true}});if(rTouched)S.saveRecurring(recs);
     var newUsers=users.filter(function(u){return u.id!==id});S.saveSetting('users',newUsers);
     if(S.settings().activeUser===id)S.saveSetting('activeUser',newUsers[0].id);
-    App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();renderAll();App.Accounts.renderAll();App.Transactions.renderList();App.Transactions.renderRecent();App.UI.toast('Üye silindi.');
+    App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();renderAll();App.Accounts.renderAll();App.Transactions.renderList();App.Transactions.renderRecent();App.Recurring.renderList();App.UI.toast('Üye silindi.');
   }
   function setActive(id){
     var u=get(id);if(!u)return;
@@ -2163,14 +2173,14 @@ App.YearlyFund=(function(){
     if(mel&&!mel.options.length)mel.innerHTML=MF.map(function(m,i){return'<option value="'+(i+1)+'">'+m+'</option>'}).join('');
     var totalYearly=arr.reduce(function(s,f){return s+f.amount},0);
     var now=new Date(),curMonth=now.getMonth()+1;
-    var monthlyNeeded=arr.reduce(function(s,f){var rem=f.dueMonth>=curMonth?f.dueMonth-curMonth+1:12-curMonth+f.dueMonth+1;var remAmt=Math.max(f.amount-(f.contributed||0),0);return s+remAmt/rem},0);
+    var monthlyNeeded=arr.reduce(function(s,f){var rem=f.dueMonth>=curMonth?f.dueMonth-curMonth+1:12-curMonth+f.dueMonth+1;var remAmt=Math.max(f.amount-(f.contributed||0),0);return s+roundMoney(remAmt/rem)},0);
     document.getElementById('fundYearly').textContent=fmt(totalYearly);
     document.getElementById('fundMonthly').textContent=fmt(monthlyNeeded);
     var el=document.getElementById('fundList');
     if(!arr.length){el.innerHTML='<div class="empty"><span class="empty-ico">📅</span><div class="empty-t">Yıllık gider eklenmedi</div><div class="empty-s">MTV, kasko, bayram harçlığı gibi giderleri ekle</div></div>';return}
     el.innerHTML=arr.map(function(f){
       var pct=f.amount>0?Math.min(((f.contributed||0)/f.amount)*100,100):0;
-      var rem=f.dueMonth>=curMonth?f.dueMonth-curMonth+1:12-curMonth+f.dueMonth+1,remAmt=Math.max(f.amount-(f.contributed||0),0),perMonth=remAmt/rem;
+      var rem=f.dueMonth>=curMonth?f.dueMonth-curMonth+1:12-curMonth+f.dueMonth+1,remAmt=Math.max(f.amount-(f.contributed||0),0),perMonth=roundMoney(remAmt/rem);
       return'<div class="fund-card"><div class="fund-head"><div><div class="fund-name">'+esc(f.name)+'</div><div class="fund-yearly">Yıllık '+fmt(f.amount)+' · Son: '+MF[f.dueMonth-1]+' · Biriken: '+fmt(f.contributed||0)+'</div></div><div style="text-align:right"><div class="fund-monthly">'+fmt(perMonth)+'</div><div style="font-size:.7rem;color:var(--txt2)">aylık kalan</div></div></div><div class="fund-prog"><div class="fund-prog-fill" style="width:'+pct+'%"></div></div><div class="fund-foot"><span>'+pct.toFixed(0)+'% biriktirildi</span><div style="display:flex;gap:6px"><button class="btn btn-sm btn-ghost" onclick="App.YearlyFund.contribute(\''+f.id+'\')">+ Katkı</button><button class="btn-del" onclick="App.YearlyFund.remove(\''+f.id+'\')">Sil</button></div></div></div>';
     }).join('');
   }
@@ -2456,7 +2466,9 @@ App.Notifications=(function(){
   return{supported,syncBtn,toggle,checkDueBills,upcomingBills}
 })();
 
-if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(function(e){console.warn('SW kaydı başarısız:',e)})}
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(function(e){console.warn('SW kaydı başarısız:',e);setTimeout(function(){try{App.UI.toast('Çevrimdışı mod kurulamadı; uygulama yalnızca çevrimiçi çalışır.','err')}catch(_){}},800)})}
+window.addEventListener('offline',function(){try{App.UI.toast('Çevrimdışısınız. Verileriniz cihazda kaydedilmeye devam eder.','info')}catch(_){}});
+window.addEventListener('online',function(){try{App.UI.toast('İnternet bağlantısı geri geldi.','info')}catch(_){}});
 
 function renderAllViews(){
   App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();
