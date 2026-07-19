@@ -229,5 +229,25 @@ eq('jsAttr doubles backslashes', jsAttrT('a\\b'), 'a\\\\b');
 ok('CPI user verification flag tracked', /cpiUserEdited/.test(indexHtml));
 ok('real mode warns about estimated CPI', /tahminidir/.test(indexHtml) && /ESTIMATED_FROM/.test(indexHtml));
 
+// FT-012: fund/stock current price support
+ok('portfolio normalize keeps currentPrice', /currentPrice:Math\.min\(MAX_MONEY/.test(indexHtml));
+ok('priceOf uses fund currentPrice with cost fallback', /if\(a\.type==='FUND'\)return a\.currentPrice\|\|a\.cost\|\|0/.test(indexHtml));
+ok('net worth uses per-asset price', /App\.Portfolio\.priceOf\(p\)/.test(indexHtml));
+ok('fund price edit action exists', /App\.Portfolio\.editPrice/.test(indexHtml));
+ok('fund add form has current price field', /id="portPrice"/.test(indexHtml));
+
+// UX: modal helpers replace native prompt()/confirm()
+ok('confirmModal helper exists', /function confirmModal/.test(indexHtml));
+ok('promptModal helper exists', /function promptModal/.test(indexHtml));
+ok('no native prompt() remains', !/[^a-zA-Z.]prompt\(/.test(indexHtml));
+ok('no native confirm() calls remain', !/[^a-zA-Z.]confirm\(/.test(indexHtml.replace(/function confirm\(/g, 'function aiConfirm(')));
+ok('account delete asks for confirmation', /Hesabı Sil/.test(indexHtml));
+ok('debt delete asks for confirmation', /Borcu Sil/.test(indexHtml));
+ok('goal delete asks for confirmation', /Hedefi Sil/.test(indexHtml));
+ok('installment plan delete uses modal', /Taksit Planını Sil/.test(indexHtml));
+ok('backup restore uses modal confirm', /Yedeği Geri Yükle/.test(indexHtml));
+ok('csv import uses modal confirm', /CSV İçe Aktar/.test(indexHtml));
+ok('escape closes topmost modal generically', /modal-bd\.show/.test(indexHtml.split('bindEvents')[1] || ''));
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
