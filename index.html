@@ -784,6 +784,7 @@ var MN=['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara
 var MF=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 function escAttr(s){return esc(s).replace(/'/g,'&#39;')}
+function jsAttr(s){return escAttr(String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"))}
 function safeColor(v){return /^#[0-9a-fA-F]{6}$/.test(String(v||''))?String(v):'#3b82f6'}
 function safeId(v){return /^[a-z]+[0-9]{13}_[a-z0-9]{4}$|^u_(self|partner)$/.test(String(v||''))?String(v):''}
 var MAX_MONEY=1000000000000;
@@ -846,8 +847,8 @@ var S=(function(){
     if(!_s.users.length)_s.users=[{id:'u_self',name:'Ben',emoji:'🙋',color:'#14b8a6'},{id:'u_partner',name:'Eş',emoji:'💑',color:'#ec4899'}];
     if(!_s.activeUser||!_s.users.find(function(u){return u.id===_s.activeUser}))_s.activeUser=_s.users[0].id;
     _a=normalizeList(_a,'pf_a',function(a){var type=AM[a.type]?a.type:'cash';var owner=a.owner==='personal'?'personal':'shared';var existingOpBal=typeof a.openingBalance==='number'?roundMoney(a.openingBalance):null;return{id:cleanStoredId(a.id,'a'),name:String(a.name||'Hesap').slice(0,120),type:type,owner:owner,userId:owner==='personal'?cleanStoredRef(a.userId||_s.activeUser):null,statementDay:a.statementDay>=1&&a.statementDay<=31?parseInt(a.statementDay):null,balance:Math.max(-MAX_MONEY,Math.min(MAX_MONEY,roundMoney(toNum(a.balance,0)))),openingBalance:existingOpBal!==null?existingOpBal:Math.max(-MAX_MONEY,Math.min(MAX_MONEY,roundMoney(toNum(a.balance,0)))),ts:toNum(a.ts,Date.now())}},invalid);
-    _t=normalizeList(_t,'pf_t',function(t){var type=t.type==='expense'?'expense':'income',date=cleanDate(t.date),inst=t.installment?obj(t.installment):null,amt=Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(t.amount,0))));var balApplied=typeof t.balanceApplied==='boolean'?t.balanceApplied:true;if(inst){var created=dateFromTs(t.ts);inst.planId=cleanStoredId(inst.planId,'p');inst.index=Math.max(1,parseInt(inst.index)||1);inst.total=Math.max(inst.index,parseInt(inst.total)||inst.index);inst.totalAmount=Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(inst.totalAmount,amt))));inst.name=String(inst.name||t.category||'Taksit').slice(0,120);inst.startDate=cleanDate(inst.startDate,date);if(typeof inst.balanceApplied!=='boolean')inst.balanceApplied=date<=created;balApplied=inst.balanceApplied}return{id:cleanStoredId(t.id,'t'),type:type,amount:amt,category:String(t.category||'Diğer').slice(0,80),date:date,note:String(t.note||'').slice(0,500),accountId:cleanStoredRef(t.accountId),userId:cleanStoredRef(t.userId||_s.activeUser),ts:toNum(t.ts,Date.now()),balanceApplied:balApplied,installment:inst}},invalid);
-    _g=normalizeList(_g,'pf_g',function(g){return{id:cleanStoredId(g.id,'g'),name:String(g.name||'Hedef').slice(0,120),target:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(g.target,0)))),emoji:String(g.emoji||'🎯').slice(0,4),contributions:normalizeList(g.contributions,'goal.contributions',function(c){return{id:cleanStoredId(c.id,'c'),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(c.amount,0)))),date:cleanDate(c.date),note:String(c.note||'').slice(0,300)}},invalid),done:g.done||null,emergency:!!g.emergency,monthsCovered:toNum(g.monthsCovered,0),baseAvg:toNum(g.baseAvg,0),ts:toNum(g.ts,Date.now())}},invalid);
+    _t=normalizeList(_t,'pf_t',function(t){var type=t.type==='expense'?'expense':'income',date=cleanDate(t.date),inst=t.installment?obj(t.installment):null,amt=Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(t.amount,0))));var balApplied=typeof t.balanceApplied==='boolean'?t.balanceApplied:true;if(inst){var created=dateFromTs(t.ts);inst.planId=cleanStoredId(inst.planId,'p');inst.index=Math.max(1,parseInt(inst.index)||1);inst.total=Math.max(inst.index,parseInt(inst.total)||inst.index);inst.totalAmount=Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(inst.totalAmount,amt))));inst.name=String(inst.name||t.category||'Taksit').slice(0,120);inst.startDate=cleanDate(inst.startDate,date);if(typeof inst.balanceApplied!=='boolean')inst.balanceApplied=date<=created;balApplied=inst.balanceApplied}return{id:cleanStoredId(t.id,'t'),type:type,amount:amt,category:String(t.category||'Diğer').slice(0,80),date:date,note:String(t.note||'').slice(0,500),accountId:cleanStoredRef(t.accountId),userId:cleanStoredRef(t.userId||_s.activeUser),recurringId:cleanStoredRef(t.recurringId),ts:toNum(t.ts,Date.now()),balanceApplied:balApplied,installment:inst}},invalid);
+    _g=normalizeList(_g,'pf_g',function(g){return{id:cleanStoredId(g.id,'g'),name:String(g.name||'Hedef').slice(0,120),target:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(g.target,0)))),emoji:String(g.emoji||'🎯').slice(0,4),accountId:cleanStoredRef(g.accountId),txnMode:(g.txnMode==='expense'||g.txnMode==='transfer')?g.txnMode:'none',contributions:normalizeList(g.contributions,'goal.contributions',function(c){return{id:cleanStoredId(c.id,'c'),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(c.amount,0)))),date:cleanDate(c.date),note:String(c.note||'').slice(0,300),accountId:cleanStoredRef(c.accountId),txnId:cleanStoredRef(c.txnId)}},invalid),done:g.done||null,emergency:!!g.emergency,monthsCovered:toNum(g.monthsCovered,0),baseAvg:toNum(g.baseAvg,0),ts:toNum(g.ts,Date.now())}},invalid);
     _r=normalizeList(_r,'pf_r',function(r){return{id:cleanStoredId(r.id,'r'),type:r.type==='income'?'income':'expense',amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(r.amount,0)))),category:String(r.category||'Diğer').slice(0,80),day:Math.min(31,Math.max(1,parseInt(r.day)||1)),note:String(r.note||'').slice(0,300),accountId:cleanStoredRef(r.accountId),userId:cleanStoredRef(r.userId||_s.activeUser),isSubscription:!!r.isSubscription,ts:toNum(r.ts,Date.now())}},invalid);
     _d=normalizeList(_d,'pf_d',function(d){return{id:cleanStoredId(d.id,'d'),direction:d.direction==='borrowed'?'borrowed':'lent',person:String(d.person||'Kişi').slice(0,120),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(d.amount,0)))),date:cleanDate(d.date),dueDate:cleanDate(d.dueDate||d.date),note:String(d.note||'').slice(0,300),payments:normalizeList(d.payments,'debt.payments',function(p){return{id:cleanStoredId(p.id,'p'),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(p.amount,0)))),date:cleanDate(p.date)}},invalid),settled:!!d.settled,ts:toNum(d.ts,Date.now())}},invalid);
     _f=normalizeList(_f,'pf_f',function(f){return{id:cleanStoredId(f.id,'yf'),name:String(f.name||'Yıllık gider').slice(0,120),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(f.amount,0)))),dueMonth:Math.min(12,Math.max(1,parseInt(f.dueMonth)||12)),contributed:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(f.contributed,0)))),ts:toNum(f.ts,Date.now())}},invalid);
@@ -1218,10 +1219,13 @@ App.Transactions=(function(){
     var cat=document.getElementById('txnCat').value,note=document.getElementById('txnNote').value.trim();
     var type=App.UI.getType();
     var userId=document.getElementById('txnUser').value||S.settings().activeUser;
-    var insCount=parseInt(document.getElementById('txnInst').value)||0;
+    var insRaw=document.getElementById('txnInst').value.trim();
+    var insCount=parseInt(insRaw)||0;
     var insStart=document.getElementById('txnInstStart').value||date;
     if(amt===null){App.UI.toast('Geçerli tutar girin.','err');return}
     if(!validDate(date)){App.UI.toast('Geçerli tarih seçin.','err');return}
+    if(insRaw&&(insCount<2||insCount>36)){App.UI.toast('Taksit sayısı 2-36 arasında olmalı. Tek çekim için boş bırakın.','err');return}
+    if(insCount>=2&&type!=='expense'){App.UI.toast('Taksit yalnız gider işlemlerinde kullanılabilir.','err');return}
     if(insCount>=2&&insCount<=36&&!validDate(insStart)){App.UI.toast('Geçerli ilk taksit tarihi seçin.','err');return}
     var selectedAcc=document.getElementById('txnAccount')&&document.getElementById('txnAccount').value;
     var sharedAcc=App.Accounts.sharedAccount(),chosenAcc=selectedAcc?App.Accounts.get(selectedAcc):null;
@@ -1396,10 +1400,11 @@ App.Recurring=(function(){
     var currentMonth=tm(),dupe=S.txns().find(function(t){return t.recurringId===rec.id&&t.date.substring(0,7)===currentMonth});
     if(dupe){App.UI.toast('Bu ay için zaten kaydedildi. ('+fd(dupe.date)+')','err');return}
     var plannedDate=td().substring(0,8)+String(Math.min(rec.day,new Date(new Date().getFullYear(),new Date().getMonth()+1,0).getDate())).padStart(2,'0');
-    var arr=S.txns();arr.unshift({id:gid('t'),type:rec.type,amount:rec.amount,category:rec.category,date:plannedDate,note:rec.note||'Tekrarlayan',accountId:sharedAcc.id,userId:rec.userId||S.settings().activeUser,ts:Date.now(),balanceApplied:true,recurringId:rec.id});S.saveTxns(arr);
-    App.Accounts.adjustBalance(sharedAcc.id,rec.type==='income'?rec.amount:-rec.amount);
+    var applied=plannedDate<=td();
+    var arr=S.txns();arr.unshift({id:gid('t'),type:rec.type,amount:rec.amount,category:rec.category,date:plannedDate,note:rec.note||'Tekrarlayan',accountId:sharedAcc.id,userId:rec.userId||S.settings().activeUser,ts:Date.now(),balanceApplied:applied,recurringId:rec.id});S.saveTxns(arr);
+    if(applied)App.Accounts.adjustBalance(sharedAcc.id,rec.type==='income'?rec.amount:-rec.amount);
     App.UI.refreshFilterDropdowns();App.Transactions.renderList();App.Transactions.renderRecent();App.Transactions.renderSummaryMetrics();App.Accounts.renderSummary();App.Budget.renderAll();
-    App.UI.toast('"'+(rec.note||rec.category)+'" kaydedildi.','info');
+    App.UI.toast('"'+(rec.note||rec.category)+'" '+(applied?'kaydedildi.':fd(plannedDate)+' için planlandı; bakiyeye vade günü işlenecek.'),'info');
   }
   function _rh(r,lb){
     var info=ci(r.category),sign=r.type==='income'?'+':'-';
@@ -1540,7 +1545,7 @@ App.Budget=(function(){
       var pct=lim>0?(spent/lim)*100:0;var cls=pct>=100?'pover':pct>=75?'pwarn':'pok';var badge=pct>=100?'bgr':pct>=75?'bgw':'bgo';var lbl=pct>=100?'⚠ Aşıldı':pct>=75?'⚠ Yaklaşıyor':'✓ İyi';var info=ci(cat);
       var cb=isCarry?'<span class="carry-badge">🔁 Devir</span>':'';
       var cl=isCarry&&rollover!==0?'<div class="carry-line">Önceki aylardan devir: '+(rollover>=0?'+':'')+fmt(rollover)+'</div>':'';
-      return'<div class="bc"><div class="bc-head"><div class="bc-ico '+info.c+'">'+info.i+'</div><div class="bc-info"><div class="bc-name">'+esc(cat)+cb+'</div><div class="bc-amounts">'+fmt(spent)+' / '+fmt(lim)+'</div>'+cl+'</div><span class="badge '+badge+'">'+lbl+'</span></div><div class="prog-track"><div class="prog-fill '+cls+'" style="width:'+Math.min(pct,100)+'%"></div></div><div class="bc-foot"><span class="bc-pct">'+pct.toFixed(0)+'% kullanıldı</span><button class="btn-del" onclick="App.Budget.remove(\''+esc(cat)+'\')">Sil</button></div></div>'
+      return'<div class="bc"><div class="bc-head"><div class="bc-ico '+info.c+'">'+info.i+'</div><div class="bc-info"><div class="bc-name">'+esc(cat)+cb+'</div><div class="bc-amounts">'+fmt(spent)+' / '+fmt(lim)+'</div>'+cl+'</div><span class="badge '+badge+'">'+lbl+'</span></div><div class="prog-track"><div class="prog-fill '+cls+'" style="width:'+Math.min(pct,100)+'%"></div></div><div class="bc-foot"><span class="bc-pct">'+pct.toFixed(0)+'% kullanıldı</span><button class="btn-del" onclick="App.Budget.remove(\''+jsAttr(cat)+'\')">Sil</button></div></div>'
     }).join('');
   }
   return{save,remove,renderAll,renderZBB,renderDaily,rolloverBalance,effectiveLimit}
@@ -2213,7 +2218,9 @@ App.Inflation=(function(){
     "2025-01":3547.18,"2025-02":3619.53,"2025-03":3696.03,"2025-04":3802.21,"2025-05":3878.44,"2025-06":3929.87,"2025-07":3987.39,"2025-08":4048.23,"2025-09":4127.76,"2025-10":4208.78,"2025-11":4294.66,"2025-12":4374.23,
     "2026-01":4462.15,"2026-02":4545.80,"2026-03":4626.70,"2026-04":4710.12
   };
+  var ESTIMATED_FROM='2025-01';
   function data(){var c=S.cpi();if(c&&Object.keys(c).length)return c;S.saveCpi(DEFAULT_CPI);return DEFAULT_CPI}
+  function isUserVerified(){return !!S.settings().cpiUserEdited}
   function latestMonth(){var keys=Object.keys(data()).sort();return keys[keys.length-1]}
   function get(m){var c=data();return c[m]||0}
   function adjust(amount,fromMonth,toMonth){
@@ -2236,9 +2243,9 @@ App.Inflation=(function(){
     if(!/^\d{4}-\d{2}$/.test(newMonth)){App.UI.toast('Geçersiz ay formatı.','err');return}
     var v=prompt('TÜFE endeksi (2003=100 bazlı):',cur);
     if(v===null)return;var num=parseMoney(v,{round:false,max:100000000});if(num===null){App.UI.toast('Geçerli bir sayı girin.','err');return}
-    var c=data();c[newMonth]=num;S.saveCpi(c);App.NetWorth.render();App.UI.toast('TÜFE güncellendi: '+newMonth+' = '+num);
+    var c=data();c[newMonth]=num;S.saveCpi(c);S.saveSetting('cpiUserEdited',true);App.NetWorth.render();App.UI.toast('TÜFE güncellendi: '+newMonth+' = '+num);
   }
-  return{data,latestMonth,get,adjust,setMode,getMode,editCpi,DEFAULT_CPI}
+  return{data,latestMonth,get,adjust,setMode,getMode,editCpi,isUserVerified,ESTIMATED_FROM,DEFAULT_CPI}
 })();
 
 App.NetWorth=(function(){
@@ -2266,7 +2273,8 @@ App.NetWorth=(function(){
     var curTotal=mode==='real'?App.Inflation.adjust(nw.total,curM):nw.total;
     document.getElementById('nwVal').textContent=fmt(curTotal);
     document.getElementById('nwVal').style.color=curTotal<0?'var(--red)':'var(--txt)';
-    document.getElementById('nwSub').textContent=mode==='real'?'Reel (TÜFE ayarlı, bugünkü TL değeri)':'Hesaplar + Portföy − Kalan Borçlar';
+    var cpiWarn=mode==='real'&&!App.Inflation.isUserVerified()?' · ⚠️ '+App.Inflation.ESTIMATED_FROM+' sonrası gömülü endeks tahminidir, TÜİK verisiyle güncelleyin':'';
+    document.getElementById('nwSub').textContent=(mode==='real'?'Reel (TÜFE ayarlı, bugünkü TL değeri)':'Hesaplar + Portföy − Kalan Borçlar')+cpiWarn;
     var hist=snapshot();
     var adjHist=hist.map(function(h){return{month:h.month,total:mode==='real'?App.Inflation.adjust(h.total,h.month):h.total}});
     var prev=adjHist.length>=2?adjHist[adjHist.length-2]:null;
