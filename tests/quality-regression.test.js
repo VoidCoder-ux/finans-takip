@@ -202,5 +202,32 @@ ok('online listener exists', /addEventListener\('online'/.test(indexHtml));
 // FIX: vendor chart.js pinned with SRI
 ok('chart.js script has integrity attribute', /chart\.umd\.min\.js" integrity="sha384-/.test(indexHtml));
 
+// FIX: normalize preserves cross-referenced fields (recurring dupe guard, goal txn binding)
+ok('normalize keeps txn recurringId', /recurringId:cleanStoredRef\(t\.recurringId\)/.test(indexHtml));
+ok('normalize keeps goal account binding', /accountId:cleanStoredRef\(g\.accountId\)/.test(indexHtml) && /txnMode:\(g\.txnMode==='expense'\|\|g\.txnMode==='transfer'\)/.test(indexHtml));
+ok('normalize keeps contribution txn link', /txnId:cleanStoredRef\(c\.txnId\)/.test(indexHtml) && /accountId:cleanStoredRef\(c\.accountId\)/.test(indexHtml));
+
+// FIX: recurring log defers balance for future-dated planned payment
+ok('recurring log computes applied from planned date', /var applied=plannedDate<=td\(\)/.test(indexHtml));
+ok('recurring log adjusts balance only when applied', /if\(applied\)App\.Accounts\.adjustBalance\(sharedAcc\.id/.test(indexHtml));
+
+// FIX: installment count outside 2-36 is rejected instead of silently single-charging
+ok('installment count range is validated', /insCount<2\|\|insCount>36/.test(indexHtml));
+ok('installments restricted to expense type', /insCount>=2&&type!=='expense'/.test(indexHtml));
+
+// FIX: budget delete button is safe for arbitrary category keys
+ok('jsAttr helper exists', /function jsAttr/.test(indexHtml));
+ok('budget remove uses jsAttr', /App\.Budget\.remove\(\\''\+jsAttr\(cat\)/.test(indexHtml));
+
+function escT(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function escAttrT(s) { return escT(s).replace(/'/g, '&#39;'); }
+function jsAttrT(s) { return escAttrT(String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/'/g, "\\'")); }
+eq('jsAttr neutralizes quote breakout', jsAttrT("x');alert(1);('"), "x\\&#39;);alert(1);(\\&#39;");
+eq('jsAttr doubles backslashes', jsAttrT('a\\b'), 'a\\\\b');
+
+// FIX: bundled CPI estimates are flagged until user verifies
+ok('CPI user verification flag tracked', /cpiUserEdited/.test(indexHtml));
+ok('real mode warns about estimated CPI', /tahminidir/.test(indexHtml) && /ESTIMATED_FROM/.test(indexHtml));
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
