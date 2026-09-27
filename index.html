@@ -2,7 +2,7 @@
 <html lang="tr" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; worker-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; worker-src 'self'; object-src 'none'; base-uri 'self'"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <title>Finans Takip</title>
 <link rel="manifest" href="manifest.json"/>
@@ -14,18 +14,19 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <style>
 :root{
-  --teal:#14b8a6;--teal-d:#0d9488;--blue:#3b82f6;--purple:#8b5cf6;
-  --pink:#ec4899;--orange:#f97316;--yellow:#eab308;--green:#22c55e;--red:#ef4444;
+  --teal:#14b8a6;--teal-d:#0d9488;--blue:#60a5fa;--purple:#a78bfa;--accent:#0f766e;
+  --pink:#f472b6;--orange:#f97316;--yellow:#eab308;--green:#22c55e;--red:#f87171;
   --bg:#080d1a;--bg2:#0f1629;--bg3:#161f35;--bg4:#1d2845;
   --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);
-  --txt:#f0f4ff;--txt2:#8896b3;--txt3:#4d5e80;
+  --txt:#f0f4ff;--txt2:#8896b3;--txt3:#8190ad;
   --r:12px;--r2:18px;--r3:24px;--shadow:0 8px 32px rgba(0,0,0,.4);--tr:.18s ease;
-  --grad:linear-gradient(135deg,#0d9488 0%,#3b82f6 100%);
+  --grad:linear-gradient(135deg,#0f766e 0%,#2563eb 100%);
 }
 [data-theme="light"]{
   --bg:#f0f4f8;--bg2:#fff;--bg3:#f8fafc;--bg4:#edf2f7;
   --border:rgba(0,0,0,.07);--border2:rgba(0,0,0,.12);
-  --txt:#0f172a;--txt2:#64748b;--txt3:#94a3b8;--shadow:0 8px 32px rgba(0,0,0,.1);
+  --txt:#0f172a;--txt2:#4b5a70;--txt3:#56657a;--shadow:0 8px 32px rgba(0,0,0,.1);
+  --teal:#0f766e;--blue:#1d4ed8;--purple:#6d28d9;--pink:#9d174d;--orange:#9a3412;--yellow:#854d0e;--green:#166534;--red:#b91c1c;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{-webkit-tap-highlight-color:transparent;overflow-x:hidden;max-width:100vw}
@@ -63,7 +64,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .more-grid-ico{font-size:1.6rem;line-height:1}
 .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:10px}
 .ph-title{font-size:1.4rem;font-weight:700;letter-spacing:-.03em}.ph-sub{font-size:.78rem;color:var(--txt2);margin-top:2px}
-.hero{background:var(--grad);border-radius:var(--r3);padding:26px;margin-bottom:18px;position:relative;overflow:hidden}
+.hero{background:var(--grad);color:#fff;border-radius:var(--r3);padding:26px;margin-bottom:18px;position:relative;overflow:hidden}
 .hero::before{content:'';position:absolute;top:-50px;right:-50px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.07)}
 .hero::after{content:'';position:absolute;bottom:-30px;right:60px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.04)}
 .hero-lbl{font-size:.75rem;font-weight:600;opacity:.75;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
@@ -106,7 +107,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .btn-ghost:hover{border-color:var(--teal);color:var(--teal)}
 .btn-del{background:transparent;border:none;color:var(--txt3);padding:8px 12px;border-radius:6px;font-size:.85rem;min-height:36px;min-width:36px;transition:all var(--tr)}
 .btn-del:hover{color:var(--red);background:rgba(239,68,68,.1)}
-.btn-teal{background:var(--teal);color:#fff;border:none}.btn-teal:hover{background:var(--teal-d)}
+.btn-teal{background:var(--accent);color:#fff;border:none}.btn-teal:hover{filter:brightness(1.1)}
 .filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
 .fs,.fi{background:var(--bg2);border:1px solid var(--border2);border-radius:99px;padding:7px 14px;font-size:.8rem;color:var(--txt);flex:1;min-width:90px;transition:border-color var(--tr)}
 .fs:focus,.fi:focus{border-color:var(--teal)}.fs option{background:var(--bg2)}
@@ -125,7 +126,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 input[data-money]:placeholder-shown+.money-hint{display:none}
 .toast-act{margin-left:auto;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,.22);color:#fff;font-weight:800;font-size:.78rem;flex-shrink:0}
 .fab{display:none;position:fixed;right:16px;bottom:calc(78px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;background:var(--grad);color:#fff;font-size:1.7rem;font-weight:700;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(0,0,0,.35);z-index:101}
-@media(max-width:768px){.toast-box{top:calc(12px + env(safe-area-inset-top));bottom:auto;left:12px;right:12px;align-items:stretch}.toast{max-width:none}.fab{display:flex}body[data-page="islemler"] .fab{display:none}}
+@media(max-width:768px){.btn-sm,.btn.btn-sm[style]{min-height:36px}.sh-link{padding:10px 6px;margin:-10px -6px}.sh-toggle{min-width:36px;min-height:36px}.nw-mode-toggle .nw-mode{min-height:36px}.rec-filter-btn{min-height:36px}.rate-chip{min-height:36px}.fs,.fi{min-height:40px}.notif-btn{min-height:36px}.toast-box{top:calc(12px + env(safe-area-inset-top));bottom:auto;left:12px;right:12px;align-items:stretch}.toast{max-width:none}.fab{display:flex}body[data-page="islemler"] .fab{display:none}}
 .set-card:empty{display:none}
 .lock-screen{position:fixed;inset:0;z-index:2000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}.lock-screen[hidden],#lockReset[hidden]{display:none}.lock-box{width:100%;max-width:320px;text-align:center;display:flex;flex-direction:column;gap:10px}.lock-title{font-size:1.1rem;font-weight:800;margin-bottom:6px}.lock-box input{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:12px;font-size:20px;text-align:center;letter-spacing:.3em;color:var(--txt);width:100%}.lock-msg{font-size:.8rem;color:var(--red);min-height:1em;line-height:1.45}.lock-link{color:var(--txt2);font-size:.78rem;text-decoration:underline;padding:6px}
 .f-range{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--txt2);font-weight:700;flex:1;min-width:150px}.f-range .fs{min-width:0}.filter-sum{font-size:.74rem;color:var(--txt2);margin:-6px 0 10px}
@@ -166,7 +167,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
 .btn-log:hover{background:rgba(20,184,166,.25)}
 .debt-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .debt-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:18px;transition:transform var(--tr),box-shadow var(--tr)}
-.debt-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}.debt-card.settled{opacity:.55;border-color:rgba(34,197,94,.3)}
+.debt-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}.debt-card.settled .debt-prog-fill,.debt-card.settled .debt-type-badge{filter:grayscale(1)}.debt-card.settled{border-style:dashed;border-color:rgba(34,197,94,.3)}
 .debt-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
 .debt-person{font-size:1rem;font-weight:700}
 .debt-type-badge{font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:99px}
@@ -197,7 +198,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
 .contrib-list{display:flex;flex-direction:column;gap:5px}
 .contrib-item{display:flex;justify-content:space-between;align-items:center;background:var(--bg3);border-radius:var(--r);padding:8px 11px;font-size:.78rem}
 .ca{font-weight:700;color:var(--teal)}.cd{color:var(--txt2);font-size:.7rem}
-.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.stats-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin-bottom:12px}.chart-card{min-width:0}
 .stats-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px}
 .skpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:15px;min-width:0}
 .skpi-lbl{font-size:.68rem;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}
@@ -215,7 +216,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
 .chart-wrap{position:relative;height:220px}
 .stats-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}.stats-table{width:100%;border-collapse:collapse;font-size:.83rem;min-width:320px}
 .stats-table th{text-align:left;padding:9px 13px;color:var(--txt2);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border)}
-.stats-table td{padding:10px 13px;border-bottom:1px solid var(--border)}.stats-table tr:last-child td{border-bottom:none}.stats-table tbody tr:hover td{background:var(--bg3)}
+.stats-table td:first-child{white-space:nowrap}.stats-table td{padding:10px 13px;border-bottom:1px solid var(--border)}.stats-table tr:last-child td{border-bottom:none}.stats-table tbody tr:hover td{background:var(--bg3)}
 .toast-box{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:7px;pointer-events:none}.toast-box .toast{pointer-events:auto}
 .toast{padding:12px 18px;border-radius:var(--r2);font-size:.85rem;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,.4);animation:tin .25s ease,tout .3s ease 2.7s forwards;max-width:300px;display:flex;align-items:center;gap:8px}
 .modal-bd{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
@@ -242,7 +243,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
 .nw-foot span b{color:var(--txt);font-weight:700}
 .nw-mode-toggle{display:inline-flex;margin:8px 0 6px;background:var(--bg3);border-radius:99px;padding:2px;align-self:flex-start}
 .nw-mode{border:0;background:transparent;padding:4px 12px;border-radius:99px;font-size:.7rem;font-weight:700;color:var(--txt2);cursor:pointer;letter-spacing:.03em;min-height:28px}
-.nw-mode.active{background:var(--teal);color:#fff}
+.nw-mode.active{background:var(--accent);color:#fff}
 .sub-check{display:flex;align-items:center;gap:10px;margin:10px 0 14px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);font-size:.8rem;color:var(--txt2);cursor:pointer}
 .sub-check input{width:18px;height:18px;cursor:pointer;accent-color:var(--teal)}
 .sub-summary{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
@@ -252,7 +253,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
 .sub-summary .ss-sub{font-size:.7rem;color:var(--txt3);margin-top:2px}
 .rec-filter-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
 .rec-filter-btn{padding:6px 14px;border-radius:99px;border:1px solid var(--border2);background:var(--bg2);color:var(--txt2);font-size:.78rem;font-weight:600;cursor:pointer;transition:all var(--tr)}
-.rec-filter-btn.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+.rec-filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .sub-badge{display:inline-block;padding:2px 8px;background:rgba(139,92,246,.15);color:var(--purple);border-radius:99px;font-size:.62rem;font-weight:700;margin-left:6px}
 .compare-toggle{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--txt2);cursor:pointer;padding:6px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:99px}
 .compare-toggle input{width:16px;height:16px;accent-color:var(--teal);cursor:pointer}
@@ -266,7 +267,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
 .cmp-delta.flat{background:var(--bg3);color:var(--txt3)}
 .rules-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:12px}
 .rule-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:10px;align-items:center}
-.rule-card.inactive{opacity:.5}
+.rule-card.inactive{border-style:dashed}.rule-card.inactive .cat-ico,.rule-card.inactive .rule-arrow{filter:grayscale(1)}
 .rule-head{display:flex;flex-direction:column;gap:2px;min-width:0;overflow:hidden}
 .rule-field{font-size:.68rem;color:var(--txt3);text-transform:uppercase;font-weight:600}
 .rule-val{font-size:.85rem;font-weight:700;color:var(--txt);word-break:break-all;overflow-wrap:break-word}
@@ -283,9 +284,9 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
 .carry-badge{display:inline-block;padding:2px 7px;background:rgba(59,130,246,.15);color:var(--blue);border-radius:99px;font-size:.62rem;font-weight:700;margin-left:6px}
 .carry-line{font-size:.7rem;color:var(--txt2);margin-top:4px}
 .print-view{display:none}
-.toast.ok{background:rgba(34,197,94,.9);color:#fff}.toast.err{background:rgba(239,68,68,.9);color:#fff}.toast.info{background:rgba(59,130,246,.9);color:#fff}
+.toast.ok{background:#15803d;color:#fff}.toast.err{background:#b91c1c;color:#fff}.toast.info{background:#1d4ed8;color:#fff}
 @keyframes tin{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}@keyframes tout{to{opacity:0;transform:translateY(-8px)}}
-.setup-steps{display:grid;gap:12px}.setup-step{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:13px}.setup-step.done{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08)}.setup-step-title{font-size:.9rem;font-weight:800}.setup-step-sub{font-size:.74rem;color:var(--txt2);line-height:1.45;margin-top:4px}.tool-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.tool-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px;display:flex;flex-direction:column;gap:8px}.tool-title{font-size:.85rem;font-weight:800}.tool-sub{font-size:.72rem;color:var(--txt2);line-height:1.45}.cash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}.cash-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px}.cash-lbl{font-size:.68rem;color:var(--txt2);font-weight:700;text-transform:uppercase;letter-spacing:.05em}.cash-val{font-size:1.1rem;font-weight:800;margin-top:6px}.cash-list{display:flex;flex-direction:column;gap:8px}.cash-row{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px}.cash-main{min-width:0}.cash-name{font-size:.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cash-meta{font-size:.7rem;color:var(--txt2);margin-top:2px}.cash-amt{font-size:.82rem;font-weight:800;text-align:right;white-space:nowrap}.daily-line{font-size:.72rem;color:var(--txt2);margin-top:8px;line-height:1.4}.daily-line b{color:var(--txt)}.privacy-modes{display:grid;gap:8px}.privacy-mode{display:flex;gap:8px;align-items:flex-start;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px;font-size:.78rem}.privacy-mode input{margin-top:2px}.portfolio-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}.portfolio-summary .ps-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:13px}.ps-lbl{font-size:.68rem;color:var(--txt2);font-weight:700;text-transform:uppercase}.ps-val{font-size:1rem;font-weight:800;margin-top:5px}.dist-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}.dist-row{display:grid;grid-template-columns:96px 1fr auto;gap:8px;align-items:center;font-size:.75rem}.dist-track{height:7px;background:var(--bg4);border-radius:99px;overflow:hidden}.dist-fill{height:100%;background:var(--grad);border-radius:99px}.rec-item.paused{opacity:.55}.rec-status{font-size:.68rem;font-weight:700;padding:3px 8px;border-radius:99px;background:var(--bg4);color:var(--txt2)}
+.setup-steps{display:grid;gap:12px}.setup-step{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r2);padding:13px}.setup-step.done{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.08)}.setup-step-title{font-size:.9rem;font-weight:800}.setup-step-sub{font-size:.74rem;color:var(--txt2);line-height:1.45;margin-top:4px}.tool-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.tool-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px;display:flex;flex-direction:column;gap:8px}.tool-title{font-size:.85rem;font-weight:800}.tool-sub{font-size:.72rem;color:var(--txt2);line-height:1.45}.cash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:14px}.cash-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:14px}.cash-lbl{font-size:.68rem;color:var(--txt2);font-weight:700;text-transform:uppercase;letter-spacing:.05em}.cash-val{font-size:1.1rem;font-weight:800;margin-top:6px}.cash-list{display:flex;flex-direction:column;gap:8px}.cash-row{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px}.cash-main{min-width:0}.cash-name{font-size:.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cash-meta{font-size:.7rem;color:var(--txt2);margin-top:2px}.cash-amt{font-size:.82rem;font-weight:800;text-align:right;white-space:nowrap}.daily-line{font-size:.72rem;color:var(--txt2);margin-top:8px;line-height:1.4}.daily-line b{color:var(--txt)}.privacy-modes{display:grid;gap:8px}.privacy-mode{display:flex;gap:8px;align-items:flex-start;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px;font-size:.78rem}.privacy-mode input{margin-top:2px}.portfolio-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}.portfolio-summary .ps-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:13px}.ps-lbl{font-size:.68rem;color:var(--txt2);font-weight:700;text-transform:uppercase}.ps-val{font-size:1rem;font-weight:800;margin-top:5px}.dist-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}.dist-row{display:grid;grid-template-columns:96px 1fr auto;gap:8px;align-items:center;font-size:.75rem}.dist-track{height:7px;background:var(--bg4);border-radius:99px;overflow:hidden}.dist-fill{height:100%;background:var(--grad);border-radius:99px}.rec-item.paused{border-style:dashed}.rec-item.paused .cat-ico,.rec-item.paused .rec-amt{filter:grayscale(1)}.rec-status{font-size:.68rem;font-weight:700;padding:3px 8px;border-radius:99px;background:var(--bg4);color:var(--txt2)}
 .cc-teal{background:rgba(20,184,166,.15);color:var(--teal)}.cc-blue{background:rgba(59,130,246,.15);color:var(--blue)}.cc-purple{background:rgba(139,92,246,.15);color:var(--purple)}
 .cc-pink{background:rgba(236,72,153,.15);color:var(--pink)}.cc-orange{background:rgba(249,115,22,.15);color:var(--orange)}.cc-yellow{background:rgba(234,179,8,.15);color:var(--yellow)}
 .cc-green{background:rgba(34,197,94,.15);color:var(--green)}.cc-red{background:rgba(239,68,68,.15);color:var(--red)}
@@ -381,14 +382,14 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
 .active-profile-pill{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border2);border-radius:99px;padding:6px 12px;font-size:.78rem;font-weight:600}
 .active-profile-pill .ap-emoji{font-size:.95rem}
 .wallet-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);margin-bottom:8px}
-.wallet-row .wr-left{display:flex;align-items:center;gap:10px}
+.wallet-row{gap:10px}.wallet-row .wr-left{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
 .wallet-row .wr-emoji{font-size:1.4rem}
 .wallet-row .wr-name{font-size:.88rem;font-weight:700}
 .wallet-row .wr-meta{font-size:.7rem;color:var(--txt2);margin-top:1px}
-.wallet-row .wr-bal{font-size:1rem;font-weight:800;letter-spacing:-.02em;word-break:break-all;text-align:right;max-width:45%}
+.wallet-row .wr-bal{font-size:1rem;font-weight:800;letter-spacing:-.02em;white-space:nowrap;text-align:right;flex-shrink:0}
 .wallet-row .wr-bal.pos{color:var(--green)}.wallet-row .wr-bal.neg{color:var(--red)}
-@media(max-width:768px){.sidebar{display:none}.bottom-nav{display:flex}.page{padding:14px 12px calc(96px + env(safe-area-inset-bottom))}.metrics{grid-template-columns:1fr 1fr}.budget-grid,.goals-grid,.debt-grid,.port-grid{grid-template-columns:1fr 1fr}.stats-grid{grid-template-columns:1fr}.stats-kpis{grid-template-columns:1fr 1fr}.insight-grid{grid-template-columns:1fr}.assistant-shell{grid-template-columns:1fr}.assistant-input-row{flex-direction:column;align-items:stretch}.stats-actions{width:100%;margin-left:0}.stats-action-btn{flex:1;justify-content:center}.chart-card{padding:14px}.chart-wrap{height:240px}.wb-label{flex:0 0 70px;font-size:.72rem}.fg.c3,.fg.c4{grid-template-columns:1fr 1fr}.filter-row{flex-wrap:wrap}.fs,.fi{min-width:0;width:100%;flex:1 1 auto}.acc-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}.hero-chips{flex-wrap:wrap}.ti-amt{font-size:.85rem}.rec-body{min-width:0;overflow:hidden}.rec-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.debt-person{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.goal-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.acc-bal{font-size:clamp(.9rem,3vw,1.2rem);word-break:break-all}}
-@media(max-width:480px){.metrics{grid-template-columns:1fr 1fr}.stats-kpis{grid-template-columns:1fr}.fg.c2,.fg.c3,.fg.c4{grid-template-columns:1fr}.acc-grid{grid-template-columns:1fr 1fr}.port-grid,.debt-grid,.goals-grid{grid-template-columns:1fr}.acc-card{padding:14px}.port-card{padding:14px}.debt-card,.goal-card,.bc{padding:14px}.mc{padding:12px}.mc-val{font-size:.9rem}.hero{padding:18px}.chip{font-size:.72rem;padding:5px 10px}.ph-title{font-size:1.1rem}.card{padding:14px}.bc-head{flex-wrap:wrap;gap:7px}.budget-grid{grid-template-columns:1fr}.rule-card{grid-template-columns:1fr;gap:6px}.rule-arrow{transform:rotate(90deg);justify-self:center;font-size:1rem}.rule-actions{justify-content:space-between}.modal-bd{padding:12px}.modal{padding:18px}.ti{padding:11px 13px;gap:10px}.rec-item{padding:12px 13px;gap:10px}.wallet-row{padding:11px 12px}.nw-card{padding:14px}.zbb-card{padding:14px}}
+@media(max-width:768px){.sidebar{display:none}.bottom-nav{display:flex}.page{padding:14px 12px calc(96px + env(safe-area-inset-bottom))}.metrics{grid-template-columns:1fr 1fr}.budget-grid,.goals-grid,.debt-grid,.port-grid{grid-template-columns:1fr 1fr}.stats-grid{grid-template-columns:minmax(0,1fr)}.stats-kpis{grid-template-columns:1fr 1fr}.insight-grid{grid-template-columns:1fr}.assistant-shell{grid-template-columns:1fr}.assistant-input-row{flex-direction:column;align-items:stretch}.stats-actions{width:100%;margin-left:0}.stats-action-btn{flex:1;justify-content:center}.chart-card{padding:14px}.chart-wrap{height:240px}.wb-label{flex:0 0 70px;font-size:.72rem}.fg.c3,.fg.c4{grid-template-columns:1fr 1fr}.filter-row{flex-wrap:wrap}.fs,.fi{min-width:0;width:100%;flex:1 1 auto}.acc-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}.hero-chips{flex-wrap:wrap}.ti-amt{font-size:.85rem}.rec-body{min-width:0;overflow:hidden}.rec-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.debt-person{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.goal-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.acc-bal{font-size:clamp(.9rem,3vw,1.2rem);word-break:break-all}}
+@media(max-width:480px){.metrics{grid-template-columns:1fr 1fr}.stats-kpis{grid-template-columns:1fr 1fr}.skpi-val{font-size:1rem}.fg.c2,.fg.c3,.fg.c4{grid-template-columns:1fr}.acc-grid{grid-template-columns:1fr 1fr}.port-grid,.debt-grid,.goals-grid{grid-template-columns:1fr}.acc-card{padding:14px}.port-card{padding:14px}.debt-card,.goal-card,.bc{padding:14px}.mc{padding:12px}.mc-val{font-size:.9rem}.hero{padding:18px}.chip{font-size:.72rem;padding:5px 10px}.ph-title{font-size:1.1rem}.card{padding:14px}.bc-head{flex-wrap:wrap;gap:7px}.budget-grid{grid-template-columns:1fr}.rule-card{grid-template-columns:1fr;gap:6px}.rule-arrow{transform:rotate(90deg);justify-self:center;font-size:1rem}.rule-actions{justify-content:space-between}.modal-bd{padding:12px}.modal{padding:18px}.ti{padding:11px 13px;gap:10px}.rec-item{padding:12px 13px;gap:10px}.wallet-row{padding:11px 12px}.nw-card{padding:14px}.zbb-card{padding:14px}}
 @media(hover:none){.mc:hover,.btn-primary:hover,.btn-ghost:hover,.btn-teal:hover,.quick-btn:hover,.quick-btn.qinc:hover,.quick-btn.qexp:hover,.goal-card:hover,.notif-btn:hover,.btn-del:hover,.sh-link:hover,.nav-item:hover,.theme-btn:hover{transform:none}}
 @media print{
   @page{size:A4;margin:10mm}
@@ -555,12 +556,12 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <button class="btn btn-primary" onclick="App.Transactions.add()">İşlemi Ekle</button>
   </div>
   <div class="filter-row">
-    <select class="fs" id="fType" onchange="App.Transactions.renderList()"><option value="">Tümü</option><option value="income">Gelir</option><option value="expense">Gider</option><option value="transfer">Transfer</option></select>
-    <select class="fs" id="fCat" onchange="App.Transactions.renderList()"><option value="">Tüm Kategoriler</option></select>
-    <select class="fs" id="fAcc" onchange="App.Transactions.renderList()"><option value="">Tüm Hesaplar</option></select>
-    <select class="fs" id="fUser" onchange="App.Transactions.renderList()"><option value="">Tüm Üyeler</option></select>
-    <select class="fs" id="fMonth" onchange="App.Transactions.renderList()"><option value="">Tüm Aylar</option></select>
-    <input class="fi" id="fSearch" placeholder="🔍 Ara..." oninput="App.Transactions.renderList()"/>
+    <select class="fs" id="fType" aria-label="Tür filtresi" onchange="App.Transactions.renderList()"><option value="">Tümü</option><option value="income">Gelir</option><option value="expense">Gider</option><option value="transfer">Transfer</option></select>
+    <select class="fs" id="fCat" aria-label="Kategori filtresi" onchange="App.Transactions.renderList()"><option value="">Tüm Kategoriler</option></select>
+    <select class="fs" id="fAcc" aria-label="Hesap filtresi" onchange="App.Transactions.renderList()"><option value="">Tüm Hesaplar</option></select>
+    <select class="fs" id="fUser" aria-label="Üye filtresi" onchange="App.Transactions.renderList()"><option value="">Tüm Üyeler</option></select>
+    <select class="fs" id="fMonth" aria-label="Ay filtresi" onchange="App.Transactions.renderList()"><option value="">Tüm Aylar</option></select>
+    <input class="fi" id="fSearch" aria-label="İşlemlerde ara" placeholder="🔍 Ara..." oninput="App.Transactions.renderList()"/>
   </div>
   <div class="filter-row" style="margin-top:-6px">
     <label class="f-range">Başlangıç<input type="date" class="fs" id="fFrom" onchange="App.Transactions.renderList()"/></label>
@@ -681,7 +682,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
   <div style="display:flex;justify-content:flex-end;margin:0 0 12px"><button class="btn btn-sm btn-ghost" onclick="App.Portfolio.editTargets()">Hedef Dağılım</button></div>
   <div class="portfolio-summary" id="portfolioSummary"></div>
   <div class="dist-list" id="portfolioDistribution"></div>
-  <div class="hero" style="background:linear-gradient(135deg,#8b5cf6 0%,#ec4899 100%)">
+  <div class="hero" style="background:linear-gradient(135deg,#6d28d9 0%,#be185d 100%)">
     <div class="hero-lbl">Toplam Portföy Değeri (TL)</div>
     <div class="hero-bal" id="portTotal">₺0,00</div>
     <div class="hero-chips"><div class="chip" id="portAssetCount"><span class="dot b"></span>0 Varlık</div></div>
@@ -849,6 +850,15 @@ function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'
 function escAttr(s){return esc(s).replace(/'/g,'&#39;')}
 function jsAttr(s){return escAttr(String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"))}
 function firstEmoji(v,fb){v=String(v==null?'':v).trim();if(!v)return fb;try{if(window.Intl&&Intl.Segmenter){var it=new Intl.Segmenter('tr',{granularity:'grapheme'}).segment(v)[Symbol.iterator]().next();if(!it.done)v=it.value.segment}}catch(e){}return v.slice(0,16)||fb}
+// Kullanıcının seçtiği rengi metinde okunur kılar: kart zemininde en az 4.5:1 olana dek koyulaştırır/açar
+function inkColor(hex){
+  hex=safeColor(hex);var dark=document.documentElement.getAttribute('data-theme')!=='light';
+  function rgb(h){return[1,3,5].map(function(i){return parseInt(h.substr(i,2),16)})}
+  function lum(c){return c.map(function(v){v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)}).reduce(function(s,v,i){return s+v*[.2126,.7152,.0722][i]},0)}
+  var bg=dark?[15,22,41]:[255,255,255],c=rgb(hex),target=dark?255:0,Lb=lum(bg);
+  for(var k=0;k<10;k++){var L=lum(c),r=(Math.max(L,Lb)+.05)/(Math.min(L,Lb)+.05);if(r>=5.4)break;c=c.map(function(v){return Math.round(v+(target-v)*.18)})}
+  return'#'+c.map(function(v){return('0'+v.toString(16)).slice(-2)}).join('');
+}
 function safeColor(v){return /^#[0-9a-fA-F]{6}$/.test(String(v||''))?String(v):'#3b82f6'}
 function safeId(v){return /^[a-z]+[0-9]{13}_[a-z0-9]{4}$|^u_(self|partner)$/.test(String(v||''))?String(v):''}
 var MAX_MONEY=1000000000000;
@@ -873,6 +883,7 @@ function parseMoney(v,opt){
   if(!Number.isFinite(n)||n<min||n>max)return null;
   return opt.round===false?n:roundMoney(n);
 }
+function fmtPct(v,dec){v=Number(v);if(!isFinite(v))v=0;dec=dec==null?0:dec;return(v<0?'-':'')+'%'+Math.abs(v).toLocaleString('tr-TR',{minimumFractionDigits:dec,maximumFractionDigits:dec})}
 function isValidMoney(v,opt){return parseMoney(v,opt)!==null}
 // Tutarı girerken nasıl okunduğunu gösterir (ör. "1.500" → ₺1.500,00)
 function moneyHint(el){
@@ -1251,7 +1262,7 @@ App.UI=(function(){
     var fields=(opts.fields||[]).map(function(f,i){
       var t=f.type||'text';
       if(t==='select')return'<div class="f" style="margin-bottom:10px"><label>'+esc(f.label||'')+'</label><select data-pkey="'+escAttr(f.key)+'">'+(f.options||[]).map(function(o){return'<option value="'+escAttr(o.value)+'"'+(String(o.value)===String(f.value==null?'':f.value)?' selected':'')+'>'+esc(o.label)+'</option>'}).join('')+'</select></div>';
-      return'<div class="f" style="margin-bottom:10px"><label>'+esc(f.label||'')+'</label><input data-pkey="'+escAttr(f.key)+'" type="'+escAttr(t==='number'?'text':t)+'"'+(f.inputmode?' inputmode="'+escAttr(f.inputmode)+'"':'')+(t==='number'?' inputmode="'+(f.step==='1'?'numeric':'decimal')+'"'+(f.step==='1'?'':' data-money="'+(f.step==='any'?'qty':'money')+'" autocomplete="off"'):'')+' value="'+escAttr(f.value==null?'':f.value)+'" placeholder="'+escAttr(f.placeholder||'')+'"/></div>';
+      return'<div class="f" style="margin-bottom:10px"><label>'+esc(f.label||'')+'</label><input data-pkey="'+escAttr(f.key)+'" type="'+escAttr(t==='number'?'text':t)+'"'+(f.inputmode?' inputmode="'+escAttr(f.inputmode)+'"':'')+(t==='number'?' inputmode="'+(f.step==='1'?'numeric':'decimal')+'"'+(f.step==='1'?'':' data-money="'+(f.step==='any'?'qty':'money')+'" autocomplete="off"'):'')+' value="'+escAttr(f.value==null?'':(t==='number'&&typeof f.value==='number'?f.value.toLocaleString('tr-TR',{useGrouping:false,maximumFractionDigits:6}):f.value))+'" placeholder="'+escAttr(f.placeholder||'')+'"/></div>';
     }).join('');
     var div=document.createElement('div');div.id=id;div.className='app-dialog-holder';
     div.innerHTML='<div class="modal-bd show"><div class="modal"><div class="modal-title">'+esc(opts.title||'')+'</div>'+(opts.text?'<div style="font-size:.78rem;color:var(--txt2);line-height:1.5;margin-bottom:12px">'+esc(opts.text)+'</div>':'')+fields+'<div class="modal-actions"><button class="btn btn-ghost" data-act="cancel">Vazgeç</button><button class="btn btn-primary" data-act="ok">'+esc(opts.okLabel||'Kaydet')+'</button></div></div></div>';
@@ -1299,8 +1310,8 @@ App.UI=(function(){
   }
   function toggleTheme(){
     var cur=document.documentElement.getAttribute('data-theme');setTheme(cur==='dark'?'light':'dark');
+    renderAllViews();
     if(document.getElementById('page-istatistikler').classList.contains('active'))App.Charts.refresh();
-    if(document.getElementById('page-ozet').classList.contains('active'))App.NetWorth.render();
   }
   // Özet bölümleri katlanabilir; tercih yalnız bu tarayıcıda tutulur (pf_ önekli değil: sekme senkronunu tetiklemez)
   var COLLAPSE_KEY='ft_ui_collapsed';
@@ -1657,7 +1668,7 @@ App.Transactions=(function(){
     var stmtTag=stmt?'<span class="stmt-tag">Ekstre: '+MF[+stmt.split('-')[1]-1]+'</span>':'';
     var insTag=t.installment?'<span class="ti-note" style="background:rgba(249,115,22,.15);color:var(--orange)">Taksit '+t.installment.index+'/'+t.installment.total+'</span>':'';
     var u=t.userId?App.Users.get(t.userId):null;
-    var uTag=u?'<span class="user-tag" style="background:'+safeColor(u.color)+'22;color:'+safeColor(u.color)+'"><span class="ue">'+esc(u.emoji||'🙋')+'</span>'+esc(u.name)+'</span>':'';
+    var uTag=u?'<span class="user-tag" style="background:'+safeColor(u.color)+'22;color:'+inkColor(u.color)+'"><span class="ue">'+esc(u.emoji||'🙋')+'</span>'+esc(u.name)+'</span>':'';
     return'<div class="ti"><div class="cat-ico '+info.c+'">'+info.i+'</div><div class="ti-body"><div class="ti-cat">'+esc(t.category)+'</div><div class="ti-meta">'+fd(t.date)+'</div>'+(t.note?'<span class="ti-note">'+esc(t.note)+'</span>':'')+insTag+at+stmtTag+uTag+'</div><div class="ti-right"><div class="ti-amt '+t.type+'">'+sign+fmt(t.amount)+'</div>'+_actions(t,del)+'</div></div>'
   }
   function renderList(){
@@ -1682,7 +1693,7 @@ App.Transactions=(function(){
     el.innerHTML=shown.map(function(e){return _h(e.t,true,e.pair)}).join('')+(txns.length>shown.length?'<div class="empty"><div class="empty-t">'+shown.length+' / '+txns.length+' işlem gösteriliyor</div><div class="empty-s">Liste performansı için filtre veya arama kullanın.</div></div>':'');
   }
   function clearFilters(){['fType','fCat','fAcc','fUser','fMonth','fSearch','fFrom','fTo'].forEach(function(id){var el=document.getElementById(id);if(el)el.value=''});renderList()}
-  function renderRecent(){var el=document.getElementById('ozet-txns'),txns=_entries().slice(0,5);if(!txns.length){el.innerHTML='<div class="empty"><span class="empty-ico">💳</span><div class="empty-t">Henüz işlem yok</div></div>';return}el.innerHTML=txns.map(function(e){return _h(e.t,false,e.pair)}).join('')}
+  function renderRecent(){var today=td(),el=document.getElementById('ozet-txns'),txns=_entries().filter(function(e){return e.t.date<=today}).slice(0,5);if(!txns.length){el.innerHTML='<div class="empty"><span class="empty-ico">💳</span><div class="empty-t">Henüz işlem yok</div></div>';return}el.innerHTML=txns.map(function(e){return _h(e.t,false,e.pair)}).join('')}
   // Türkçe Excel ';' ayraç ve ondalık virgül bekler; tutar "1234,50" yazılır
   function exportCSV(){
     var txns=S.txns();if(!txns.length){App.UI.toast('İşlem yok.','err');return}
@@ -2010,7 +2021,7 @@ App.Budget=(function(){
     var cats=App.Transactions.catTotals(tm()),b=S.budgets(),now=new Date(),daysLeft=new Date(now.getFullYear(),now.getMonth()+1,0).getDate()-now.getDate()+1;
     var rows=Object.keys(b).map(function(cat){var lim=effectiveLimit(cat),spent=cats[cat]||0,remain=lim-spent,daily=remain/daysLeft;return{cat:cat,remain:remain,daily:daily}}).sort(function(a,b){return a.daily-b.daily}).slice(0,4);
     if(!rows.length){el.innerHTML='';return}
-    el.innerHTML=rows.map(function(r){return'<div class="cash-card"><div class="cash-lbl">'+esc(r.cat)+'</div><div class="cash-val" style="color:'+(r.remain<0?'var(--red)':r.daily<50?'var(--yellow)':'var(--green)')+'">'+fmt(r.daily)+'</div><div class="daily-line"><b>günlük kalan</b><br/>'+fmt(r.remain)+' / '+daysLeft+' gün</div></div>'}).join('');
+    el.innerHTML=rows.map(function(r){return'<div class="cash-card"><div class="cash-lbl">'+esc(r.cat)+'</div><div class="cash-val" style="color:'+(r.remain<0?'var(--red)':r.daily<50?'var(--yellow)':'var(--green)')+'">'+(r.remain<0?fmt(-r.remain):fmt(r.daily))+'</div><div class="daily-line"><b>'+(r.remain<0?'limit aşıldı':'günlük kalan')+'</b><br/>'+(r.remain<0?'Bu ay '+daysLeft+' gün kaldı':fmt(r.remain)+' / '+daysLeft+' gün')+'</div></div>'}).join('');
   }
   function renderAll(){
     var b=S.budgets(),bm=S.budgetMeta(),cats=App.Transactions.catTotals(tm()),keys=Object.keys(b),el=document.getElementById('budgetGrid');
@@ -2021,7 +2032,7 @@ App.Budget=(function(){
       var exhausted=lim<=0&&(spent>0||lim<0),pct=lim>0?(spent/lim)*100:(exhausted?100:0);var cls=pct>=100?'pover':pct>=75?'pwarn':'pok';var badge=pct>=100?'bgr':pct>=75?'bgw':'bgo';var lbl=pct>=100?'⚠ Aşıldı':pct>=75?'⚠ Yaklaşıyor':'✓ İyi';var info=ci(cat);
       var cb=isCarry?'<span class="carry-badge">🔁 Devir</span>':'';
       var cl=isCarry&&rollover!==0?'<div class="carry-line">Önceki aylardan devir: '+(rollover>=0?'+':'')+fmt(rollover)+'</div>':'';
-      return'<div class="bc"><div class="bc-head"><div class="bc-ico '+info.c+'">'+info.i+'</div><div class="bc-info"><div class="bc-name">'+esc(cat)+cb+'</div><div class="bc-amounts">'+fmt(spent)+' / '+fmt(lim)+'</div>'+cl+'</div><span class="badge '+badge+'">'+lbl+'</span></div><div class="prog-track"><div class="prog-fill '+cls+'" style="width:'+Math.min(pct,100)+'%"></div></div><div class="bc-foot"><span class="bc-pct">'+(lim>0?pct.toFixed(0)+'% kullanıldı':exhausted?'Limit devirle tükendi':'Limit yok')+'</span><button class="btn-del" onclick="App.Budget.remove(\''+jsAttr(cat)+'\')">Sil</button></div></div>'
+      return'<div class="bc"><div class="bc-head"><div class="bc-ico '+info.c+'">'+info.i+'</div><div class="bc-info"><div class="bc-name">'+esc(cat)+cb+'</div><div class="bc-amounts">'+fmt(spent)+' / '+fmt(lim)+'</div>'+cl+'</div><span class="badge '+badge+'">'+lbl+'</span></div><div class="prog-track"><div class="prog-fill '+cls+'" style="width:'+Math.min(pct,100)+'%"></div></div><div class="bc-foot"><span class="bc-pct">'+(lim>0?fmtPct(pct)+' kullanıldı':exhausted?'Limit devirle tükendi':'Limit yok')+'</span><button class="btn-del" onclick="App.Budget.remove(\''+jsAttr(cat)+'\')">Sil</button></div></div>'
     }).join('');
   }
   return{save,remove,renderAll,renderZBB,renderDaily,rolloverBalance,effectiveLimit,limitFor}
@@ -2110,7 +2121,7 @@ App.Goals=(function(){
     if(!avg){el.textContent='Son 3 ay ortalama giderinin 6 katı tavsiye edilir. Henüz yeterli veri yok.';return}
     var existing=S.goals().find(function(g){return g.emergency&&!g.done});
     var base='Son 3 ay ortalama gider: '+fmt(avg)+' · Önerilen (6 ay): '+fmt(avg*6);
-    if(existing){var paid=existing.contributions.reduce(function(s,c){return s+c.amount},0);var pct=existing.target>0?(paid/existing.target)*100:0;base+=' · Aktif hedef: %'+pct.toFixed(0)+' tamamlandı'}
+    if(existing){var paid=existing.contributions.reduce(function(s,c){return s+c.amount},0);var pct=existing.target>0?(paid/existing.target)*100:0;base+=' · Aktif hedef: '+fmtPct(pct)+' tamamlandı'}
     el.textContent=base;
   }
   function renderAll(){
@@ -2120,7 +2131,7 @@ App.Goals=(function(){
     el.innerHTML=[].concat(active,done).map(function(g){
       var total=g.contributions.reduce(function(s,c){return s+c.amount},0),pct=g.target>0?Math.min((total/g.target)*100,100):0,rem=Math.max(g.target-total,0),isDone=!!g.done,tv=td();
       var ch=g.contributions.length?g.contributions.slice().reverse().map(function(c){return'<div class="contrib-item"><div><span class="ca">+'+fmt(c.amount)+'</span><br/><span class="cd">'+fd(c.date)+(c.note?' · '+esc(c.note):'')+'</span></div><button class="btn-del" onclick="App.Goals.removeContrib(\''+g.id+'\',\''+c.id+'\')">✕</button></div>'}).join(''):'<div style="font-size:.75rem;color:var(--txt3);padding:4px 0">Henüz katkı yok.</div>';
-      return'<div class="goal-card'+(isDone?' done':'')+'"><div class="goal-top"><div><span class="goal-emoji">'+esc(g.emoji||'🎯')+'</span><div class="goal-name">'+esc(g.name)+(isDone?' ✅':'')+'</div><div class="goal-sub">'+fmt(total)+' / '+fmt(g.target)+(isDone?' · Tamamlandı 🎉':' · '+fmt(rem)+' kaldı')+'</div></div><div class="ti-actions"><button class="btn-del" title="Düzenle" aria-label="Hedefi düzenle" onclick="App.Goals.edit(\''+g.id+'\')">✎</button><button class="btn-del" title="Sil" aria-label="Hedefi sil" onclick="App.Goals.remove(\''+g.id+'\')">✕</button></div></div><div class="goal-prog-label"><span class="sv">'+pct.toFixed(0)+'%</span><span style="color:var(--txt2)">'+fmt(total)+'</span></div><div class="goal-prog-track"><div class="goal-prog-fill" style="width:'+pct+'%"></div></div><div class="goal-actions">'+(!isDone?'<button class="btn btn-sm btn-ghost" onclick="App.Goals.togglePanel(\''+g.id+'\')">+ Katkı Ekle</button>':'')+'<button class="btn btn-sm btn-ghost" onclick="App.Goals.togglePanel(\''+g.id+'\')">📋 Geçmiş ('+g.contributions.length+')</button></div><div class="contrib-panel" id="gp_'+g.id+'">'+(!isDone?'<div class="contrib-row"><input type="text" inputmode="decimal" data-money="money" autocomplete="off" id="ca_'+g.id+'" placeholder="Tutar (₺)"/><input type="date" id="cd_'+g.id+'" value="'+tv+'"/><input type="text" id="cn_'+g.id+'" placeholder="Not..."/><button class="btn btn-sm btn-teal" onclick="App.Goals.addContrib(\''+g.id+'\')">Ekle</button></div>':'')+'<div class="contrib-list">'+ch+'</div></div></div>'
+      return'<div class="goal-card'+(isDone?' done':'')+'"><div class="goal-top"><div><span class="goal-emoji">'+esc(g.emoji||'🎯')+'</span><div class="goal-name">'+esc(g.name)+(isDone?' ✅':'')+'</div><div class="goal-sub">'+fmt(total)+' / '+fmt(g.target)+(isDone?' · Tamamlandı 🎉':' · '+fmt(rem)+' kaldı')+'</div></div><div class="ti-actions"><button class="btn-del" title="Düzenle" aria-label="Hedefi düzenle" onclick="App.Goals.edit(\''+g.id+'\')">✎</button><button class="btn-del" title="Sil" aria-label="Hedefi sil" onclick="App.Goals.remove(\''+g.id+'\')">✕</button></div></div><div class="goal-prog-label"><span class="sv">'+fmtPct(pct)+'</span><span style="color:var(--txt2)">'+fmt(total)+'</span></div><div class="goal-prog-track"><div class="goal-prog-fill" style="width:'+pct+'%"></div></div><div class="goal-actions">'+(!isDone?'<button class="btn btn-sm btn-ghost" onclick="App.Goals.togglePanel(\''+g.id+'\')">+ Katkı Ekle</button>':'')+'<button class="btn btn-sm btn-ghost" onclick="App.Goals.togglePanel(\''+g.id+'\')">📋 Geçmiş ('+g.contributions.length+')</button></div><div class="contrib-panel" id="gp_'+g.id+'">'+(!isDone?'<div class="contrib-row"><input type="text" inputmode="decimal" data-money="money" autocomplete="off" id="ca_'+g.id+'" placeholder="Tutar (₺)"/><input type="date" id="cd_'+g.id+'" value="'+tv+'"/><input type="text" id="cn_'+g.id+'" placeholder="Not..."/><button class="btn btn-sm btn-teal" onclick="App.Goals.addContrib(\''+g.id+'\')">Ekle</button></div>':'')+'<div class="contrib-list">'+ch+'</div></div></div>'
     }).join('');
   }
   return{add,edit,remove,addContrib,removeContrib,togglePanel,onModeChange,renderAll,createEmergency,renderEmergencyInfo,avgExpense3mo}
@@ -2191,7 +2202,7 @@ App.Users=(function(){
     var apc=document.getElementById('activeProfileCard');
     if(apc){var au=active();apc.innerHTML=au?'<div style="display:flex;align-items:center;gap:14px"><div style="font-size:2.5rem">'+esc(au.emoji||'🙋')+'</div><div><div style="font-size:1.15rem;font-weight:800">'+esc(au.name)+'</div><div style="font-size:.75rem;color:var(--txt2);margin-top:2px">Yeni işlemler otomatik bu profile atanır.</div></div></div>':''}
     var fm=document.getElementById('familyMembers');
-    if(fm){fm.innerHTML='<div class="user-grid">'+users.map(function(u){var st=stats(u.id),net=st.income-st.expense;var isA=u.id===act,c=safeColor(u.color);return'<div class="user-card'+(isA?' active':'')+'" style="border-color:'+(isA?'var(--teal)':c+'55')+'"><span class="uc-emoji">'+esc(u.emoji||'🙋')+'</span><div class="uc-name" style="color:'+c+'">'+esc(u.name)+'</div><div class="uc-role">'+(isA?'Aktif Profil':'Üye')+'</div><div class="uc-bal" style="color:'+(net<0?'var(--red)':'var(--green)')+'">'+fmt(net)+'</div><div style="font-size:.68rem;color:var(--txt2);margin-bottom:6px">Bu ay net</div><div class="uc-stats"><div class="uc-stat"><span class="v" style="color:var(--green)">'+fmt(st.income)+'</span><span class="l">Bu ay gelir</span></div><div class="uc-stat"><span class="v" style="color:var(--red)">'+fmt(st.expense)+'</span><span class="l">Bu ay gider</span></div></div><div class="uc-actions"><button class="btn-active '+(isA?'is-active':'')+'" onclick="'+(isA?'':'App.Users.setActive(\''+u.id+'\')')+'">'+(isA?'✓ Aktif':'Aktif yap')+'</button><button class="btn btn-sm btn-ghost" onclick="App.Users.edit(\''+u.id+'\')">Düzenle</button><button class="btn-del" onclick="App.Users.remove(\''+u.id+'\')">Sil</button></div></div>'}).join('')+'</div>'}
+    if(fm){fm.innerHTML='<div class="user-grid">'+users.map(function(u){var st=stats(u.id),net=st.income-st.expense;var isA=u.id===act,c=safeColor(u.color);return'<div class="user-card'+(isA?' active':'')+'" style="border-color:'+(isA?'var(--teal)':c+'55')+'"><span class="uc-emoji">'+esc(u.emoji||'🙋')+'</span><div class="uc-name" style="color:'+inkColor(c)+'">'+esc(u.name)+'</div><div class="uc-role">'+(isA?'Aktif Profil':'Üye')+'</div><div class="uc-bal" style="color:'+(net<0?'var(--red)':'var(--green)')+'">'+fmt(net)+'</div><div style="font-size:.68rem;color:var(--txt2);margin-bottom:6px">Bu ay net</div><div class="uc-stats"><div class="uc-stat"><span class="v" style="color:var(--green)">'+fmt(st.income)+'</span><span class="l">Bu ay gelir</span></div><div class="uc-stat"><span class="v" style="color:var(--red)">'+fmt(st.expense)+'</span><span class="l">Bu ay gider</span></div></div><div class="uc-actions"><button class="btn-active '+(isA?'is-active':'')+'" onclick="'+(isA?'':'App.Users.setActive(\''+u.id+'\')')+'">'+(isA?'✓ Aktif':'Aktif yap')+'</button><button class="btn btn-sm btn-ghost" onclick="App.Users.edit(\''+u.id+'\')">Düzenle</button><button class="btn-del" onclick="App.Users.remove(\''+u.id+'\')">Sil</button></div></div>'}).join('')+'</div>'}
     var ws=document.getElementById('walletSummary');
     if(ws){var sh=sharedStats();var rows='<div class="wallet-row"><div class="wr-left"><span class="wr-emoji">👨‍👩‍👧</span><div><div class="wr-name">Ortak Cüzdan</div><div class="wr-meta">'+sh.accounts+' hesap · Bu ay '+fmt(sh.income)+' gelir · '+fmt(sh.expense)+' gider</div></div></div><div class="wr-bal '+(sh.balance>=0?'pos':'neg')+'">'+fmt(sh.balance)+'</div></div>';rows+=users.map(function(u){var st=stats(u.id),net=st.income-st.expense;return'<div class="wallet-row"><div class="wr-left"><span class="wr-emoji">'+esc(u.emoji||'🙋')+'</span><div><div class="wr-name">'+esc(u.name)+' · Bu ay net</div><div class="wr-meta">'+st.accounts+' hesap · '+fmt(st.income)+' gelir · '+fmt(st.expense)+' gider</div></div></div><div class="wr-bal '+(net>=0?'pos':'neg')+'">'+fmt(net)+'</div></div>'}).join('');ws.innerHTML=rows}
   }
@@ -2272,7 +2283,7 @@ App.Charts=(function(){
     var ctx=c.getContext('2d');ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);ctx.fillStyle=cv('--txt2');ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText(msg,ctx.canvas.width/2,ctx.canvas.height/2);
   }
   function refresh(){var month=document.getElementById('statMonth').value||tm();var cats=App.Transactions.catTotals(month);_summary(month,cats);if(!window.Chart){if(_d){_d.destroy();_d=null}if(_b){_b.destroy();_b=null}_drawMsg('cDonut','Grafik kütüphanesi yüklenemedi');_drawMsg('cBar','Grafik kütüphanesi yüklenemedi');var cc=document.getElementById('cmpContent');if(cc)cc.innerHTML='<div class="empty"><span class="empty-ico">📊</span><div class="empty-t">Grafik kütüphanesi yüklenemedi</div></div>';var st=document.getElementById('statsTable');if(st)st.innerHTML='<div class="empty"><span class="empty-ico">📊</span><div class="empty-t">Grafik kütüphanesi yüklenemedi</div></div>';return}_donut(cats);_bar(App.Transactions.last6(month));_compare(month);_table(month,cats)}
-  function _pct(v){return isFinite(v)?v.toFixed(1)+'%':'0.0%'}
+  function _pct(v){return fmtPct(v,1)}
   function _daysInMonth(m){var p=m.split('-');return new Date(+p[0],+p[1],0).getDate()}
   function _summary(month,cats){
     var total=App.Transactions.monthTotals(month),prev=App.Transactions.monthTotals(_prevMonth(month));
@@ -2309,7 +2320,7 @@ App.Charts=(function(){
     var p1=month.split('-'),p2=prev.split('-');
     var curLabel=MF[+p1[1]-1]+' '+p1[0],prevLabel=MF[+p2[1]-1]+' '+p2[0];
     title.textContent=(yoy?'Yıldan Yıla':'Aydan Aya')+' Kıyaslama — '+curLabel+' vs '+prevLabel;
-    function deltaCell(cur,pr,higherIsGood){var d=cur-pr,pct=pr?(d/pr)*100:0;if(!pr&&!cur)return'<span class="cmp-delta flat">—</span>';if(!pr)return'<span class="cmp-delta '+(higherIsGood?'down':'up')+'">Yeni</span>';var sign=d>0?'▲':d<0?'▼':'=';var cls=d===0?'flat':d>0?(higherIsGood?'down':'up'):(higherIsGood?'up':'down');return'<span class="cmp-delta '+cls+'">'+sign+' '+Math.abs(pct).toFixed(0)+'%</span>'}
+    function deltaCell(cur,pr,higherIsGood){var d=cur-pr,pct=pr?(d/pr)*100:0;if(!pr&&!cur)return'<span class="cmp-delta flat">—</span>';if(!pr)return'<span class="cmp-delta '+(higherIsGood?'down':'up')+'">Yeni</span>';var sign=d>0?'▲':d<0?'▼':'=';var cls=d===0?'flat':d>0?(higherIsGood?'down':'up'):(higherIsGood?'up':'down');return'<span class="cmp-delta '+cls+'">'+sign+' '+fmtPct(Math.abs(pct))+'</span>'}
     var rows='<tr><td>💵 Gelir</td><td class="num">'+fmt(curT.income)+'</td><td class="num">'+fmt(prevT.income)+'</td><td class="num">'+deltaCell(curT.income,prevT.income,true)+'</td></tr>';
     rows+='<tr><td>💸 Gider</td><td class="num">'+fmt(curT.expense)+'</td><td class="num">'+fmt(prevT.expense)+'</td><td class="num">'+deltaCell(curT.expense,prevT.expense,false)+'</td></tr>';
     rows+='<tr><td>⚖️ Net</td><td class="num"><b>'+fmt(curT.income-curT.expense)+'</b></td><td class="num">'+fmt(prevT.income-prevT.expense)+'</td><td class="num">'+deltaCell(curT.income-curT.expense,prevT.income-prevT.expense,true)+'</td></tr>';
@@ -2335,7 +2346,7 @@ App.Charts=(function(){
     var b=S.budgets(),el=document.getElementById('statsTable'),keys=Object.keys(cats);
     if(!keys.length){el.innerHTML='<div class="empty"><span class="empty-ico">📊</span><div class="empty-t">Bu dönem veri yok</div></div>';return}
     keys.sort(function(a,b_){return cats[b_]-cats[a]});
-    var rows=keys.map(function(cat){var spent=cats[cat],has=b[cat]!=null,lim=has?_limitOf(cat,month):0;var s='<span style="color:var(--txt3)">—</span>';if(has){var pct=lim>0?(spent/lim)*100:(spent>0?100:0);s=pct>=100?'<span style="color:var(--red)">⚠ Aşıldı</span>':pct>=75?'<span style="color:var(--yellow)">⚠ '+pct.toFixed(0)+'%</span>':'<span style="color:var(--green)">✓ '+pct.toFixed(0)+'%</span>'}return'<tr><td>'+ci(cat).i+' <strong>'+esc(cat)+'</strong></td><td style="color:var(--red);font-weight:700">'+fmt(spent)+'</td><td>'+(has?fmt(lim):'—')+'</td><td>'+s+'</td></tr>'}).join('');
+    var rows=keys.map(function(cat){var spent=cats[cat],has=b[cat]!=null,lim=has?_limitOf(cat,month):0;var s='<span style="color:var(--txt3)">—</span>';if(has){var pct=lim>0?(spent/lim)*100:(spent>0?100:0);s=pct>=100?'<span style="color:var(--red)">⚠ Aşıldı</span>':pct>=75?'<span style="color:var(--yellow)">⚠ '+fmtPct(pct)+'</span>':'<span style="color:var(--green)">✓ '+fmtPct(pct)+'</span>'}return'<tr><td>'+ci(cat).i+' <strong>'+esc(cat)+'</strong></td><td style="color:var(--red);font-weight:700">'+fmt(spent)+'</td><td>'+(has?fmt(lim):'—')+'</td><td>'+s+'</td></tr>'}).join('');
     el.innerHTML='<div class="stats-table-wrap"><table class="stats-table"><thead><tr><th>Kategori</th><th>Harcama</th><th>Limit</th><th>Durum</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
   return{refresh,report}
@@ -2605,7 +2616,7 @@ App.Portfolio=(function(){
     var pnl=cost?roundMoney(costedValue-cost):0;
     sum.innerHTML='<div class="ps-card"><div class="ps-lbl">Maliyet</div><div class="ps-val">'+(cost?fmt(cost):'—')+'</div></div><div class="ps-card"><div class="ps-lbl">Kâr / Zarar</div><div class="ps-val" style="color:'+(pnl>=0?'var(--green)':'var(--red)')+'">'+(cost?fmt(pnl):'—')+'</div>'+(cost&&uncosted?'<div style="font-size:.66rem;color:var(--txt3);margin-top:3px">'+uncosted+' maliyetsiz varlık hariç</div>':'')+'</div><div class="ps-card"><div class="ps-lbl">Hedef Tanımı</div><div class="ps-val">'+Object.keys(targets).length+' varlık</div></div>';
     var keys=Object.keys(byType).sort(function(a,b){return byType[b]-byType[a]});
-    dist.innerHTML=keys.map(function(k){var pct=total?byType[k]/total*100:0,target=targets[k];return'<div class="dist-row"><div>'+esc(TM[k]?TM[k].l:k)+'</div><div class="dist-track"><div class="dist-fill" style="width:'+Math.min(pct,100)+'%"></div></div><div>'+pct.toFixed(0)+'%'+(target!=null?' / '+target+'%':'')+'</div></div>'}).join('');
+    dist.innerHTML=keys.map(function(k){var pct=total?byType[k]/total*100:0,target=targets[k];return'<div class="dist-row"><div>'+esc(TM[k]?TM[k].l:k)+'</div><div class="dist-track"><div class="dist-fill" style="width:'+Math.min(pct,100)+'%"></div></div><div>'+fmtPct(pct)+(target!=null?' / '+fmtPct(target):'')+'</div></div>'}).join('');
   }
   function render(){
     var items=S.portfolio(),r=S.settings().rates||{};
@@ -2618,7 +2629,7 @@ App.Portfolio=(function(){
     if(!items.length){el.innerHTML='<div class="empty" style="grid-column:1/-1"><span class="empty-ico">💎</span><div class="empty-t">Varlık eklenmedi</div><div class="empty-s">Döviz, altın veya fonlarını ekle</div></div>';document.getElementById('portTotal').textContent=fmt(0);document.getElementById('portAssetCount').innerHTML='<span class="dot b"></span>0 Varlık';renderPortfolioSummary([],r,0);return}
     el.innerHTML=items.map(function(a){
       var m=TM[a.type]||{i:'💰',l:a.type};var rate=priceOf(a),val=a.qty*rate;total+=val;
-      var chg='';if(a.cost&&rate){var diff=(rate-a.cost)*a.qty;var pct=a.cost>0?((rate-a.cost)/a.cost)*100:0;chg='<div class="port-chg" style="color:'+(diff>=0?'var(--green)':'var(--red)')+'">'+(diff>=0?'▲ ':'▼ ')+fmt(Math.abs(diff))+' ('+pct.toFixed(1)+'%)</div>'}
+      var chg='';if(a.cost&&rate){var diff=(rate-a.cost)*a.qty;var pct=a.cost>0?((rate-a.cost)/a.cost)*100:0;chg='<div class="port-chg" style="color:'+(diff>=0?'var(--green)':'var(--red)')+'">'+(diff>=0?'▲ ':'▼ ')+fmt(Math.abs(diff))+' ('+fmtPct(pct,1)+')</div>'}
       var sellBtn='<button class="btn btn-sm btn-ghost" style="margin-top:8px;padding:4px 10px;font-size:.7rem;margin-right:4px" onclick="App.Portfolio.sell(\''+a.id+'\')">Sat</button>';
       var priceBtn=a.type==='FUND'?'<button class="btn btn-sm btn-ghost" style="margin-top:8px;padding:4px 10px;font-size:.7rem" onclick="App.Portfolio.editPrice(\''+a.id+'\')">'+(a.currentPrice?'✎ Fiyat: '+fmtPrice(a.currentPrice):'✎ Güncel fiyat gir')+'</button>':'';
       var priceWarn=a.type==='FUND'&&!a.currentPrice?'<div class="port-chg" style="color:var(--yellow)">⚠ Güncel fiyat girilmedi'+(a.cost?'; maliyet kullanılıyor':'')+'</div>':'';
@@ -2821,7 +2832,7 @@ App.YearlyFund=(function(){
       var nd=nextDue(f),pct=f.amount>0?Math.min(((f.contributed||0)/f.amount)*100,100):0;
       var remAmt=Math.max(f.amount-(f.contributed||0),0),perMonth=roundMoney(remAmt/nd.monthsLeft);
       var warn=nd.overdue?'<div style="font-size:.72rem;color:var(--red);margin-top:4px">⚠ '+MF[f.dueMonth-1]+' '+nd.year+' ödeme ayı geçti. Ödediyseniz "Ödendi" ile işaretleyin.</div>':'';
-      return'<div class="fund-card"><div class="fund-head"><div><div class="fund-name">'+esc(f.name)+'</div><div class="fund-yearly">Yıllık '+fmt(f.amount)+' · Son: '+MF[f.dueMonth-1]+' '+nd.year+' · Biriken: '+fmt(f.contributed||0)+'</div>'+warn+'</div><div style="text-align:right"><div class="fund-monthly">'+fmt(perMonth)+'</div><div style="font-size:.7rem;color:var(--txt2)">aylık kalan</div></div></div><div class="fund-prog"><div class="fund-prog-fill" style="width:'+pct+'%"></div></div><div class="fund-foot"><span>'+pct.toFixed(0)+'% biriktirildi</span><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn btn-sm btn-ghost" onclick="App.YearlyFund.contribute(\''+f.id+'\')">+ Katkı</button><button class="btn btn-sm btn-ghost" onclick="App.YearlyFund.markPaid(\''+f.id+'\')">✓ Ödendi</button><button class="btn-del" onclick="App.YearlyFund.remove(\''+f.id+'\')">Sil</button></div></div></div>';
+      return'<div class="fund-card"><div class="fund-head"><div><div class="fund-name">'+esc(f.name)+'</div><div class="fund-yearly">Yıllık '+fmt(f.amount)+' · Son: '+MF[f.dueMonth-1]+' '+nd.year+' · Biriken: '+fmt(f.contributed||0)+'</div>'+warn+'</div><div style="text-align:right"><div class="fund-monthly">'+fmt(perMonth)+'</div><div style="font-size:.7rem;color:var(--txt2)">aylık kalan</div></div></div><div class="fund-prog"><div class="fund-prog-fill" style="width:'+pct+'%"></div></div><div class="fund-foot"><span>'+fmtPct(pct)+' biriktirildi</span><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn btn-sm btn-ghost" onclick="App.YearlyFund.contribute(\''+f.id+'\')">+ Katkı</button><button class="btn btn-sm btn-ghost" onclick="App.YearlyFund.markPaid(\''+f.id+'\')">✓ Ödendi</button><button class="btn-del" onclick="App.YearlyFund.remove(\''+f.id+'\')">Sil</button></div></div></div>';
     }).join('');
   }
   return{add,remove,contribute,markPaid,nextDue,render}
@@ -2932,7 +2943,7 @@ App.NetWorth=(function(){
     var adjHist=hist.map(function(h){return{month:h.month,total:mode==='real'?App.Inflation.adjust(h.total,h.month):h.total}});
     var prev=adjHist.length>=2?adjHist[adjHist.length-2]:null;
     var delta=document.getElementById('nwDelta');
-    if(prev){var d=curTotal-prev.total,pct=prev.total?((d/Math.abs(prev.total))*100):0;var cls=d>0?'pos':d<0?'neg':'zero',sign=d>0?'▲ ':d<0?'▼ ':'';delta.className='nw-delta '+cls;delta.textContent=sign+fmt(Math.abs(d))+(prev.total?' ('+pct.toFixed(1)+'%)':'')}
+    if(prev){var d=curTotal-prev.total,pct=prev.total?((d/Math.abs(prev.total))*100):0;var cls=d>0?'pos':d<0?'neg':'zero',sign=d>0?'▲ ':d<0?'▼ ':'';delta.className='nw-delta '+cls;delta.textContent=sign+fmt(Math.abs(d))+(prev.total?' ('+fmtPct(pct,1)+')':'')}
     else{delta.className='nw-delta zero';delta.textContent='İlk kayıt'}
     var foot=document.getElementById('nwFoot');
     foot.innerHTML='<span>💳 <b>'+fmt(nw.accounts)+'</b> Hesaplar</span>'+
@@ -3002,20 +3013,20 @@ App.Report=(function(){
     h+='<tr><td>Toplam Gider</td><td class="pr-r pr-rr">-'+fmt(exp)+'</td></tr>';
     h+='<tr><td><b>Net Bakiye</b></td><td class="pr-r"><b>'+(net>=0?'+':'')+fmt(net)+'</b></td></tr>';
     h+='<tr><td>İşlem Sayısı</td><td class="pr-r">'+flowCount+(txns.length>flowCount?' (+'+(txns.length-flowCount)+' transfer bacağı)':'')+'</td></tr>';
-    if(inc>0)h+='<tr><td>Tasarruf Oranı</td><td class="pr-r">'+((net/inc)*100).toFixed(1)+'%</td></tr>';
+    if(inc>0)h+='<tr><td>Tasarruf Oranı</td><td class="pr-r">'+fmtPct(net/inc*100,1)+'</td></tr>';
     h+='</table>';
 
     var incKeys=Object.keys(byCatInc).sort(function(a,b){return byCatInc[b]-byCatInc[a]});
     if(incKeys.length){
       h+='<div class="pr-h2">Gelir Kategorileri</div><table class="pr-tbl"><thead><tr><th>Kategori</th><th class="pr-r">Tutar</th><th class="pr-r">Pay</th></tr></thead>';
-      incKeys.forEach(function(k){var v=byCatInc[k],pct=inc>0?(v/inc*100).toFixed(1):'0.0';h+='<tr><td>'+esc(k)+'</td><td class="pr-r pr-g">'+fmt(v)+'</td><td class="pr-r">'+pct+'%</td></tr>'});
+      incKeys.forEach(function(k){var v=byCatInc[k],pct=inc>0?(v/inc*100).toFixed(1):'0.0';h+='<tr><td>'+esc(k)+'</td><td class="pr-r pr-g">'+fmt(v)+'</td><td class="pr-r">%'+String(pct).replace('.',',')+'</td></tr>'});
       h+='</table>';
     }
 
     var expKeys=Object.keys(byCatExp).sort(function(a,b){return byCatExp[b]-byCatExp[a]});
     if(expKeys.length){
       h+='<div class="pr-h2">Gider Kategorileri</div><table class="pr-tbl"><thead><tr><th>Kategori</th><th class="pr-r">Tutar</th><th class="pr-r">Pay</th></tr></thead>';
-      expKeys.forEach(function(k){var v=byCatExp[k],pct=exp>0?(v/exp*100).toFixed(1):'0.0';h+='<tr><td>'+esc(k)+'</td><td class="pr-r pr-rr">'+fmt(v)+'</td><td class="pr-r">'+pct+'%</td></tr>'});
+      expKeys.forEach(function(k){var v=byCatExp[k],pct=exp>0?(v/exp*100).toFixed(1):'0.0';h+='<tr><td>'+esc(k)+'</td><td class="pr-r pr-rr">'+fmt(v)+'</td><td class="pr-r">%'+String(pct).replace('.',',')+'</td></tr>'});
       h+='</table>';
     }
 

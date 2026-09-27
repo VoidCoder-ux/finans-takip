@@ -231,7 +231,7 @@ async function runAudit3b() {
   p = r.page;
   await p.click('[data-nav="istatistikler"]');
   var kpis = await p.locator('#statsKpis .skpi-val').allTextContents();
-  eq('budget usage ignores unbudgeted categories', kpis[3], '50.0%');
+  eq('budget usage ignores unbudgeted categories', kpis[3], '%50,0');
   var dayAvg = (550 / now.getDate()).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   eq('daily average divides by elapsed days this month', kpis[2], '₺' + dayAvg);
   await r.ctx.close();
