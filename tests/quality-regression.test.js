@@ -249,5 +249,20 @@ ok('backup restore uses modal confirm', /Yedeği Geri Yükle/.test(indexHtml));
 ok('csv import uses modal confirm', /CSV İçe Aktar/.test(indexHtml));
 ok('escape closes topmost modal generically', /modal-bd\.show/.test(indexHtml.split('bindEvents')[1] || ''));
 
+// Denetim #3: transfer, düzenleme, hesaplama düzeltmeleri (davranış testi: tests/browser-behavior.test.js)
+ok('no mojibake in UI strings', indexHtml.indexOf('â€') === -1);
+ok('rules page reachable from desktop sidebar', /class="nav-item" data-nav="kurallar"/.test(indexHtml));
+ok('transfer type pill exists', /id="pillTrf"/.test(indexHtml) && /id="txnToAccount"/.test(indexHtml));
+ok('monthly totals skip transfers', /if\(isTransfer\(t\)\|\|!t\.date\.startsWith\(month\)\)return;count\+\+/.test(indexHtml));
+ok('category totals skip transfers', /t\.type!=='expense'\|\|isTransfer\(t\)\|\|!t\.date\.startsWith\(month\)/.test(indexHtml));
+ok('goal transfer mode creates a real transfer', /App\.Transactions\.createTransfer\(\{from:src,to:accountId/.test(indexHtml));
+ok('transactions and accounts are editable', /App\.Transactions\.edit\(/.test(indexHtml) && /App\.Accounts\.edit\(/.test(indexHtml));
+ok('normalize keeps cleared userId (deleted member)', /function ownerRef\(x\)/.test(indexHtml) && !/cleanStoredRef\(t\.userId\|\|_s\.activeUser\)/.test(indexHtml));
+ok('legacy opening balance derived from history', /a\.openingBalance=roundMoney\(a\.balance-moved\)/.test(indexHtml));
+ok('portfolio P&L uses costed assets only', /pnl=cost\?roundMoney\(costedValue-cost\)/.test(indexHtml));
+
+function roundQty(n) { n = Number(n); return Number.isFinite(n) ? Math.round(n * 1e6) / 1e6 : 0; }
+eq('fund units keep 6 decimals', roundQty(1000.1234564), 1000.123456);
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
