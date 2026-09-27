@@ -143,7 +143,7 @@ ok('service worker keeps external APIs no-store', /cache: 'no-store'/.test(sw) &
 
 // FT-009: Recurring duplicate prevention
 ok('recurring log uses recurringId for duplicate check', /t\.recurringId===rec\.id/.test(indexHtml));
-ok('recurring log checks same month duplicate', /t\.date\.substring\(0,7\)===currentMonth/.test(indexHtml));
+ok('recurring log checks same month duplicate', /t\.recurringId===rec\.id&&t\.date\.substring\(0,7\)===month/.test(indexHtml));
 
 // FT-010: Debt payment overflow check
 ok('debt addPayment checks remaining before adding', /rem=d\.amount-paid/.test(indexHtml));
@@ -176,7 +176,7 @@ ok('type pill no longer reuses .ti class', !/\.tp\.ti\{/.test(indexHtml));
 
 // FIX: budget carryover tracks its start month (no phantom rollover)
 ok('budget carryover stores carryStart', /carryStart=tm\(\)/.test(indexHtml));
-ok('rollover skips months before carryStart', /if\(m<start\)continue/.test(indexHtml));
+ok('rollover starts at carryStart, no 6-month cap', /for\(var m=start;m<cur;m=shiftMonth\(m,1\)\)/.test(indexHtml) && /limitFor\(cat,m\)/.test(indexHtml));
 
 // FIX: CSV dedup signature includes userId
 ok('CSV dedup seen-map includes userId', /t\.userId\|\|''\]\.join\('\|'\)/.test(indexHtml));
@@ -209,7 +209,7 @@ ok('normalize keeps contribution txn link', /txnId:cleanStoredRef\(c\.txnId\)/.t
 
 // FIX: recurring log defers balance for future-dated planned payment
 ok('recurring log computes applied from planned date', /var applied=plannedDate<=td\(\)/.test(indexHtml));
-ok('recurring log adjusts balance only when applied', /if\(applied\)App\.Accounts\.adjustBalance\(sharedAcc\.id/.test(indexHtml));
+ok('recurring log adjusts balance only when applied', /if\(applied\)App\.Accounts\.adjustBalance\(acc\.id/.test(indexHtml));
 
 // FIX: installment count outside 2-36 is rejected instead of silently single-charging
 ok('installment count range is validated', /insCount<2\|\|insCount>36/.test(indexHtml));
@@ -227,7 +227,7 @@ eq('jsAttr doubles backslashes', jsAttrT('a\\b'), 'a\\\\b');
 
 // FIX: bundled CPI estimates are flagged until user verifies
 ok('CPI user verification flag tracked', /cpiUserEdited/.test(indexHtml));
-ok('real mode warns about estimated CPI', /tahminidir/.test(indexHtml) && /ESTIMATED_FROM/.test(indexHtml));
+ok('real mode warns when CPI data is stale', /function isStale\(\)/.test(indexHtml) && /cpiVersion/.test(indexHtml));
 
 // FT-012: fund/stock current price support
 ok('portfolio normalize keeps currentPrice', /currentPrice:Math\.min\(MAX_MONEY/.test(indexHtml));

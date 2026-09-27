@@ -121,6 +121,10 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .ti-amt.income{color:var(--green)}.ti-amt.expense{color:var(--red)}.ti-amt.transfer{color:var(--blue)}
 .tp.on-trf{border-color:var(--blue);color:var(--blue);background:rgba(59,130,246,.1)}
 .ti-actions{display:flex;gap:2px;justify-content:flex-end}
+.rec-item{flex-wrap:wrap}.rec-actions{flex-basis:100%;display:flex;gap:4px;justify-content:flex-end;align-items:center;border-top:1px solid var(--border);padding-top:6px;margin-top:-2px}.rec-status{display:inline-block;margin-top:4px}
+input[data-money]:placeholder-shown+.money-hint{display:none}
+.toast-act{margin-left:auto;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,.22);color:#fff;font-weight:800;font-size:.78rem;flex-shrink:0}
+.money-hint{font-size:.7rem;color:var(--txt2);margin-top:2px;min-height:.9em}.money-hint.bad{color:var(--red)}.contrib-row .money-hint{flex-basis:100%;margin-top:-4px}
 .acc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;margin-bottom:18px}
 .acc-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:18px;position:relative;overflow:hidden;transition:transform var(--tr),box-shadow var(--tr)}
 .acc-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
@@ -491,7 +495,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div class="fg c3">
       <div class="f"><label>Hesap Adı</label><input type="text" id="accName" placeholder="Örn: Ziraat Bankası"/></div>
       <div class="f"><label>Tür</label><select id="accType" onchange="App.Accounts.onTypeChange()"><option value="cash">💵 Nakit</option><option value="bank">🏦 Banka</option><option value="card">💳 Kredi Kartı</option><option value="savings">🐖 Birikim</option><option value="investment">📈 Yatırım</option></select></div>
-      <div class="f"><label>Başlangıç Bakiyesi (₺)</label><input type="number" inputmode="decimal" id="accBal" placeholder="0.00" step="0.01"/></div>
+      <div class="f"><label>Başlangıç Bakiyesi (₺)</label><input type="text" inputmode="decimal" id="accBal" placeholder="0,00" data-money="money" autocomplete="off"/></div>
     </div>
     <div class="fg c3">
       <div class="f"><label>Sahip</label><select id="accOwner" onchange="App.Accounts.onOwnerChange()"><option value="shared">👨‍👩‍👧 Ortak</option><option value="personal">🙋 Kişisel</option></select></div>
@@ -527,7 +531,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
   <div class="ph"><div><div class="ph-title">İşlemler</div><div class="ph-sub">Tüm gelir ve giderleriniz</div></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm btn-ghost" onclick="document.getElementById('csvImport').click()">⬆️ CSV Yükle</button><button class="btn btn-sm btn-ghost" onclick="App.Transactions.exportCSV()">⬇️ CSV İndir</button><input type="file" id="csvImport" accept=".csv,text/csv" style="display:none" onchange="App.Transactions.importCSV(this)"/></div></div>
   <div class="card">
     <div class="type-pills"><button class="tp on-inc" id="pillInc" onclick="App.UI.setType('income')">+ Gelir</button><button class="tp" id="pillExp" onclick="App.UI.setType('expense')">− Gider</button><button class="tp" id="pillTrf" onclick="App.UI.setType('transfer')">↔ Transfer</button></div>
-    <div class="fg c3"><div class="f"><label>Tutar (₺)</label><input type="number" inputmode="decimal" id="txnAmt" placeholder="0.00" min="0" step="0.01"/></div><div class="f"><label>Tarih</label><input type="date" id="txnDate"/></div><div class="f" id="txnCatWrap"><label>Kategori</label><select id="txnCat"></select></div></div>
+    <div class="fg c3"><div class="f"><label>Tutar (₺)</label><input type="text" inputmode="decimal" id="txnAmt" placeholder="0,00" data-money="money" autocomplete="off"/></div><div class="f"><label>Tarih</label><input type="date" id="txnDate"/></div><div class="f" id="txnCatWrap"><label>Kategori</label><select id="txnCat"></select></div></div>
     <div class="fg c3" style="margin-bottom:11px"><div class="f"><label id="txnAccLbl">Hesap</label><select id="txnAccount"></select></div><div class="f" id="txnToWrap" style="display:none"><label>Hedef Hesap</label><select id="txnToAccount"></select></div><div class="f"><label>Kim Yaptı</label><select id="txnUser"></select></div><div class="f"><label>Not</label><input type="text" id="txnNote" placeholder="Açıklama..."/></div></div>
     <div id="txnTrfRow" style="margin:-2px 0 12px;display:none;font-size:.74rem;color:var(--txt2);line-height:1.45">↔ Kendi hesaplarınız arasındaki para hareketi (ör. bankadan kredi kartı borcu ödemek). Gelir/gider toplamlarına ve bütçeye sayılmaz.</div>
     <div class="fg c2" id="txnInstRow" style="margin-bottom:11px"><div class="f"><label>Taksit Sayısı</label><input type="number" id="txnInst" placeholder="Tek çekim için boş bırak" min="2" max="36"/></div><div class="f"><label>İlk Taksit Tarihi</label><input type="date" id="txnInstStart"/></div></div>
@@ -550,12 +554,12 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div class="sh-title" style="margin-bottom:14px">Yeni Tekrarlayan İşlem</div>
     <div class="fg c4">
       <div class="f"><label>Tür</label><select id="recType"><option value="expense">− Gider</option><option value="income">+ Gelir</option></select></div>
-      <div class="f"><label>Tutar (₺)</label><input type="number" inputmode="decimal" id="recAmt" placeholder="0.00" min="0" step="0.01"/></div>
+      <div class="f"><label>Tutar (₺)</label><input type="text" inputmode="decimal" id="recAmt" placeholder="0,00" data-money="money" autocomplete="off"/></div>
       <div class="f"><label>Kategori</label><select id="recCat"></select></div>
       <div class="f"><label>Her Ayın Kaçında</label><input type="number" id="recDay" placeholder="1-31" min="1" max="31"/></div>
     </div>
     <div class="fg c2" style="margin-bottom:11px">
-      <div class="f"><label>Hesap</label><div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:11px 12px;font-size:.84rem;color:var(--txt2)">Ortak cüzdan otomatik</div></div>
+      <div class="f"><label>Hesap</label><select id="recAccount"></select></div>
       <div class="f"><label>Açıklama</label><input type="text" id="recNote" placeholder="Örn: Elektrik faturası"/></div>
     </div>
     <label class="sub-check"><input type="checkbox" id="recIsSub"/> <span>📺 Abonelik (Netflix, Spotify vb.) — kolay iptal takibi için işaretleyin</span></label>
@@ -582,10 +586,10 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div class="fg c4">
       <div class="f"><label>Tür</label><select id="debtDir"><option value="lent">⬆️ Verdim (alacak)</option><option value="borrowed">⬇️ Aldım (borç)</option></select></div>
       <div class="f"><label>Kişi</label><input type="text" id="debtPerson" placeholder="Ad soyad"/></div>
-      <div class="f"><label>Tutar (₺)</label><input type="number" inputmode="decimal" id="debtAmt" placeholder="0.00" min="0" step="0.01"/></div>
+      <div class="f"><label>Tutar (₺)</label><input type="text" inputmode="decimal" id="debtAmt" placeholder="0,00" data-money="money" autocomplete="off"/></div>
       <div class="f"><label>Tarih</label><input type="date" id="debtDate"/></div>
     </div>
-    <div class="fg c2" style="margin-bottom:11px"><div class="f"><label>Not</label><input type="text" id="debtNote" placeholder="Açıklama..."/></div></div>
+    <div class="fg c2" style="margin-bottom:11px"><div class="f"><label>Vade (opsiyonel)</label><input type="date" id="debtDue"/></div><div class="f"><label>Not</label><input type="text" id="debtNote" placeholder="Açıklama..."/></div></div>
     <button class="btn btn-primary" onclick="App.Debts.add()">Ekle</button>
   </div>
   <div class="sh"><div class="sh-title">Aktif Borçlar</div></div>
@@ -610,7 +614,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div class="cash-grid" id="budgetDailyGrid"></div>
     <div class="card dashed">
       <div class="sh-title" style="margin-bottom:14px">Limit Ekle / Güncelle</div>
-      <div class="fg c2"><div class="f"><label>Kategori</label><select id="bCat"></select></div><div class="f"><label>Aylık Limit (₺)</label><input type="number" id="bLimit" placeholder="0.00" min="0" step="0.01"/></div></div>
+      <div class="fg c2"><div class="f"><label>Kategori</label><select id="bCat"></select></div><div class="f"><label>Aylık Limit (₺)</label><input type="text" inputmode="decimal" id="bLimit" placeholder="0,00" data-money="money" autocomplete="off"/></div></div>
       <label class="sub-check" style="margin:10px 0 14px"><input type="checkbox" id="bCarry"/> <span>🔁 Bütçe Devri — kullanılmayan bakiye sonraki aya devrolur (aşım da düşülür)</span></label>
       <button class="btn btn-primary" onclick="App.Budget.save()">Kaydet</button>
     </div>
@@ -625,7 +629,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
       <div class="sh-title" style="margin-bottom:14px">Yıllık Gider Ekle (MTV, kasko, bayram, okul kaydı...)</div>
       <div class="fg c3">
         <div class="f"><label>Adı</label><input type="text" id="fundName" placeholder="Örn: MTV"/></div>
-        <div class="f"><label>Yıllık Tutar (₺)</label><input type="number" inputmode="decimal" id="fundAmt" placeholder="0.00" min="0" step="0.01"/></div>
+        <div class="f"><label>Yıllık Tutar (₺)</label><input type="text" inputmode="decimal" id="fundAmt" placeholder="0,00" data-money="money" autocomplete="off"/></div>
         <div class="f"><label>Son Ödeme Ayı</label><select id="fundMonth"></select></div>
       </div>
       <button class="btn btn-primary" onclick="App.YearlyFund.add()">Ekle</button>
@@ -662,12 +666,12 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div class="sh-title" style="margin-bottom:14px">Varlık Ekle</div>
     <div class="fg c4">
       <div class="f"><label>Tür</label><select id="portType" onchange="App.Portfolio.onTypeChange()"><option value="USD">💵 USD</option><option value="EUR">💶 EUR</option><option value="GBP">💷 GBP</option><option value="GOLD_GRAM">🪙 Gram Altın</option><option value="GOLD_QUARTER">🟡 Çeyrek Altın</option><option value="GOLD_FULL">🟠 Tam Altın</option><option value="FUND">📈 Fon/Hisse</option></select></div>
-      <div class="f"><label>Miktar</label><input type="number" inputmode="decimal" id="portQty" placeholder="0" min="0" step="any"/></div>
-      <div class="f"><label>Alış Birim Fiyatı (₺)</label><input type="number" inputmode="decimal" id="portCost" placeholder="Opsiyonel" min="0" step="any"/></div>
+      <div class="f"><label>Miktar</label><input type="text" inputmode="decimal" id="portQty" placeholder="0" data-money="qty" autocomplete="off"/></div>
+      <div class="f"><label>Alış Birim Fiyatı (₺)</label><input type="text" inputmode="decimal" id="portCost" placeholder="Opsiyonel" data-money="qty" autocomplete="off"/></div>
       <div class="f"><label>Etiket</label><input type="text" id="portLabel" placeholder="Opsiyonel"/></div>
     </div>
     <div class="fg c2" id="portPriceWrap" style="display:none;margin-bottom:11px">
-      <div class="f"><label>Güncel Birim Fiyatı (₺)</label><input type="number" inputmode="decimal" id="portPrice" placeholder="Fon/hisse güncel fiyatı" min="0" step="any"/></div>
+      <div class="f"><label>Güncel Birim Fiyatı (₺)</label><input type="text" inputmode="decimal" id="portPrice" placeholder="Fon/hisse güncel fiyatı" data-money="qty" autocomplete="off"/></div>
     </div>
     <button class="btn btn-primary" onclick="App.Portfolio.add()">Varlık Ekle</button>
   </div>
@@ -761,7 +765,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
     <div class="sh-title" style="margin-bottom:14px">Yeni Hedef</div>
     <div class="fg c3">
       <div class="f"><label>Hedef Adı</label><input type="text" id="gName" placeholder="Tatil Fonu"/></div>
-      <div class="f"><label>Hedef Tutar (₺)</label><input type="number" inputmode="decimal" id="gTarget" placeholder="0.00" min="0" step="0.01"/></div>
+      <div class="f"><label>Hedef Tutar (₺)</label><input type="text" inputmode="decimal" id="gTarget" placeholder="0,00" data-money="money" autocomplete="off"/></div>
       <div class="f"><label>Emoji</label><input type="text" id="gEmoji" placeholder="🎯" maxlength="2"/></div>
     </div>
     <div class="fg c3" style="margin-bottom:11px"><div class="f"><label>Birikim Hesabı</label><select id="gAccount"></select></div><div class="f"><label>Katkı Türü</label><select id="gTxnMode" onchange="App.Goals.onModeChange()"><option value="none">Sadece hedefe yaz</option><option value="expense">Birikim hesabından gider olarak düş</option><option value="transfer">Kaynak hesaptan birikim hesabına transfer</option></select></div><div class="f" id="gSourceWrap" style="display:none"><label>Kaynak Hesap</label><select id="gSource"></select></div></div>
@@ -805,6 +809,9 @@ function parseMoney(v,opt){
     if(s.indexOf(',')>=0){
       if(!/^-?\d{1,3}(\.\d{3})*(,\d+)?$|^-?\d+(,\d+)?$/.test(s))return null;
       n=Number(s.replace(/\./g,'').replace(',','.'));
+    }else if(/^-?\d{1,3}(\.\d{3})+$/.test(s)){
+      // Virgülsüz "1.500" Türkçe yazımda binlik ayracıdır: 1500
+      n=Number(s.replace(/\./g,''));
     }else{
       if(!/^-?\d+(\.\d+)?$/.test(s))return null;
       n=Number(s);
@@ -814,6 +821,13 @@ function parseMoney(v,opt){
   return opt.round===false?n:roundMoney(n);
 }
 function isValidMoney(v,opt){return parseMoney(v,opt)!==null}
+// Tutarı girerken nasıl okunduğunu gösterir (ör. "1.500" → ₺1.500,00)
+function moneyHint(el){
+  var hint=el.nextElementSibling;if(!hint||!hint.classList.contains('money-hint')){hint=document.createElement('div');hint.className='money-hint';el.insertAdjacentElement('afterend',hint)}
+  var v=String(el.value||'').replace(/\s|₺|TL/gi,'');if(!v){hint.textContent='';return}
+  var n=parseMoney(v,{round:false,allowZero:true,min:-MAX_MONEY});
+  hint.className='money-hint'+(n===null?' bad':'');hint.textContent=n===null?'⚠ Tutar anlaşılamadı (ör. 1.500,75)':'= '+(el.getAttribute('data-money')==='qty'?fmtQty(n):fmt(n));
+}
 // Adet/birim fiyat: fon payı ve altın için 6 ondalık hassasiyet
 function roundQty(n){n=Number(n);return Number.isFinite(n)?Math.round(n*1e6)/1e6:0}
 function parseQty(v,opt){opt=opt||{};var n=parseMoney(v,{round:false,allowZero:opt.allowZero,min:opt.allowZero?0:.000001});return n===null?null:roundQty(n)}
@@ -826,6 +840,34 @@ function isBalanceApplied(t,today){return t.balanceApplied!==false&&t.date<=toda
 function toNum(v,fb){var n=typeof v==='number'?v:parseFloat(String(v||'').replace(',','.'));return isFinite(n)?n:(fb||0)}
 function validDate(iso){var m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return false;var d=new Date(+m[1],+m[2]-1,+m[3]);return d.getFullYear()===+m[1]&&d.getMonth()===+m[2]-1&&d.getDate()===+m[3]}
 function validMonth(m){return /^\d{4}-(0[1-9]|1[0-2])$/.test(String(m||''))}
+function daysUntil(iso){var p=iso.split('-'),n=new Date();return Math.round((new Date(+p[0],+p[1]-1,+p[2])-new Date(n.getFullYear(),n.getMonth(),n.getDate()))/86400000)}
+function shiftMonth(m,n){var p=m.split('-'),d=new Date(+p[0],+p[1]-1+n,1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+// CSV okuma: ayraç (; , sekme) ilk satırdan tespit edilir, tırnaklı alanlar desteklenir
+function parseCSVText(text){
+  text=String(text||'').replace(/^﻿/,'');
+  var first=text.split(/\r?\n/)[0]||'',cnt={';':0,',':0,'\t':0},q=false;
+  for(var j=0;j<first.length;j++){var c=first[j];if(c==='"')q=!q;else if(!q&&cnt[c]!=null)cnt[c]++}
+  var delim=cnt[';']>cnt[',']&&cnt[';']>=cnt['\t']?';':cnt['\t']>cnt[',']?'\t':',';
+  var rows=[],row=[],cur='';q=false;
+  for(var i=0;i<text.length;i++){var ch=text[i],nx=text[i+1];if(q){if(ch==='"'&&nx==='"'){cur+='"';i++}else if(ch==='"')q=false;else cur+=ch}else{if(ch==='"')q=true;else if(ch===delim){row.push(cur);cur=''}else if(ch==='\n'){row.push(cur);rows.push(row);row=[];cur=''}else if(ch!=='\r')cur+=ch}}
+  if(cur||row.length){row.push(cur);rows.push(row)}
+  return rows.filter(function(r){return r.some(function(c){return String(c).trim()!==''})});
+}
+// Tarih: 2026-09-27, 27.09.2026, 27/09/2026, 27-09-2026 (saat eki yok sayılır) → YYYY-MM-DD
+function csvDate(v){
+  v=String(v==null?'':v).trim().replace(/^'/,'').split(/[ T]/)[0];var m;
+  if((m=v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)))v=m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+  else if((m=v.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/)))v=m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0');
+  else return '';
+  return validDate(v)?v:'';
+}
+// Tutar: işaretli olabilir; ₺/TL/boşluk ve Excel formül koruma tırnağı atılır. Geçersizse null
+function csvAmount(v){
+  var s=String(v==null?'':v).trim().replace(/^'/,'').replace(/\s|₺|TL|TRY/gi,'');
+  if(/^\+/.test(s))s=s.slice(1);
+  if(/^\(.*\)$/.test(s))s='-'+s.slice(1,-1);
+  return parseMoney(s,{round:false,allowZero:true,min:-MAX_MONEY});
+}
 function csvSafe(v){v=String(v==null?'':v);if(/^[\t\r=+\-@]/.test(v))v="'"+v;return'"'+v.replace(/"/g,'""')+'"'}
 function fmt(n){var v=Number(n||0);if(v<0)return'-₺'+Math.abs(v).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});return'₺'+v.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function fd(iso){if(!validDate(iso))return '-';var p=iso.split('-');return p[2]+' '+MF[+p[1]-1]+' '+p[0]}
@@ -867,9 +909,9 @@ var S=(function(){
     _a=normalizeList(_a,'pf_a',function(a){var type=AM[a.type]?a.type:'cash';var owner=a.owner==='personal'?'personal':'shared';var existingOpBal=typeof a.openingBalance==='number'?roundMoney(a.openingBalance):null;if(existingOpBal===null)legacyOpening=true;return{id:cleanStoredId(a.id,'a'),name:String(a.name||'Hesap').slice(0,120),type:type,owner:owner,userId:owner==='personal'?cleanStoredRef(a.userId||_s.activeUser):null,statementDay:a.statementDay>=1&&a.statementDay<=31?parseInt(a.statementDay):null,balance:Math.max(-MAX_MONEY,Math.min(MAX_MONEY,roundMoney(toNum(a.balance,0)))),openingBalance:existingOpBal,ts:toNum(a.ts,Date.now())}},invalid);
     _t=normalizeList(_t,'pf_t',function(t){var type=t.type==='expense'?'expense':'income',date=cleanDate(t.date),inst=t.installment?obj(t.installment):null,amt=Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(t.amount,0))));var balApplied=typeof t.balanceApplied==='boolean'?t.balanceApplied:true;if(inst){var created=dateFromTs(t.ts);inst.planId=cleanStoredId(inst.planId,'p');inst.index=Math.max(1,parseInt(inst.index)||1);inst.total=Math.max(inst.index,parseInt(inst.total)||inst.index);inst.totalAmount=Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(inst.totalAmount,amt))));inst.name=String(inst.name||t.category||'Taksit').slice(0,120);inst.startDate=cleanDate(inst.startDate,date);if(typeof inst.balanceApplied!=='boolean')inst.balanceApplied=date<=created;balApplied=inst.balanceApplied}return{id:cleanStoredId(t.id,'t'),type:type,amount:amt,category:String(t.category||'Diğer').slice(0,80),date:date,note:String(t.note||'').slice(0,500),accountId:cleanStoredRef(t.accountId),userId:ownerRef(t),recurringId:cleanStoredRef(t.recurringId),transferId:cleanStoredRef(t.transferId),ts:toNum(t.ts,Date.now()),balanceApplied:balApplied,installment:inst}},invalid);
     _g=normalizeList(_g,'pf_g',function(g){return{id:cleanStoredId(g.id,'g'),name:String(g.name||'Hedef').slice(0,120),target:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(g.target,0)))),emoji:String(g.emoji||'🎯').slice(0,4),accountId:cleanStoredRef(g.accountId),sourceAccountId:cleanStoredRef(g.sourceAccountId),txnMode:(g.txnMode==='expense'||g.txnMode==='transfer')?g.txnMode:'none',contributions:normalizeList(g.contributions,'goal.contributions',function(c){return{id:cleanStoredId(c.id,'c'),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(c.amount,0)))),date:cleanDate(c.date),note:String(c.note||'').slice(0,300),accountId:cleanStoredRef(c.accountId),txnId:cleanStoredRef(c.txnId),transferId:cleanStoredRef(c.transferId)}},invalid),done:g.done||null,emergency:!!g.emergency,monthsCovered:toNum(g.monthsCovered,0),baseAvg:toNum(g.baseAvg,0),ts:toNum(g.ts,Date.now())}},invalid);
-    _r=normalizeList(_r,'pf_r',function(r){return{id:cleanStoredId(r.id,'r'),type:r.type==='income'?'income':'expense',amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(r.amount,0)))),category:String(r.category||'Diğer').slice(0,80),day:Math.min(31,Math.max(1,parseInt(r.day)||1)),note:String(r.note||'').slice(0,300),accountId:cleanStoredRef(r.accountId),userId:ownerRef(r),isSubscription:!!r.isSubscription,ts:toNum(r.ts,Date.now())}},invalid);
-    _d=normalizeList(_d,'pf_d',function(d){return{id:cleanStoredId(d.id,'d'),direction:d.direction==='borrowed'?'borrowed':'lent',person:String(d.person||'Kişi').slice(0,120),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(d.amount,0)))),date:cleanDate(d.date),dueDate:cleanDate(d.dueDate||d.date),note:String(d.note||'').slice(0,300),payments:normalizeList(d.payments,'debt.payments',function(p){return{id:cleanStoredId(p.id,'p'),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(p.amount,0)))),date:cleanDate(p.date)}},invalid),settled:!!d.settled,ts:toNum(d.ts,Date.now())}},invalid);
-    _f=normalizeList(_f,'pf_f',function(f){return{id:cleanStoredId(f.id,'yf'),name:String(f.name||'Yıllık gider').slice(0,120),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(f.amount,0)))),dueMonth:Math.min(12,Math.max(1,parseInt(f.dueMonth)||12)),contributed:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(f.contributed,0)))),ts:toNum(f.ts,Date.now())}},invalid);
+    _r=normalizeList(_r,'pf_r',function(r){return{id:cleanStoredId(r.id,'r'),type:r.type==='income'?'income':'expense',amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(r.amount,0)))),category:String(r.category||'Diğer').slice(0,80),day:Math.min(31,Math.max(1,parseInt(r.day)||1)),note:String(r.note||'').slice(0,300),accountId:cleanStoredRef(r.accountId),userId:ownerRef(r),isSubscription:!!r.isSubscription,active:r.active!==false,ts:toNum(r.ts,Date.now())}},invalid);
+    _d=normalizeList(_d,'pf_d',function(d){return{id:cleanStoredId(d.id,'d'),direction:d.direction==='borrowed'?'borrowed':'lent',person:String(d.person||'Kişi').slice(0,120),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(d.amount,0)))),date:cleanDate(d.date),hasDue:d.hasDue===true&&validDate(d.dueDate),dueDate:d.hasDue===true&&validDate(d.dueDate)?d.dueDate:'',note:String(d.note||'').slice(0,300),payments:normalizeList(d.payments,'debt.payments',function(p){return{id:cleanStoredId(p.id,'p'),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(p.amount,0)))),date:cleanDate(p.date)}},invalid),settled:!!d.settled,ts:toNum(d.ts,Date.now())}},invalid);
+    _f=normalizeList(_f,'pf_f',function(f){return{id:cleanStoredId(f.id,'yf'),name:String(f.name||'Yıllık gider').slice(0,120),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(f.amount,0)))),dueMonth:Math.min(12,Math.max(1,parseInt(f.dueMonth)||12)),contributed:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(f.contributed,0)))),paidYear:Math.max(0,parseInt(f.paidYear)||0),ts:toNum(f.ts,Date.now())}},invalid);
     _p=normalizeList(_p,'pf_p',function(p){return{id:cleanStoredId(p.id,'pa'),type:p.type||'FUND',qty:Math.min(MAX_MONEY,Math.max(0,roundQty(toNum(p.qty,0)))),cost:Math.min(MAX_MONEY,Math.max(0,roundQty(toNum(p.cost,0)))),currentPrice:Math.min(MAX_MONEY,Math.max(0,roundQty(toNum(p.currentPrice,0)))),label:String(p.label||'').slice(0,120),ts:toNum(p.ts,Date.now())}},invalid);
     _ru=normalizeList(_ru,'pf_ru',function(r){return{id:cleanStoredId(r.id,'ru'),field:String(r.field||'note'),value:String(r.value||'').slice(0,120),category:String(r.category||'Diğer').slice(0,80),active:r.active!==false,ts:toNum(r.ts,Date.now())}},invalid);
     _nw=normalizeList(_nw,'pf_nw',function(n){var m=validMonth(n.month)?n.month:tm();return{month:m,total:toNum(n.total,0),accounts:toNum(n.accounts,0),portfolio:toNum(n.portfolio,0),lent:toNum(n.lent,0),borrowed:toNum(n.borrowed,0),ts:toNum(n.ts,Date.now())}},invalid);
@@ -978,10 +1020,12 @@ App.Cashflow=(function(){
   function items(days){
     var out=[],today=td(),now=new Date(),curY=now.getFullYear(),curM=now.getMonth();
     function add(date,label,amount,type,src){if(date<today)return;var diff=Math.round((new Date(date)-new Date(today))/(86400000));if(diff>=0&&diff<=days)out.push({date:date,label:label,amount:amount,type:type,src:src,diff:diff})}
-    S.recurring().forEach(function(r){if(r.active===false)return;for(var i=0;i<3;i++){var tmn=curM+i,y=curY+Math.floor(tmn/12),m=((tmn%12)+12)%12,last=new Date(y,m+1,0).getDate(),d=y+'-'+String(m+1).padStart(2,'0')+'-'+String(Math.min(r.day,last)).padStart(2,'0');add(d,r.note||r.category,r.amount,r.type,r.isSubscription?'Abonelik':'Tekrarlayan')}});
+    // O ay için zaten "Kaydet" ile işlenmiş tekrarlayan ödeme, işlem olarak listede; projeksiyona ikinci kez eklenmez
+    var logged={};S.txns().forEach(function(t){if(t.recurringId)logged[t.recurringId+'|'+t.date.substring(0,7)]=1});
+    S.recurring().forEach(function(r){if(r.active===false)return;for(var i=0;i<3;i++){var tmn=curM+i,y=curY+Math.floor(tmn/12),m=((tmn%12)+12)%12,last=new Date(y,m+1,0).getDate(),d=y+'-'+String(m+1).padStart(2,'0')+'-'+String(Math.min(r.day,last)).padStart(2,'0');if(logged[r.id+'|'+d.substring(0,7)])continue;add(d,r.note||r.category,r.amount,r.type,r.isSubscription?'Abonelik':'Tekrarlayan')}});
     S.txns().forEach(function(t){if(!isTransfer(t)&&t.date>=today&&(t.balanceApplied===false||t.installment))add(t.date,t.installment?(t.installment.name||t.category):t.category,t.amount,t.type,t.installment?'Taksit':'Planlı')});
-    S.fund().forEach(function(f){var m=f.dueMonth-1,y=m>=curM?curY:curY+1;add(y+'-'+String(m+1).padStart(2,'0')+'-01',f.name,f.amount,'expense','Yıllık fon')});
-    S.debts().forEach(function(d){if(d.settled)return;var paid=(d.payments||[]).reduce(function(s,p){return s+p.amount},0),rem=Math.max(d.amount-paid,0);add(d.dueDate||d.date,d.person,rem,d.direction==='lent'?'income':'expense',d.direction==='lent'?'Alacak':'Borç')});
+    S.fund().forEach(function(f){var nd=App.YearlyFund.nextDue(f);add(nd.date,f.name,f.amount,'expense',nd.overdue?'Yıllık fon (gecikmiş)':'Yıllık fon')});
+    S.debts().forEach(function(d){if(d.settled||!d.dueDate)return;var paid=(d.payments||[]).reduce(function(s,p){return s+p.amount},0),rem=Math.max(d.amount-paid,0);add(d.dueDate,d.person,rem,d.direction==='lent'?'income':'expense',d.direction==='lent'?'Alacak':'Borç')});
     out.sort(function(a,b){return a.date.localeCompare(b.date)||b.amount-a.amount});return out;
   }
   function summary(days){
@@ -1057,7 +1101,7 @@ App.UI=(function(){
   function refreshAccSelects(){
     var accs=S.accounts();
     var accOpts=accs.map(function(a){return'<option value="'+a.id+'">'+AM[a.type].i+' '+esc(a.name)+'</option>'}).join('');
-    var first={txnAccount:_type==='transfer'?'Kaynak hesap seç':'Varsayılan: ortak hesap',txnToAccount:'Hedef hesap seç',gAccount:'Hesap seç (isteğe bağlı)',gSource:'Varsayılan: ortak hesap'};
+    var first={txnAccount:_type==='transfer'?'Kaynak hesap seç':'Varsayılan: ortak hesap',txnToAccount:'Hedef hesap seç',recAccount:'Varsayılan: ortak hesap',gAccount:'Hesap seç (isteğe bağlı)',gSource:'Varsayılan: ortak hesap'};
     Object.keys(first).forEach(function(id){var sel=document.getElementById(id);if(sel){var prev=sel.value;sel.innerHTML='<option value="">'+first[id]+'</option>'+accOpts;if(prev&&accs.some(function(a){return a.id===prev}))sel.value=prev}});
     var el=document.getElementById('fAcc');
     if(el)el.innerHTML='<option value="">Tüm Hesaplar</option>'+accs.map(function(a){return'<option value="'+a.id+'">'+esc(a.name)+'</option>'}).join('');
@@ -1138,7 +1182,7 @@ App.UI=(function(){
     var fields=(opts.fields||[]).map(function(f,i){
       var t=f.type||'text';
       if(t==='select')return'<div class="f" style="margin-bottom:10px"><label>'+esc(f.label||'')+'</label><select data-pkey="'+escAttr(f.key)+'">'+(f.options||[]).map(function(o){return'<option value="'+escAttr(o.value)+'"'+(String(o.value)===String(f.value==null?'':f.value)?' selected':'')+'>'+esc(o.label)+'</option>'}).join('')+'</select></div>';
-      return'<div class="f" style="margin-bottom:10px"><label>'+esc(f.label||'')+'</label><input data-pkey="'+escAttr(f.key)+'" type="'+escAttr(t)+'"'+(t==='number'?' inputmode="decimal" step="'+escAttr(f.step||'0.01')+'"':'')+' value="'+escAttr(f.value==null?'':f.value)+'" placeholder="'+escAttr(f.placeholder||'')+'"/></div>';
+      return'<div class="f" style="margin-bottom:10px"><label>'+esc(f.label||'')+'</label><input data-pkey="'+escAttr(f.key)+'" type="'+escAttr(t==='number'?'text':t)+'"'+(t==='number'?' inputmode="'+(f.step==='1'?'numeric':'decimal')+'"'+(f.step==='1'?'':' data-money="'+(f.step==='any'?'qty':'money')+'" autocomplete="off"'):'')+' value="'+escAttr(f.value==null?'':f.value)+'" placeholder="'+escAttr(f.placeholder||'')+'"/></div>';
     }).join('');
     var div=document.createElement('div');div.id=id;div.className='app-dialog-holder';
     div.innerHTML='<div class="modal-bd show"><div class="modal"><div class="modal-title">'+esc(opts.title||'')+'</div>'+(opts.text?'<div style="font-size:.78rem;color:var(--txt2);line-height:1.5;margin-bottom:12px">'+esc(opts.text)+'</div>':'')+fields+'<div class="modal-actions"><button class="btn btn-ghost" data-act="cancel">Vazgeç</button><button class="btn btn-primary" data-act="ok">'+esc(opts.okLabel||'Kaydet')+'</button></div></div></div>';
@@ -1169,6 +1213,14 @@ App.UI=(function(){
     el.className='toast '+(type||'ok');el.innerHTML=(type==='err'?'❌ ':type==='info'?'ℹ️ ':'✅ ')+esc(msg);
     box.appendChild(el);setTimeout(function(){el.remove()},3200);
   }
+  // Eylem düğmeli bildirim (ör. "Geri al"); 6 sn görünür
+  function toastAction(msg,label,fn){
+    var box=document.getElementById('toasts'),el=document.createElement('div');
+    el.className='toast info';el.setAttribute('role','status');el.style.animation='tin .25s ease,tout .3s ease 5.7s forwards';
+    el.innerHTML='<span>'+esc(msg)+'</span><button class="toast-act">'+esc(label)+'</button>';
+    var done=false;el.querySelector('button').addEventListener('click',function(){if(done)return;done=true;el.remove();fn()});
+    box.appendChild(el);setTimeout(function(){el.remove()},6200);
+  }
   function setTheme(t){
     document.documentElement.setAttribute('data-theme',t);
     var tr=document.getElementById('toggleTrack');
@@ -1188,6 +1240,7 @@ App.UI=(function(){
       if(e.key==='Escape'){var mods=document.querySelectorAll('.modal-bd.show');if(mods.length){var top=mods[mods.length-1],holder=top.parentElement;if(holder&&holder.id)closeModal(holder.id);else top.remove()}return}
       if((e.key==='Enter'||e.key===' ')&&e.target&&e.target.matches('[role="button"]')){e.preventDefault();e.target.click()}
     });
+    document.addEventListener('input',function(e){if(e.target&&e.target.matches&&e.target.matches('[data-money]'))moneyHint(e.target)});
     applyA11y(document);
     if(window.MutationObserver){var timer=null;new MutationObserver(function(){clearTimeout(timer);timer=setTimeout(function(){applyA11y(document)},60)}).observe(document.body,{childList:true,subtree:true})}
   }
@@ -1196,7 +1249,7 @@ App.UI=(function(){
     var d=new Date();
     document.getElementById('todayDate').textContent=d.getDate()+' '+MF[d.getMonth()]+' '+d.getFullYear()+', '+['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'][d.getDay()];
   }
-  return{nav,subTab,setType,getType,quickAdd,moreMenu,moreClose,mountModal,closeModal,confirmModal,promptModal,applyA11y,initSelects,refreshAccSelects,refreshUserSelects,refreshFilterDropdowns,toast,setTheme,bindEvents,initDates,syncActiveProfilePill}
+  return{nav,subTab,setType,getType,quickAdd,moreMenu,moreClose,mountModal,closeModal,confirmModal,promptModal,applyA11y,initSelects,refreshAccSelects,refreshUserSelects,refreshFilterDropdowns,toast,toastAction,setTheme,bindEvents,initDates,syncActiveProfilePill}
 })();
 
 App.Accounts=(function(){
@@ -1386,9 +1439,18 @@ App.Transactions=(function(){
     return toDelete.length;
   }
   function _doRemove(id){
-    var t=S.txns().find(function(x){return x.id===id});if(!t)return;
+    var txns=S.txns(),t=txns.find(function(x){return x.id===id});if(!t)return;
+    var removed=_linked(txns,t).map(function(x){return JSON.parse(JSON.stringify(x))});
     var n=purge(id);
-    _refresh();App.UI.toast(t.transferId?'Transfer silindi.':n>1?n+' işlem silindi.':'İşlem silindi.');
+    _refresh();App.UI.toastAction(t.transferId?'Transfer silindi.':n>1?n+' işlem silindi.':'İşlem silindi.','Geri al',function(){restore(removed)});
+  }
+  // Silineni geri koyar; bakiyeye işlenmiş olanların etkisini yeniden uygular
+  function restore(list){
+    var arr=S.txns(),have={},today=td();arr.forEach(function(x){have[x.id]=1});
+    var back=list.filter(function(x){return!have[x.id]});if(!back.length)return;
+    S.saveTxns(back.concat(arr));
+    back.forEach(function(x){if(x.accountId&&isBalanceApplied(x,today))App.Accounts.adjustBalance(x.accountId,_signed(x))});
+    _refresh();App.UI.toast(back.length>1?back.length+' işlem geri alındı.':'İşlem geri alındı.','info');
   }
   function _catOptions(type,cur){var list=(type==='income'?IC:type==='expense'?EC:EC.concat(IC).filter(function(c,i,a){return a.indexOf(c)===i})).slice();if(cur&&list.indexOf(cur)===-1)list.push(cur);return list.map(function(c){return{value:c,label:ci(c).i+' '+c}})}
   function _accOptions(cur){var o=S.accounts().map(function(a){return{value:a.id,label:(AM[a.type]||{i:'💰'}).i+' '+a.name}});if(!cur||!o.some(function(x){return x.value===cur}))o.unshift({value:'',label:'— Hesapsız —'});return o}
@@ -1525,57 +1587,59 @@ App.Transactions=(function(){
     el.innerHTML=shown.map(function(e){return _h(e.t,true,e.pair)}).join('')+(txns.length>shown.length?'<div class="empty"><div class="empty-t">'+shown.length+' / '+txns.length+' işlem gösteriliyor</div><div class="empty-s">Liste performansı için filtre veya arama kullanın.</div></div>':'');
   }
   function renderRecent(){var el=document.getElementById('ozet-txns'),txns=_entries().slice(0,5);if(!txns.length){el.innerHTML='<div class="empty"><span class="empty-ico">💳</span><div class="empty-t">Henüz işlem yok</div></div>';return}el.innerHTML=txns.map(function(e){return _h(e.t,false,e.pair)}).join('')}
+  // Türkçe Excel ';' ayraç ve ondalık virgül bekler; tutar "1234,50" yazılır
   function exportCSV(){
     var txns=S.txns();if(!txns.length){App.UI.toast('İşlem yok.','err');return}
-    var rows=['\uFEFFTarih,Tür,Kategori,Tutar,Hesap,Üye,Not'];
-    txns.forEach(function(t){var an=t.accountId?App.Accounts.getName(t.accountId):'',u=t.userId?App.Users.get(t.userId):null;rows.push([t.date,t.type==='income'?'Gelir':'Gider',t.category,t.amount,an,u?u.name:'',t.note||''].map(csvSafe).join(','))});
-    var blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='finanstakip_'+td()+'.csv';a.click();setTimeout(function(){URL.revokeObjectURL(url)},1500);App.UI.toast('CSV indirildi.','info');
+    var rows=['﻿Tarih;Tür;Kategori;Tutar;Hesap;Üye;Not'];
+    txns.forEach(function(t){var an=t.accountId?App.Accounts.getName(t.accountId):'',u=t.userId?App.Users.get(t.userId):null;rows.push([t.date,t.type==='income'?'Gelir':'Gider',t.category,Number(t.amount).toFixed(2).replace('.',','),an,u?u.name:'',t.note||''].map(csvSafe).join(';'))});
+    var blob=new Blob([rows.join('\r\n')],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='finanstakip_'+td()+'.csv';a.click();setTimeout(function(){URL.revokeObjectURL(url)},1500);App.UI.toast('CSV indirildi.','info');
   }
-  function _parseCSV(text){
-    text=String(text||'').replace(/^\uFEFF/,'');var rows=[],row=[],cur='',q=false;
-    for(var i=0;i<text.length;i++){var ch=text[i],nx=text[i+1];if(q){if(ch==='"'&&nx==='"'){cur+='"';i++}else if(ch==='"')q=false;else cur+=ch}else{if(ch==='"')q=true;else if(ch===','){row.push(cur);cur=''}else if(ch==='\n'){row.push(cur);rows.push(row);row=[];cur=''}else if(ch!=='\r')cur+=ch}}
-    if(cur||row.length){row.push(cur);rows.push(row)}return rows.filter(function(r){return r.some(function(c){return String(c).trim()!==''})})
-  }
+  function _parseCSV(text){return parseCSVText(text)}
   function importCSV(input){
     var file=input.files&&input.files[0];if(!file)return;
-    var reader=new FileReader();
+    var reader=new FileReader(),triedLegacy=false;
     reader.onload=function(){
+      // Banka ekstreleri çoğu zaman Windows-1254 kodlanır: UTF-8 okumada bozuk karakter varsa bir kez daha öyle oku
+      if(!triedLegacy&&String(reader.result).indexOf('�')>=0){triedLegacy=true;try{reader.readAsText(file,'windows-1254');return}catch(e){}}
       var rows;
       try{
         rows=_parseCSV(reader.result);
       }catch(e){App.UI.toast('CSV yüklenemedi.','err');input.value='';return}
       input.value='';
       if(rows.length<2){App.UI.toast('CSV boş veya geçersiz.','err');return}
-      var head=rows.shift().map(function(h){return String(h).trim().toLowerCase()});
-      function col(name){return head.indexOf(name)}
+      var head=rows.shift().map(function(h){return String(h).trim().toLocaleLowerCase('tr-TR')});
+      var ALIAS={tarih:['tarih','işlem tarihi','islem tarihi','date','valör','valor'],'tür':['tür','tur','tip','işlem türü','type'],kategori:['kategori','category'],tutar:['tutar','işlem tutarı','islem tutari','miktar','amount'],hesap:['hesap','account'],'üye':['üye','uye','kişi','kisi'],not:['not','açıklama','aciklama','description','note']};
+      function col(name){var names=ALIAS[name]||[name];for(var i=0;i<names.length;i++){var k=head.indexOf(names[i]);if(k>=0)return k}return -1}
       var iDate=col('tarih'),iType=col('tür'),iCat=col('kategori'),iAmt=col('tutar'),iAcc=col('hesap'),iUser=col('üye'),iNote=col('not');
-      if(iDate<0||iType<0||iCat<0||iAmt<0){App.UI.toast('CSV kolonları eksik.','err');return}
+      if(iDate<0||iAmt<0){App.UI.toast('CSV\'de en az "Tarih" ve "Tutar" kolonu olmalı.','err');return}
       var shared=App.Accounts.sharedAccount();if(!shared){App.UI.toast('Ortak cüzdan hesabı oluşturun.','err');return}
-      App.UI.confirmModal({title:'CSV İçe Aktar',text:rows.length+' CSV satırı önizlendi. Hesap kolonu varsa aynı adlı hesapla eşlenecek; bulunamazsa ortak cüzdan kullanılacak.',okLabel:'İçe Aktar'},function(){
+      App.UI.confirmModal({title:'CSV İçe Aktar',text:rows.length+' CSV satırı önizlendi. Hesap kolonu varsa aynı adlı hesapla eşlenecek; bulunamazsa ortak cüzdan kullanılacak.'+(iType<0?'\n"Tür" kolonu yok: eksi tutarlar gider, artılar gelir sayılacak.':'')+(iCat<0?'\n"Kategori" kolonu yok: kategori kurallarla, eşleşmezse "Diğer" atanacak.':''),okLabel:'İçe Aktar'},function(){
       try{
         var accounts=S.accounts(),txns=S.txns(),seen={};
-        function parseAmount(v){v=String(v||'').trim();if(!v)return NaN;if(v.indexOf(',')>=0){if(!/^\d{1,3}(\.\d{3})*(,\d+)?$|^\d+(,\d+)?$/.test(v))return NaN;return Number(v.replace(/\./g,'').replace(',','.'))}if(!/^\d+(\.\d+)?$/.test(v))return NaN;return Number(v)}
         txns.forEach(function(t){seen[[t.date,t.type,t.amount,t.category,t.note||'',t.accountId||'',t.userId||''].join('|')]=1});
         var added=0,skipped=0,bad=0,balances={};
         rows.forEach(function(r){
-          var date=String(r[iDate]||'').trim(),rawType=String(r[iType]||'').trim().toLowerCase(),cat=String(r[iCat]||'').trim();
-          var amount=parseAmount(r[iAmt]),note=iNote>=0?String(r[iNote]||'').trim():'';
+          var date=csvDate(r[iDate]),rawType=iType>=0?String(r[iType]||'').trim().toLocaleLowerCase('tr-TR'):'',cat=iCat>=0?String(r[iCat]||'').trim():'';
+          var signed=csvAmount(r[iAmt]),note=iNote>=0?String(r[iNote]||'').trim().slice(0,500):'';
           var type=rawType==='gelir'||rawType==='income'?'income':rawType==='gider'||rawType==='expense'?'expense':'';
-          if(!validDate(date)||!type||!cat||!isFinite(amount)||amount<=0||amount>MAX_MONEY){bad++;return}
+          if(!type&&iType<0&&signed!==null)type=signed<0?'expense':'income';
+          var amount=signed===null?NaN:roundMoney(Math.abs(signed));
+          if(!date||!type||!isFinite(amount)||amount<=0||amount>MAX_MONEY){bad++;return}
           var userName=iUser>=0?String(r[iUser]||'').trim():'';
           var user=userName?(App.Users.list().find(function(u){return u.name===userName})):null;
           var accName=iAcc>=0?String(r[iAcc]||'').trim():'';
           var acc=accName?(accounts.find(function(a){return a.name===accName})||shared):shared;
           var uid=user?user.id:S.settings().activeUser;
+          var draft={type:type,amount:amount,category:cat||'Diğer',note:note};if(!isTransfer(draft))App.Rules.apply(draft);cat=String(draft.category).slice(0,80);
           var sig=[date,type,amount,cat,note,acc.id,uid||''].join('|');if(seen[sig]){skipped++;return}
           var applied=date<=td();
           seen[sig]=1;txns.unshift({id:gid('t')+'_'+added,type,amount,category:cat,date,note,accountId:acc.id,userId:uid,ts:Date.now()+added,balanceApplied:applied});
           if(applied)balances[acc.id]=(balances[acc.id]||0)+(type==='income'?amount:-amount);added++;
         });
-        if(!added){App.UI.toast('Yeni işlem bulunamadı. '+(skipped?skipped+' tekrar atlandı.':''),'info');return}
+        if(!added){App.UI.toast('Yeni işlem bulunamadı. '+(skipped?skipped+' tekrar atlandı.':'')+(bad?bad+' satır okunamadı.':''),'info');return}
         S.saveTxns(txns);
         Object.keys(balances).forEach(function(id){App.Accounts.adjustBalance(id,balances[id])});
-        App.UI.refreshFilterDropdowns();renderList();renderRecent();renderSummaryMetrics();App.Accounts.renderSummary();App.Budget.renderAll();App.Installments.render();App.WeeklySummary.render();
+        _refresh();
         App.UI.toast(added+' işlem yüklendi'+(skipped?', '+skipped+' tekrar atlandı':'')+(bad?', '+bad+' satır okunamadı':'')+'.','info');
       }catch(e){App.UI.toast('CSV yüklenemedi.','err')}
       });
@@ -1587,38 +1651,80 @@ App.Transactions=(function(){
 
 App.Recurring=(function(){
   var _filter='all';
+  // Kaydedilecek hesap: tekrarlayanın kendi hesabı (hâlâ varsa), yoksa ortak hesap
+  function _account(rec){return rec.accountId&&App.Accounts.get(rec.accountId)?App.Accounts.get(rec.accountId):App.Accounts.sharedAccount()}
+  function _loggedIn(rec,month){return S.txns().find(function(t){return t.recurringId===rec.id&&t.date.substring(0,7)===month})}
   function add(){
     var type=document.getElementById('recType').value,amt=parseMoney(document.getElementById('recAmt').value),cat=document.getElementById('recCat').value;
-    var day=parseInt(document.getElementById('recDay').value),note=document.getElementById('recNote').value.trim(),accId='';
-    var isSub=!!document.getElementById('recIsSub').checked;
+    var day=parseInt(document.getElementById('recDay').value),note=document.getElementById('recNote').value.trim();
+    var isSub=!!document.getElementById('recIsSub').checked,sel=(document.getElementById('recAccount')||{}).value||'';
     if(amt===null){App.UI.toast('Geçerli tutar girin.','err');return}if(!day||day<1||day>31){App.UI.toast('Geçerli gün girin (1-31).','err');return}
-    var sharedAcc=App.Accounts.sharedAccount();if(!sharedAcc){App.UI.toast('Ortak cüzdan hesabı oluşturun.','err');return}
-    accId=sharedAcc.id;
-    var arr=S.recurring();arr.push({id:gid('r'),type,amount:amt,category:cat,day,note,accountId:accId,userId:S.settings().activeUser,isSubscription:isSub,ts:Date.now()});S.saveRecurring(arr);
+    var acc=sel?App.Accounts.get(sel):App.Accounts.sharedAccount();if(!acc){App.UI.toast('Önce hesap oluşturun.','err');return}
+    var arr=S.recurring();arr.push({id:gid('r'),type,amount:amt,category:cat,day,note,accountId:acc.id,userId:S.settings().activeUser,isSubscription:isSub,active:true,ts:Date.now()});S.saveRecurring(arr);
     document.getElementById('recAmt').value='';document.getElementById('recNote').value='';document.getElementById('recDay').value='';document.getElementById('recIsSub').checked=false;
-    renderList();renderOzet();renderSubSummary();App.UI.toast(isSub?'Abonelik eklendi. 📺':'Tekrarlayan işlem eklendi.');
+    _rerender();App.UI.toast(isSub?'Abonelik eklendi. 📺':'Tekrarlayan işlem eklendi.');
   }
-  function remove(id){S.saveRecurring(S.recurring().filter(function(r){return r.id!==id}));renderList();renderOzet();renderSubSummary();App.UI.toast('Silindi.')}
+  function _rerender(){renderList();renderOzet();renderSubSummary();App.Cashflow.renderMini()}
+  function remove(id){
+    var r=S.recurring().find(function(x){return x.id===id});if(!r)return;
+    App.UI.confirmModal({title:'Tekrarlayanı Sil',text:'"'+(r.note||r.category)+'" silinsin mi? Daha önce kaydedilmiş işlemler silinmez.',okLabel:'Sil',danger:true},function(){
+      S.saveRecurring(S.recurring().filter(function(x){return x.id!==id}));_rerender();App.UI.toast('Silindi.');
+    });
+  }
   function toggleSub(id){var arr=S.recurring();var r=arr.find(function(x){return x.id===id});if(!r)return;r.isSubscription=!r.isSubscription;S.saveRecurring(arr);renderList();renderSubSummary();App.UI.toast(r.isSubscription?'Abonelik olarak işaretlendi.':'Abonelik işareti kaldırıldı.')}
   function setFilter(f){_filter=f;document.querySelectorAll('[data-rfilter]').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-rfilter')===f)});renderList()}
+  function togglePause(id){var arr=S.recurring(),r=arr.find(function(x){return x.id===id});if(!r)return;r.active=r.active===false;S.saveRecurring(arr);_rerender();App.UI.toast(r.active?'Devam ettirildi.':'Duraklatıldı; nakit akışı ve hatırlatmalarda görünmeyecek.','info')}
+  function edit(id){
+    var r=S.recurring().find(function(x){return x.id===id});if(!r)return;
+    var cats=EC.concat(IC).filter(function(c,i,a){return a.indexOf(c)===i});if(cats.indexOf(r.category)<0)cats.push(r.category);
+    var accs=S.accounts().map(function(a){return{value:a.id,label:(AM[a.type]||{i:'💰'}).i+' '+a.name}});
+    App.UI.promptModal({title:'Tekrarlayanı Düzenle',text:'Değişiklik yalnız bundan sonraki kayıtlara uygulanır; geçmiş işlemler değişmez.',fields:[
+      {key:'type',label:'Tür',type:'select',value:r.type,options:[{value:'expense',label:'− Gider'},{value:'income',label:'+ Gelir'}]},
+      {key:'amount',label:'Tutar (₺)',type:'number',value:r.amount},
+      {key:'category',label:'Kategori',type:'select',value:r.category,options:cats.map(function(c){return{value:c,label:ci(c).i+' '+c}})},
+      {key:'day',label:'Her ayın kaçında (1-31)',type:'number',step:'1',value:r.day},
+      {key:'accountId',label:'Hesap',type:'select',value:_account(r)?_account(r).id:'',options:accs.length?accs:[{value:'',label:'— Hesap yok —'}]},
+      {key:'note',label:'Açıklama',value:r.note||''}]},function(v){
+      var amt=parseMoney(v.amount),day=parseInt(v.day);
+      if(amt===null){App.UI.toast('Geçerli tutar girin.','err');return}
+      if(!(day>=1&&day<=31)){App.UI.toast('Geçerli gün girin (1-31).','err');return}
+      if(!App.Accounts.get(v.accountId)){App.UI.toast('Hesap seçin.','err');return}
+      var arr=S.recurring(),x=arr.find(function(y){return y.id===id});if(!x)return;
+      x.type=v.type==='income'?'income':'expense';x.amount=amt;x.category=String(v.category||'Diğer').slice(0,80);x.day=day;x.accountId=v.accountId;x.note=String(v.note||'').trim().slice(0,300);
+      S.saveRecurring(arr);_rerender();App.UI.toast('Tekrarlayan güncellendi.');
+    });
+  }
+  function _logFor(rec,month){
+    var acc=_account(rec);if(!acc){App.UI.toast('Önce hesap oluşturun.','err');return}
+    var dupe=_loggedIn(rec,month);
+    if(dupe){App.UI.toast(month===tm()?'Bu ay için zaten kaydedildi. ('+fd(dupe.date)+')':'Bu ay için zaten kaydedildi.','err');return}
+    var p=month.split('-'),plannedDate=month+'-'+String(Math.min(rec.day,new Date(+p[0],+p[1],0).getDate())).padStart(2,'0');
+    var applied=plannedDate<=td();
+    var arr=S.txns();arr.unshift({id:gid('t'),type:rec.type,amount:rec.amount,category:rec.category,date:plannedDate,note:rec.note||'Tekrarlayan',accountId:acc.id,userId:rec.userId||S.settings().activeUser,ts:Date.now(),balanceApplied:applied,recurringId:rec.id});S.saveTxns(arr);
+    if(applied)App.Accounts.adjustBalance(acc.id,rec.type==='income'?rec.amount:-rec.amount);
+    App.UI.refreshFilterDropdowns();App.Transactions.renderList();App.Transactions.renderRecent();App.Transactions.renderSummaryMetrics();App.Accounts.renderSummary();App.Budget.renderAll();_rerender();
+    App.UI.toast('"'+(rec.note||rec.category)+'" '+(applied?fd(plannedDate)+' tarihiyle kaydedildi.':fd(plannedDate)+' için planlandı; bakiyeye vade günü işlenecek.'),'info');
+  }
+  // "Kaydet": bu ay kaydedilmediyse bu aya; kaydedildiyse unutulmuş bir ay (varsayılan geçen ay) için sorar
   function log(id){
     var rec=S.recurring().find(function(r){return r.id===id});if(!rec)return;
-    var sharedAcc=App.Accounts.sharedAccount();if(!sharedAcc){App.UI.toast('Ortak cüzdan hesabı oluşturun.','err');return}
-    var currentMonth=tm(),dupe=S.txns().find(function(t){return t.recurringId===rec.id&&t.date.substring(0,7)===currentMonth});
-    if(dupe){App.UI.toast('Bu ay için zaten kaydedildi. ('+fd(dupe.date)+')','err');return}
-    var plannedDate=td().substring(0,8)+String(Math.min(rec.day,new Date(new Date().getFullYear(),new Date().getMonth()+1,0).getDate())).padStart(2,'0');
-    var applied=plannedDate<=td();
-    var arr=S.txns();arr.unshift({id:gid('t'),type:rec.type,amount:rec.amount,category:rec.category,date:plannedDate,note:rec.note||'Tekrarlayan',accountId:sharedAcc.id,userId:rec.userId||S.settings().activeUser,ts:Date.now(),balanceApplied:applied,recurringId:rec.id});S.saveTxns(arr);
-    if(applied)App.Accounts.adjustBalance(sharedAcc.id,rec.type==='income'?rec.amount:-rec.amount);
-    App.UI.refreshFilterDropdowns();App.Transactions.renderList();App.Transactions.renderRecent();App.Transactions.renderSummaryMetrics();App.Accounts.renderSummary();App.Budget.renderAll();
-    App.UI.toast('"'+(rec.note||rec.category)+'" '+(applied?'kaydedildi.':fd(plannedDate)+' için planlandı; bakiyeye vade günü işlenecek.'),'info');
+    var currentMonth=tm();
+    if(!_loggedIn(rec,currentMonth)){_logFor(rec,currentMonth);return}
+    App.UI.promptModal({title:'Başka Bir Ay İçin Kaydet',text:'"'+(rec.note||rec.category)+'" bu ay zaten kaydedildi. Unutulan bir ayı kaydetmek için ay seçin.',fields:[{key:'month',label:'Ay',type:'month',value:shiftMonth(currentMonth,-1)}],okLabel:'Kaydet'},function(v){
+      var m=String(v.month||'').trim();if(!validMonth(m)){App.UI.toast('Geçerli ay seçin.','err');return}
+      _logFor(rec,m);
+    });
   }
   function _rh(r,lb){
-    var info=ci(r.category),sign=r.type==='income'?'+':'-';
+    var info=ci(r.category),sign=r.type==='income'?'+':'-',paused=r.active===false,logged=!paused&&_loggedIn(r,tm());
     var sb=r.isSubscription?'<span class="sub-badge">📺 Abonelik</span>':'';
     var subBtn=lb?'<button class="btn btn-sm btn-ghost" style="padding:4px 10px;font-size:.7rem" onclick="App.Recurring.toggleSub(\''+r.id+'\')" title="Abonelik olarak işaretle">'+(r.isSubscription?'📺✓':'📺')+'</button>':'';
     var u=r.userId?App.Users.get(r.userId):null,userMeta=u?' · '+esc(u.emoji||'🙋')+' '+esc(u.name):'';
-    return'<div class="rec-item"><div class="rec-day"><span style="font-size:.6rem;color:var(--txt2)">Her</span><span class="rec-day-num">'+r.day+'</span></div><div class="cat-ico '+info.c+'" style="width:38px;height:38px;border-radius:11px;font-size:1.1rem;flex-shrink:0">'+info.i+'</div><div class="rec-body"><div class="rec-name">'+esc(r.note||r.category)+sb+'</div><div class="rec-meta">'+esc(r.category)+' · Her ayın '+r.day+'. günü'+userMeta+'</div></div><div class="rec-right"><div class="rec-amt '+r.type+'">'+sign+fmt(r.amount)+'</div>'+(lb?'<button class="btn-log" onclick="App.Recurring.log(\''+r.id+'\')">Kaydet</button>':'')+subBtn+'<button class="btn-del" onclick="App.Recurring.remove(\''+r.id+'\')">Sil</button></div></div>'
+    var acc=_account(r),accMeta=acc?' · '+esc(acc.name):'';
+    var status=paused?'<span class="rec-status">⏸ Duraklatıldı</span>':logged?'<span class="rec-status" style="color:var(--green)">✓ Bu ay kaydedildi</span>':'';
+    var logBtn=lb&&!paused?'<button class="btn-log" onclick="App.Recurring.log(\''+r.id+'\')">Kaydet</button>':'';
+    var btns=lb?'<div class="rec-actions">'+subBtn+'<button class="btn-del" title="'+(paused?'Devam ettir':'Duraklat')+'" aria-label="'+(paused?'Devam ettir':'Duraklat')+'" onclick="App.Recurring.togglePause(\''+r.id+'\')">'+(paused?'▶':'⏸')+'</button><button class="btn-del" title="Düzenle" aria-label="Düzenle" onclick="App.Recurring.edit(\''+r.id+'\')">✎</button><button class="btn-del" title="Sil" aria-label="Sil" onclick="App.Recurring.remove(\''+r.id+'\')">✕</button></div>':'';
+    return'<div class="rec-item'+(paused?' paused':'')+'"><div class="rec-day"><span style="font-size:.6rem;color:var(--txt2)">Her</span><span class="rec-day-num">'+r.day+'</span></div><div class="cat-ico '+info.c+'" style="width:38px;height:38px;border-radius:11px;font-size:1.1rem;flex-shrink:0">'+info.i+'</div><div class="rec-body"><div class="rec-name">'+esc(r.note||r.category)+sb+'</div><div class="rec-meta">'+esc(r.category)+' · Her ayın '+r.day+'. günü'+accMeta+userMeta+'</div>'+status+'</div><div class="rec-right"><div class="rec-amt '+r.type+'">'+sign+fmt(r.amount)+'</div>'+logBtn+'</div>'+btns+'</div>'
   }
   function renderList(){
     var recs=S.recurring(),el=document.getElementById('recList');
@@ -1629,7 +1735,7 @@ App.Recurring=(function(){
   }
   function renderSubSummary(){
     var el=document.getElementById('subSummary');if(!el)return;
-    var subs=S.recurring().filter(function(r){return r.isSubscription&&r.type==='expense'});
+    var subs=S.recurring().filter(function(r){return r.isSubscription&&r.type==='expense'&&r.active!==false});
     if(!subs.length){el.innerHTML='';return}
     var monthly=subs.reduce(function(s,r){return s+r.amount},0);
     el.innerHTML='<div class="ss-card"><div class="ss-lbl">Aylık Abonelik</div><div class="ss-val">'+fmt(monthly)+'</div><div class="ss-sub">'+subs.length+' aktif</div></div>'+
@@ -1639,20 +1745,24 @@ App.Recurring=(function(){
     var el=document.getElementById('ozet-rec'),now=new Date(),today_day=now.getDate();
     var lastOfThis=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
     var lastOfNext=new Date(now.getFullYear(),now.getMonth()+2,0).getDate();
-    var up=S.recurring().map(function(r){var thisD=Math.min(r.day,lastOfThis),nextD=Math.min(r.day,lastOfNext),diff=thisD-today_day;if(diff<0)diff=lastOfThis-today_day+nextD;return{r:r,diff:diff}}).sort(function(a,b){return a.diff-b.diff}).slice(0,3);
-    if(!up.length){el.innerHTML='<div style="padding:12px 0;font-size:.8rem;color:var(--txt3)">Yaklaşan işlem yok.</div>';return}
+    var month=tm();
+    var up=S.recurring().filter(function(r){return r.active!==false&&!_loggedIn(r,month)}).map(function(r){var thisD=Math.min(r.day,lastOfThis),nextD=Math.min(r.day,lastOfNext),diff=thisD-today_day;if(diff<0)diff=lastOfThis-today_day+nextD;return{r:r,diff:diff}}).sort(function(a,b){return a.diff-b.diff}).slice(0,3);
+    if(!up.length){el.innerHTML='<div style="padding:12px 0;font-size:.8rem;color:var(--txt3)">'+(S.recurring().length?'Bu ayın tekrarlayan işlemleri kaydedildi.':'Yaklaşan işlem yok.')+'</div>';return}
     el.innerHTML='<div class="rec-list">'+up.map(function(x){return _rh(x.r,true)}).join('')+'</div>';
   }
-  return{add,remove,log,renderList,renderOzet,toggleSub,setFilter,renderSubSummary}
+  return{add,edit,remove,log,togglePause,renderList,renderOzet,toggleSub,setFilter,renderSubSummary}
 })();
 
 App.Debts=(function(){
   function add(){
     var dir=document.getElementById('debtDir').value,person=document.getElementById('debtPerson').value.trim();
     var amt=parseMoney(document.getElementById('debtAmt').value),date=document.getElementById('debtDate').value,note=document.getElementById('debtNote').value.trim();
+    var dueEl=document.getElementById('debtDue'),due=dueEl?dueEl.value:'';
     if(!person){App.UI.toast('Kişi adı girin.','err');return}if(amt===null){App.UI.toast('Geçerli tutar girin.','err');return}if(!validDate(date)){App.UI.toast('Geçerli tarih seçin.','err');return}
-    var arr=S.debts();arr.push({id:gid('d'),direction:dir,person,amount:amt,date,dueDate:date,note,payments:[],settled:false,ts:Date.now()});S.saveDebts(arr);
-    document.getElementById('debtPerson').value='';document.getElementById('debtAmt').value='';document.getElementById('debtNote').value='';
+    if(due&&!validDate(due)){App.UI.toast('Geçerli vade tarihi seçin.','err');return}
+    if(due&&due<date){App.UI.toast('Vade, borç tarihinden önce olamaz.','err');return}
+    var arr=S.debts();arr.push({id:gid('d'),direction:dir,person,amount:amt,date,hasDue:!!due,dueDate:due,note,payments:[],settled:false,ts:Date.now()});S.saveDebts(arr);
+    document.getElementById('debtPerson').value='';document.getElementById('debtAmt').value='';document.getElementById('debtNote').value='';if(dueEl)dueEl.value='';
     renderAll();App.UI.toast('Borç eklendi.');
   }
   function remove(id){
@@ -1678,6 +1788,25 @@ App.Debts=(function(){
     d.payments=d.payments.filter(function(p){return p.id!==pid});d.settled=d.payments.reduce(function(s,p){return s+p.amount},0)>=d.amount-0.005;
     S.saveDebts(debts);renderAll();App.UI.toast('Ödeme silindi.');
   }
+  function edit(id){
+    var d=S.debts().find(function(x){return x.id===id});if(!d)return;
+    App.UI.promptModal({title:'Borcu Düzenle',fields:[
+      {key:'person',label:'Kişi',value:d.person},{key:'amount',label:'Tutar (₺)',type:'number',value:d.amount},
+      {key:'date',label:'Tarih',type:'date',value:d.date},{key:'due',label:'Vade (boş = vadesiz)',type:'date',value:d.dueDate||''},
+      {key:'note',label:'Not',value:d.note||''}]},function(v){
+      var person=String(v.person||'').trim().slice(0,120),amt=parseMoney(v.amount),due=String(v.due||'').trim();
+      if(!person){App.UI.toast('Kişi adı girin.','err');return}
+      if(amt===null){App.UI.toast('Geçerli tutar girin.','err');return}
+      if(!validDate(v.date)){App.UI.toast('Geçerli tarih seçin.','err');return}
+      if(due&&(!validDate(due)||due<v.date)){App.UI.toast('Vade, borç tarihinden önce olamaz.','err');return}
+      var debts=S.debts(),x=debts.find(function(y){return y.id===id});if(!x)return;
+      var paid=x.payments.reduce(function(s,p){return s+p.amount},0);
+      if(amt<paid-0.005){App.UI.toast('Tutar, yapılan ödemelerden ('+fmt(paid)+') az olamaz.','err');return}
+      x.person=person;x.amount=amt;x.date=v.date;x.hasDue=!!due;x.dueDate=due;x.note=String(v.note||'').trim().slice(0,300);
+      x.settled=paid>=x.amount-0.005;
+      S.saveDebts(debts);renderAll();App.Cashflow.renderMini();App.UI.toast('Borç güncellendi.');
+    });
+  }
   function togglePay(id){document.getElementById('dpay_'+id).classList.toggle('open')}
   function _rem(d){return Math.max(d.amount-d.payments.reduce(function(s,p){return s+p.amount},0),0)}
   function renderAll(){
@@ -1695,19 +1824,27 @@ App.Debts=(function(){
   }
   function _dh(d){
     var paid=d.payments.reduce(function(s,p){return s+p.amount},0),rem=_rem(d),pct=d.amount>0?Math.min((paid/d.amount)*100,100):0;
-    var isLent=d.direction==='lent',tv=td();
-    var ph=d.payments.map(function(p){return'<div class="pay-item"><div><span class="pay-amount">'+fmt(p.amount)+'</span><span style="color:var(--txt2);font-size:.7rem;margin-left:6px">'+fd(p.date)+'</span></div><button class="btn-del" onclick="App.Debts.removePayment(\''+d.id+'\',\''+p.id+'\')">✕</button></div>'}).join('');
-    return'<div class="debt-card'+(d.settled?' settled':'')+'"><div class="debt-head"><div><div class="debt-person">'+esc(d.person)+'</div><div style="font-size:.72rem;color:var(--txt2);margin-top:2px">'+fd(d.date)+(d.note?' · '+esc(d.note):'')+'</div></div><div style="display:flex;gap:6px;align-items:center"><span class="debt-type-badge '+(isLent?'lent-badge':'borrowed-badge')+'">'+(isLent?'⬆️ Verilen':'⬇️ Alınan')+'</span><button class="btn-del" onclick="App.Debts.remove(\''+d.id+'\')">✕</button></div></div><div class="debt-amount">'+fmt(d.amount)+'</div><div class="debt-remaining">'+(d.settled?'✅ Kapandı':'Kalan: '+fmt(rem)+' · Ödenen: '+fmt(paid))+'</div><div class="debt-prog-track"><div class="debt-prog-fill" style="width:'+pct+'%"></div></div>'+(!d.settled?'<div class="debt-actions"><button class="btn btn-sm btn-ghost" onclick="App.Debts.togglePay(\''+d.id+'\')">💰 Ödeme Ekle / Geçmiş ('+d.payments.length+')</button></div><div class="debt-payments" id="dpay_'+d.id+'"><div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap"><input type="number" id="pay_amt_'+d.id+'" placeholder="Tutar (₺)" style="flex:1;min-width:90px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:8px 11px;font-size:.82rem;color:var(--txt)"/><input type="date" id="pay_date_'+d.id+'" value="'+tv+'" style="flex:1;min-width:120px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:8px 11px;font-size:.82rem;color:var(--txt)"/><button class="btn btn-sm btn-teal" onclick="App.Debts.addPayment(\''+d.id+'\')">Ekle</button></div>'+(ph||'<div style="font-size:.78rem;color:var(--txt3)">Henüz ödeme yok.</div>')+'</div>':'')+'</div>'
+    var isLent=d.direction==='lent',tv=td(),overdue=!d.settled&&d.dueDate&&d.dueDate<tv;
+    var ph=d.payments.map(function(p){return'<div class="pay-item"><div><span class="pay-amount">'+fmt(p.amount)+'</span><span style="color:var(--txt2);font-size:.7rem;margin-left:6px">'+fd(p.date)+'</span></div><button class="btn-del" aria-label="Ödemeyi sil" onclick="App.Debts.removePayment(\''+d.id+'\',\''+p.id+'\')">✕</button></div>'}).join('');
+    var due=d.dueDate?'<div style="font-size:.72rem;margin-top:2px;color:'+(overdue?'var(--red)':'var(--txt2)')+'">'+(overdue?'⚠ Vadesi geçti: ':'Vade: ')+fd(d.dueDate)+'</div>':'';
+    var addRow=!d.settled?'<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap"><input type="text" inputmode="decimal" data-money="money" autocomplete="off" id="pay_amt_'+d.id+'" placeholder="Tutar (₺)" style="flex:1;min-width:90px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:8px 11px;font-size:.82rem;color:var(--txt)"/><input type="date" id="pay_date_'+d.id+'" value="'+tv+'" style="flex:1;min-width:120px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:8px 11px;font-size:.82rem;color:var(--txt)"/><button class="btn btn-sm btn-teal" onclick="App.Debts.addPayment(\''+d.id+'\')">Ekle</button></div>':'';
+    // Kapanan borçta da ödeme geçmişi açılır: yanlış girilen son ödeme silinip borç yeniden açılabilir
+    var panel='<div class="debt-actions"><button class="btn btn-sm btn-ghost" onclick="App.Debts.togglePay(\''+d.id+'\')">'+(d.settled?'📋 Ödeme Geçmişi':'💰 Ödeme Ekle / Geçmiş')+' ('+d.payments.length+')</button></div><div class="debt-payments" id="dpay_'+d.id+'">'+addRow+(ph||'<div style="font-size:.78rem;color:var(--txt3)">Henüz ödeme yok.</div>')+'</div>';
+    return'<div class="debt-card'+(d.settled?' settled':'')+'"><div class="debt-head"><div style="min-width:0"><div class="debt-person">'+esc(d.person)+'</div><div style="font-size:.72rem;color:var(--txt2);margin-top:2px">'+fd(d.date)+(d.note?' · '+esc(d.note):'')+'</div>'+due+'</div><div style="display:flex;gap:6px;align-items:center"><span class="debt-type-badge '+(isLent?'lent-badge':'borrowed-badge')+'">'+(isLent?'⬆️ Verilen':'⬇️ Alınan')+'</span><button class="btn-del" title="Düzenle" aria-label="Borcu düzenle" onclick="App.Debts.edit(\''+d.id+'\')">✎</button><button class="btn-del" title="Sil" aria-label="Borcu sil" onclick="App.Debts.remove(\''+d.id+'\')">✕</button></div></div><div class="debt-amount">'+fmt(d.amount)+'</div><div class="debt-remaining">'+(d.settled?'✅ Kapandı':'Kalan: '+fmt(rem)+' · Ödenen: '+fmt(paid))+'</div><div class="debt-prog-track"><div class="debt-prog-fill" style="width:'+pct+'%"></div></div>'+panel+'</div>'
   }
-  return{add,remove,addPayment,removePayment,togglePay,renderAll}
+  return{add,edit,remove,addPayment,removePayment,togglePay,renderAll}
 })();
 
 App.Budget=(function(){
   function save(){
     var cat=document.getElementById('bCat').value,lim=parseMoney(document.getElementById('bLimit').value),carry=!!document.getElementById('bCarry').checked;
     if(lim===null){App.UI.toast('Geçerli limit girin.','err');return}
-    var b=S.budgets();b[cat]=lim;S.saveBudgets(b);
-    var bm=S.budgetMeta();bm[cat]=bm[cat]||{};if(carry&&!bm[cat].carryOver)bm[cat].carryStart=tm();if(!carry)delete bm[cat].carryStart;bm[cat].carryOver=carry;S.saveBudgetMeta(bm);
+    var b=S.budgets(),old=b[cat];b[cat]=lim;S.saveBudgets(b);
+    var bm=S.budgetMeta();bm[cat]=bm[cat]||{};
+    // Limit geçmişi: devir hesabı geçmiş aylara o ayın limitini uygular ('0000-00' = kayıt öncesi limit)
+    var hist=bm[cat].history=bm[cat].history&&typeof bm[cat].history==='object'?bm[cat].history:{};
+    if(!Object.keys(hist).length&&typeof old==='number'&&old!==lim)hist['0000-00']=old;
+    hist[tm()]=lim;if(carry&&!bm[cat].carryOver)bm[cat].carryStart=tm();if(!carry)delete bm[cat].carryStart;bm[cat].carryOver=carry;S.saveBudgetMeta(bm);
     document.getElementById('bLimit').value='';document.getElementById('bCarry').checked=false;
     renderAll();App.UI.toast('Limit kaydedildi.');
   }
@@ -1715,12 +1852,17 @@ App.Budget=(function(){
   function prevMonth(m){var p=m.split('-'),y=+p[0],mo=+p[1]-1-1;if(mo<0){mo=11;y--}return y+'-'+String(mo+1).padStart(2,'0')}
   function rolloverBalance(cat){
     var bm=S.budgetMeta();if(!bm[cat]||!bm[cat].carryOver)return 0;
-    var b=S.budgets(),limit=b[cat]||0;if(!limit)return 0;
+    var b=S.budgets();if(!b[cat])return 0;
     var start=bm[cat].carryStart;
-    if(!start){start=tm();bm[cat].carryStart=start;S.saveBudgetMeta(bm)}
-    var now=new Date(),balance=0;
-    for(var i=6;i>=1;i--){var d=new Date(now.getFullYear(),now.getMonth()-i,1);var m=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');if(m<start)continue;var spent=(App.Transactions.catTotals(m)||{})[cat]||0;balance+=(limit-spent)}
+    if(!start||!validMonth(start)){start=tm();bm[cat].carryStart=start;S.saveBudgetMeta(bm)}
+    var cur=tm(),floor=shiftMonth(cur,-120),balance=0;if(start<floor)start=floor;
+    for(var m=start;m<cur;m=shiftMonth(m,1)){var spent=(App.Transactions.catTotals(m)||{})[cat]||0;balance+=(limitFor(cat,m)-spent)}
     return roundMoney(balance);
+  }
+  function limitFor(cat,month){
+    var cur=S.budgets()[cat]||0,meta=S.budgetMeta()[cat],h=meta&&meta.history;if(!h)return cur;
+    var keys=Object.keys(h).filter(function(k){return k<=month}).sort();
+    return keys.length?toNum(h[keys[keys.length-1]],cur):cur;
   }
   function effectiveLimit(cat){var base=S.budgets()[cat]||0;return base+rolloverBalance(cat)}
   function renderZBB(){
@@ -1760,7 +1902,7 @@ App.Budget=(function(){
       return'<div class="bc"><div class="bc-head"><div class="bc-ico '+info.c+'">'+info.i+'</div><div class="bc-info"><div class="bc-name">'+esc(cat)+cb+'</div><div class="bc-amounts">'+fmt(spent)+' / '+fmt(lim)+'</div>'+cl+'</div><span class="badge '+badge+'">'+lbl+'</span></div><div class="prog-track"><div class="prog-fill '+cls+'" style="width:'+Math.min(pct,100)+'%"></div></div><div class="bc-foot"><span class="bc-pct">'+(lim>0?pct.toFixed(0)+'% kullanıldı':exhausted?'Limit devirle tükendi':'Limit yok')+'</span><button class="btn-del" onclick="App.Budget.remove(\''+jsAttr(cat)+'\')">Sil</button></div></div>'
     }).join('');
   }
-  return{save,remove,renderAll,renderZBB,renderDaily,rolloverBalance,effectiveLimit}
+  return{save,remove,renderAll,renderZBB,renderDaily,rolloverBalance,effectiveLimit,limitFor}
 })();
 
 App.Goals=(function(){
@@ -1845,7 +1987,7 @@ App.Goals=(function(){
     el.innerHTML=[].concat(active,done).map(function(g){
       var total=g.contributions.reduce(function(s,c){return s+c.amount},0),pct=g.target>0?Math.min((total/g.target)*100,100):0,rem=Math.max(g.target-total,0),isDone=!!g.done,tv=td();
       var ch=g.contributions.length?g.contributions.slice().reverse().map(function(c){return'<div class="contrib-item"><div><span class="ca">+'+fmt(c.amount)+'</span><br/><span class="cd">'+fd(c.date)+(c.note?' · '+esc(c.note):'')+'</span></div><button class="btn-del" onclick="App.Goals.removeContrib(\''+g.id+'\',\''+c.id+'\')">✕</button></div>'}).join(''):'<div style="font-size:.75rem;color:var(--txt3);padding:4px 0">Henüz katkı yok.</div>';
-      return'<div class="goal-card'+(isDone?' done':'')+'"><div class="goal-top"><div><span class="goal-emoji">'+esc(g.emoji||'🎯')+'</span><div class="goal-name">'+esc(g.name)+(isDone?' ✅':'')+'</div><div class="goal-sub">'+fmt(total)+' / '+fmt(g.target)+(isDone?' · Tamamlandı 🎉':' · '+fmt(rem)+' kaldı')+'</div></div><button class="btn-del" onclick="App.Goals.remove(\''+g.id+'\')">Sil</button></div><div class="goal-prog-label"><span class="sv">'+pct.toFixed(0)+'%</span><span style="color:var(--txt2)">'+fmt(total)+'</span></div><div class="goal-prog-track"><div class="goal-prog-fill" style="width:'+pct+'%"></div></div><div class="goal-actions">'+(!isDone?'<button class="btn btn-sm btn-ghost" onclick="App.Goals.togglePanel(\''+g.id+'\')">+ Katkı Ekle</button>':'')+'<button class="btn btn-sm btn-ghost" onclick="App.Goals.togglePanel(\''+g.id+'\')">📋 Geçmiş ('+g.contributions.length+')</button></div><div class="contrib-panel" id="gp_'+g.id+'">'+(!isDone?'<div class="contrib-row"><input type="number" id="ca_'+g.id+'" placeholder="Tutar (₺)" min="0" step="0.01"/><input type="date" id="cd_'+g.id+'" value="'+tv+'"/><input type="text" id="cn_'+g.id+'" placeholder="Not..."/><button class="btn btn-sm btn-teal" onclick="App.Goals.addContrib(\''+g.id+'\')">Ekle</button></div>':'')+'<div class="contrib-list">'+ch+'</div></div></div>'
+      return'<div class="goal-card'+(isDone?' done':'')+'"><div class="goal-top"><div><span class="goal-emoji">'+esc(g.emoji||'🎯')+'</span><div class="goal-name">'+esc(g.name)+(isDone?' ✅':'')+'</div><div class="goal-sub">'+fmt(total)+' / '+fmt(g.target)+(isDone?' · Tamamlandı 🎉':' · '+fmt(rem)+' kaldı')+'</div></div><button class="btn-del" onclick="App.Goals.remove(\''+g.id+'\')">Sil</button></div><div class="goal-prog-label"><span class="sv">'+pct.toFixed(0)+'%</span><span style="color:var(--txt2)">'+fmt(total)+'</span></div><div class="goal-prog-track"><div class="goal-prog-fill" style="width:'+pct+'%"></div></div><div class="goal-actions">'+(!isDone?'<button class="btn btn-sm btn-ghost" onclick="App.Goals.togglePanel(\''+g.id+'\')">+ Katkı Ekle</button>':'')+'<button class="btn btn-sm btn-ghost" onclick="App.Goals.togglePanel(\''+g.id+'\')">📋 Geçmiş ('+g.contributions.length+')</button></div><div class="contrib-panel" id="gp_'+g.id+'">'+(!isDone?'<div class="contrib-row"><input type="text" inputmode="decimal" data-money="money" autocomplete="off" id="ca_'+g.id+'" placeholder="Tutar (₺)"/><input type="date" id="cd_'+g.id+'" value="'+tv+'"/><input type="text" id="cn_'+g.id+'" placeholder="Not..."/><button class="btn btn-sm btn-teal" onclick="App.Goals.addContrib(\''+g.id+'\')">Ekle</button></div>':'')+'<div class="contrib-list">'+ch+'</div></div></div>'
     }).join('');
   }
   return{add,remove,addContrib,removeContrib,togglePanel,onModeChange,renderAll,createEmergency,renderEmergencyInfo,avgExpense3mo}
@@ -1986,15 +2128,18 @@ App.Charts=(function(){
   function _daysInMonth(m){var p=m.split('-');return new Date(+p[0],+p[1],0).getDate()}
   function _summary(month,cats){
     var total=App.Transactions.monthTotals(month),prev=App.Transactions.monthTotals(_prevMonth(month));
-    var net=total.income-total.expense,saveRate=total.income?net/total.income*100:0,avg=total.expense/_daysInMonth(month);
+    // Günlük ortalama: içinde bulunulan ayda bugüne kadar geçen gün sayısına bölünür
+    var cur=tm(),elapsed=month===cur?new Date().getDate():month>cur?0:_daysInMonth(month);
+    var net=total.income-total.expense,saveRate=total.income?net/total.income*100:0,avg=elapsed?total.expense/elapsed:0;
     var topCat=Object.keys(cats).sort(function(a,b){return cats[b]-cats[a]})[0],topSpend=topCat?cats[topCat]:0;
-    var b=S.budgets(),budgetTotal=0;Object.keys(b).forEach(function(k){budgetTotal+=b[k]||0});
-    var budgetPct=budgetTotal?total.expense/budgetTotal*100:0,deltaExp=total.expense-prev.expense;
+    // Bütçe kullanımı yalnız limiti olan kategorilerin harcamasını o ayın limitleriyle kıyaslar
+    var b=S.budgets(),budgetTotal=0,budgetSpent=0;Object.keys(b).forEach(function(k){budgetTotal+=_limitOf(k,month);budgetSpent+=cats[k]||0});
+    var budgetPct=budgetTotal>0?budgetSpent/budgetTotal*100:0,deltaExp=total.expense-prev.expense;
     var kpis=[
       ['Net Sonuç',fmt(net),net>=0?'Gelir giderden yüksek':'Gider gelirden yüksek',net>=0?'var(--green)':'var(--red)'],
       ['Tasarruf Oranı',_pct(saveRate),total.income?fmt(total.income)+' gelir üzerinden':'Gelir kaydı yok',saveRate>=0?'var(--green)':'var(--red)'],
-      ['Günlük Ortalama Gider',fmt(avg),'Ayın günlük harcama temposu','var(--orange)'],
-      ['Bütçe Kullanımı',budgetTotal?_pct(budgetPct):'Limit yok',budgetTotal?fmt(budgetTotal)+' toplam limit':'Kategori limiti tanımlı değil',budgetPct>100?'var(--red)':budgetPct>=75?'var(--yellow)':'var(--green)']
+      ['Günlük Ortalama Gider',fmt(avg),month===cur?'Bugüne kadar '+elapsed+' gün':month>cur?'Gelecek dönem':'Ayın günlük harcama temposu','var(--orange)'],
+      ['Bütçe Kullanımı',Object.keys(b).length?(budgetTotal>0?_pct(budgetPct):'Limit tükendi'):'Limit yok',Object.keys(b).length?fmt(budgetSpent)+' / '+fmt(budgetTotal)+' limitli kategoriler':'Kategori limiti tanımlı değil',budgetPct>100?'var(--red)':budgetPct>=75?'var(--yellow)':'var(--green)']
     ];
     var el=document.getElementById('statsKpis');if(el)el.innerHTML=kpis.map(function(k){return'<div class="skpi"><div class="skpi-lbl">'+k[0]+'</div><div class="skpi-val" style="color:'+k[3]+'">'+k[1]+'</div><div class="skpi-sub">'+k[2]+'</div></div>'}).join('');
     var insights=[
@@ -2036,11 +2181,13 @@ App.Charts=(function(){
     if(_b){_b.destroy();_b=null}var ctx=document.getElementById('cBar').getContext('2d');
     _b=new Chart(ctx,{type:'bar',data:{labels:l6.map(function(x){return x.month}),datasets:[{label:'Gelir',data:l6.map(function(x){return x.income}),backgroundColor:'rgba(34,197,94,.75)',borderRadius:5},{label:'Gider',data:l6.map(function(x){return x.expense}),backgroundColor:'rgba(239,68,68,.75)',borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:cv('--txt'),font:{size:11}}},tooltip:{callbacks:{label:function(c){return' '+c.dataset.label+': '+fmt(c.parsed.y)}}}},scales:{x:{ticks:{color:cv('--txt2')},grid:{display:false}},y:{ticks:{color:cv('--txt2'),callback:function(v){return'₺'+v.toLocaleString('tr-TR')}},grid:{color:cv('--border')}}}}});
   }
+  // Bu ay için devirli (efektif) limit, geçmiş aylar için o ayda geçerli limit
+  function _limitOf(cat,month){return month===tm()?App.Budget.effectiveLimit(cat):App.Budget.limitFor(cat,month)}
   function _table(month,cats){
     var b=S.budgets(),el=document.getElementById('statsTable'),keys=Object.keys(cats);
     if(!keys.length){el.innerHTML='<div class="empty"><span class="empty-ico">📊</span><div class="empty-t">Bu dönem veri yok</div></div>';return}
     keys.sort(function(a,b_){return cats[b_]-cats[a]});
-    var rows=keys.map(function(cat){var spent=cats[cat],lim=b[cat];var s='<span style="color:var(--txt3)">—</span>';if(lim){var pct=(spent/lim)*100;s=pct>=100?'<span style="color:var(--red)">⚠ Aşıldı</span>':pct>=75?'<span style="color:var(--yellow)">⚠ '+pct.toFixed(0)+'%</span>':'<span style="color:var(--green)">✓ '+pct.toFixed(0)+'%</span>'}return'<tr><td>'+ci(cat).i+' <strong>'+esc(cat)+'</strong></td><td style="color:var(--red);font-weight:700">'+fmt(spent)+'</td><td>'+(lim?fmt(lim):'—')+'</td><td>'+s+'</td></tr>'}).join('');
+    var rows=keys.map(function(cat){var spent=cats[cat],has=b[cat]!=null,lim=has?_limitOf(cat,month):0;var s='<span style="color:var(--txt3)">—</span>';if(has){var pct=lim>0?(spent/lim)*100:(spent>0?100:0);s=pct>=100?'<span style="color:var(--red)">⚠ Aşıldı</span>':pct>=75?'<span style="color:var(--yellow)">⚠ '+pct.toFixed(0)+'%</span>':'<span style="color:var(--green)">✓ '+pct.toFixed(0)+'%</span>'}return'<tr><td>'+ci(cat).i+' <strong>'+esc(cat)+'</strong></td><td style="color:var(--red);font-weight:700">'+fmt(spent)+'</td><td>'+(has?fmt(lim):'—')+'</td><td>'+s+'</td></tr>'}).join('');
     el.innerHTML='<div class="stats-table-wrap"><table class="stats-table"><thead><tr><th>Kategori</th><th>Harcama</th><th>Limit</th><th>Durum</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
   return{refresh,report}
@@ -2108,15 +2255,18 @@ App.Portfolio=(function(){
   function _num(v){if(typeof v==='number')return v;return parseFloat(String(v||'').replace(/\./g,'').replace(',','.').replace(/[^\d.-]/g,''))||0}
   function _withTimeout(p,ms){return Promise.race([p,new Promise(function(_,rej){setTimeout(function(){rej(new Error('timeout'))},ms||9000)})])}
   function _pick(obj,names){for(var i=0;i<names.length;i++){if(obj&&obj[names[i]]!==undefined)return obj[names[i]]}return null}
+  // Çeyrek 1,754 g, tam (ziynet) 7,016 g, 22 ayar (0,916): içerdikleri saf altın gram karşılığı
+  var QUARTER_G=1.6067,FULL_G=6.4267;
   function _parseTruncgil(data){
     var r={};
-    function read(key){var x=data[key]||{};return _num(_pick(x,['Selling','Satış','satis','sell','Alış','Buying','alis','buy']))}
+    // Eldeki varlığın değeri, bozdurunca alınacak fiyatla (alış) hesaplanır; yoksa satış
+    function read(key){var x=data[key]||{};return _num(_pick(x,['Buying','Alış','alis','buy','Selling','Satış','satis','sell']))}
     r.USD=read('USD')||read('DOLAR')||read('Amerikan Doları');
     r.EUR=read('EUR')||read('EURO');
     r.GBP=read('GBP')||read('İngiliz Sterlini');
-    r.GOLD_GRAM=read('HAS')||read('Gram Altın')||read('gram-altin')||read('GRA')||read('ALTIN');
-    r.GOLD_QUARTER=read('CEYREKALTIN')||read('Çeyrek Altın')||read('ceyrek-altin')||(r.GOLD_GRAM?r.GOLD_GRAM*1.75:0);
-    r.GOLD_FULL=read('TAMALTIN')||read('Tam Altın')||read('tam-altin')||(r.GOLD_GRAM?r.GOLD_GRAM*7:0);
+    r.GOLD_GRAM=read('GRA')||read('Gram Altın')||read('gram-altin')||read('HAS')||read('ALTIN');
+    r.GOLD_QUARTER=read('CEYREKALTIN')||read('Çeyrek Altın')||read('ceyrek-altin')||(r.GOLD_GRAM?r.GOLD_GRAM*QUARTER_G:0);
+    r.GOLD_FULL=read('TAMALTIN')||read('Tam Altın')||read('tam-altin')||(r.GOLD_GRAM?r.GOLD_GRAM*FULL_G:0);
     return r;
   }
   function _fetchTruncgil(){
@@ -2135,8 +2285,8 @@ App.Portfolio=(function(){
   function _mergeRates(next,provider){
     var s=S.settings(),r=s.rates||{};
     ['USD','EUR','GBP','GOLD_GRAM','GOLD_QUARTER','GOLD_FULL'].forEach(function(k){if(next[k])r[k]=Number(next[k])});
-    if(!r.GOLD_QUARTER&&r.GOLD_GRAM)r.GOLD_QUARTER=r.GOLD_GRAM*1.75;
-    if(!r.GOLD_FULL&&r.GOLD_GRAM)r.GOLD_FULL=r.GOLD_GRAM*7;
+    if(!r.GOLD_QUARTER&&r.GOLD_GRAM)r.GOLD_QUARTER=r.GOLD_GRAM*QUARTER_G;
+    if(!r.GOLD_FULL&&r.GOLD_GRAM)r.GOLD_FULL=r.GOLD_GRAM*FULL_G;
     r.FUND=r.FUND||1;r.updated=Date.now();r.provider=provider||'İnternet';
     S.saveSetting('rates',r);return r;
   }
@@ -2173,7 +2323,7 @@ App.Portfolio=(function(){
   }
   function promptManualRates(){
     var r=S.settings().rates||{};
-    App.UI.promptModal({title:'Manuel Kur Girişi',text:'Kur servislerine ulaşılamadı. Bilinen değerleri girin; boş bırakılan alan değişmez.',fields:[
+    App.UI.promptModal({title:'Manuel Kur Girişi',text:'Kur servislerine ulaşılamadı. Bilinen değerleri girin; boş bırakılan alan değişmez. Çeyrek/tam altın gramdan yaklaşık hesaplanır (işçilik hariç); kesin fiyat için kur çipine tıklayıp girin.',fields:[
       {key:'USD',label:'1 USD (₺)',type:'number',value:r.USD||''},
       {key:'EUR',label:'1 EUR (₺)',type:'number',value:r.EUR||''},
       {key:'GOLD_GRAM',label:'Gram Altın (₺)',type:'number',value:r.GOLD_GRAM||''}
@@ -2181,7 +2331,7 @@ App.Portfolio=(function(){
       var s2=S.settings(),r2=s2.rates||{},any=false;
       var usdVal=parseMoney(v.USD);if(usdVal!==null){r2.USD=usdVal;any=true}
       var eurVal=parseMoney(v.EUR);if(eurVal!==null){r2.EUR=eurVal;any=true}
-      var gramVal=parseMoney(v.GOLD_GRAM);if(gramVal!==null){r2.GOLD_GRAM=gramVal;r2.GOLD_QUARTER=roundMoney(gramVal*1.75);r2.GOLD_FULL=roundMoney(gramVal*7);any=true}
+      var gramVal=parseMoney(v.GOLD_GRAM);if(gramVal!==null){r2.GOLD_GRAM=gramVal;r2.GOLD_QUARTER=roundMoney(gramVal*QUARTER_G);r2.GOLD_FULL=roundMoney(gramVal*FULL_G);any=true}
       if(!any){App.UI.toast('Geçerli kur girilmedi.','err');return}
       r2.updated=Date.now();r2.provider='Manuel';S.saveSetting('rates',r2);render();App.UI.toast('Kurlar güncellendi.');
     });
@@ -2319,7 +2469,7 @@ App.Assistant=(function(){
   function _debts(){
     return S.debts().filter(function(d){return!d.settled}).map(function(d){
       var paid=(d.payments||[]).reduce(function(s,p){return s+(p.amount||0)},0);
-      return{direction:d.direction,amount:d.amount||0,remaining:Math.max((d.amount||0)-paid,0),dueDate:d.dueDate||d.date||''};
+      return{direction:d.direction,amount:d.amount||0,remaining:Math.max((d.amount||0)-paid,0),dueDate:d.dueDate||''};
     });
   }
   function _installments(){
@@ -2436,23 +2586,56 @@ App.YearlyFund=(function(){
       f.contributed=roundMoney((f.contributed||0)+a);S.saveFund(arr);render();App.UI.toast('Katkı eklendi.');
     });
   }
+  // Bir sonraki ödeme döngüsü: bu yılın ödemesi yapıldıysa gelecek yıl; son ay geçtiyse ve ödendi işaretlenmediyse "gecikmiş"
+  function nextDue(f,now){
+    now=now||new Date();var y=now.getFullYear(),m=now.getMonth()+1,paid=f.paidYear||0;
+    var createdBeforeDue=toNum(f.ts,0)<new Date(y,f.dueMonth,1).getTime();
+    var overdue=paid<y&&f.dueMonth<m&&createdBeforeDue&&(f.contributed||0)>0;
+    var year=overdue?y:paid>=y?paid+1:(f.dueMonth>=m?y:y+1);
+    var monthsLeft=overdue?1:(year-y)*12+f.dueMonth-m+1;
+    var date=year+'-'+String(f.dueMonth).padStart(2,'0')+'-01',today=td();
+    return{year:year,monthsLeft:Math.max(1,monthsLeft),overdue:overdue,date:date<today?today:date};
+  }
+  function markPaid(id){
+    var f0=S.fund().find(function(x){return x.id===id});if(!f0)return;
+    var accs=S.accounts().map(function(a){return{value:a.id,label:(AM[a.type]||{i:'💰'}).i+' '+a.name}});
+    App.UI.promptModal({title:'Ödendi — '+f0.name,text:'Biriken katkı sıfırlanır ve sonraki yılın döngüsüne geçilir. İsterseniz ödeme gider olarak da kaydedilir.',fields:[
+      {key:'record',label:'Gider kaydı',type:'select',value:accs.length?'yes':'no',options:[{value:'yes',label:'Evet, gider olarak kaydet'},{value:'no',label:'Hayır, sadece fonu sıfırla'}]},
+      {key:'amount',label:'Ödenen tutar (₺)',type:'number',value:f0.amount},
+      {key:'date',label:'Ödeme tarihi',type:'date',value:td()},
+      {key:'accountId',label:'Hesap',type:'select',value:(App.Accounts.sharedAccount()||{}).id||'',options:accs.length?accs:[{value:'',label:'— Hesap yok —'}]},
+      {key:'category',label:'Kategori',type:'select',value:'Diğer',options:EC.map(function(c){return{value:c,label:ci(c).i+' '+c}})}]},function(v){
+      var arr=S.fund(),f=arr.find(function(x){return x.id===id});if(!f)return;
+      if(v.record==='yes'){
+        var amt=parseMoney(v.amount);if(amt===null){App.UI.toast('Geçerli tutar girin.','err');return}
+        if(!validDate(v.date)){App.UI.toast('Geçerli tarih seçin.','err');return}
+        if(!App.Accounts.get(v.accountId)){App.UI.toast('Gider kaydı için hesap seçin.','err');return}
+        var applied=v.date<=td(),txns=S.txns();
+        txns.unshift({id:gid('t'),type:'expense',amount:amt,category:EC.indexOf(v.category)>=0?v.category:'Diğer',date:v.date,note:'Yıllık ödeme: '+f.name,accountId:v.accountId,userId:S.settings().activeUser,ts:Date.now(),balanceApplied:applied});
+        S.saveTxns(txns);if(applied)App.Accounts.adjustBalance(v.accountId,-amt);
+        App.UI.refreshFilterDropdowns();App.Transactions.renderList();App.Transactions.renderRecent();App.Transactions.renderSummaryMetrics();App.Accounts.renderSummary();App.Budget.renderAll();
+      }
+      f.paidYear=nextDue(f).year;f.contributed=0;S.saveFund(arr);render();App.Cashflow.renderMini();
+      App.UI.toast('"'+f.name+'" ödendi; '+(f.paidYear+1)+' döngüsüne geçildi.');
+    });
+  }
   function render(){
     var arr=S.fund(),mel=document.getElementById('fundMonth');
     if(mel&&!mel.options.length)mel.innerHTML=MF.map(function(m,i){return'<option value="'+(i+1)+'">'+m+'</option>'}).join('');
     var totalYearly=arr.reduce(function(s,f){return s+f.amount},0);
-    var now=new Date(),curMonth=now.getMonth()+1;
-    var monthlyNeeded=arr.reduce(function(s,f){var rem=f.dueMonth>=curMonth?f.dueMonth-curMonth+1:12-curMonth+f.dueMonth+1;var remAmt=Math.max(f.amount-(f.contributed||0),0);return s+roundMoney(remAmt/rem)},0);
+    var monthlyNeeded=arr.reduce(function(s,f){var nd=nextDue(f);return s+roundMoney(Math.max(f.amount-(f.contributed||0),0)/nd.monthsLeft)},0);
     document.getElementById('fundYearly').textContent=fmt(totalYearly);
     document.getElementById('fundMonthly').textContent=fmt(monthlyNeeded);
     var el=document.getElementById('fundList');
     if(!arr.length){el.innerHTML='<div class="empty"><span class="empty-ico">📅</span><div class="empty-t">Yıllık gider eklenmedi</div><div class="empty-s">MTV, kasko, bayram harçlığı gibi giderleri ekle</div></div>';return}
     el.innerHTML=arr.map(function(f){
-      var pct=f.amount>0?Math.min(((f.contributed||0)/f.amount)*100,100):0;
-      var rem=f.dueMonth>=curMonth?f.dueMonth-curMonth+1:12-curMonth+f.dueMonth+1,remAmt=Math.max(f.amount-(f.contributed||0),0),perMonth=roundMoney(remAmt/rem);
-      return'<div class="fund-card"><div class="fund-head"><div><div class="fund-name">'+esc(f.name)+'</div><div class="fund-yearly">Yıllık '+fmt(f.amount)+' · Son: '+MF[f.dueMonth-1]+' · Biriken: '+fmt(f.contributed||0)+'</div></div><div style="text-align:right"><div class="fund-monthly">'+fmt(perMonth)+'</div><div style="font-size:.7rem;color:var(--txt2)">aylık kalan</div></div></div><div class="fund-prog"><div class="fund-prog-fill" style="width:'+pct+'%"></div></div><div class="fund-foot"><span>'+pct.toFixed(0)+'% biriktirildi</span><div style="display:flex;gap:6px"><button class="btn btn-sm btn-ghost" onclick="App.YearlyFund.contribute(\''+f.id+'\')">+ Katkı</button><button class="btn-del" onclick="App.YearlyFund.remove(\''+f.id+'\')">Sil</button></div></div></div>';
+      var nd=nextDue(f),pct=f.amount>0?Math.min(((f.contributed||0)/f.amount)*100,100):0;
+      var remAmt=Math.max(f.amount-(f.contributed||0),0),perMonth=roundMoney(remAmt/nd.monthsLeft);
+      var warn=nd.overdue?'<div style="font-size:.72rem;color:var(--red);margin-top:4px">⚠ '+MF[f.dueMonth-1]+' '+nd.year+' ödeme ayı geçti. Ödediyseniz "Ödendi" ile işaretleyin.</div>':'';
+      return'<div class="fund-card"><div class="fund-head"><div><div class="fund-name">'+esc(f.name)+'</div><div class="fund-yearly">Yıllık '+fmt(f.amount)+' · Son: '+MF[f.dueMonth-1]+' '+nd.year+' · Biriken: '+fmt(f.contributed||0)+'</div>'+warn+'</div><div style="text-align:right"><div class="fund-monthly">'+fmt(perMonth)+'</div><div style="font-size:.7rem;color:var(--txt2)">aylık kalan</div></div></div><div class="fund-prog"><div class="fund-prog-fill" style="width:'+pct+'%"></div></div><div class="fund-foot"><span>'+pct.toFixed(0)+'% biriktirildi</span><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="btn btn-sm btn-ghost" onclick="App.YearlyFund.contribute(\''+f.id+'\')">+ Katkı</button><button class="btn btn-sm btn-ghost" onclick="App.YearlyFund.markPaid(\''+f.id+'\')">✓ Ödendi</button><button class="btn-del" onclick="App.YearlyFund.remove(\''+f.id+'\')">Sil</button></div></div></div>';
     }).join('');
   }
-  return{add,remove,contribute,render}
+  return{add,remove,contribute,markPaid,nextDue,render}
 })();
 
 App.WeeklySummary=(function(){
@@ -2474,24 +2657,38 @@ App.WeeklySummary=(function(){
 
 App.Inflation=(function(){
   var _mode='nominal';
+  // TÜFE (2003=100). TCMB'nin yayımladığı aylık % değişimlerden Aralık 2021=686,95 tabanıyla zincirlenmiştir;
+  // yıllık oranlar TÜİK ile ±0,02 puan örtüşür. Reel hesap yalnız oranları kullandığından baz yılı önemsizdir.
   var DEFAULT_CPI={
-    "2022-01":687.95,"2022-02":725.65,"2022-03":805.73,"2022-04":879.80,"2022-05":957.94,"2022-06":1046.59,"2022-07":1115.54,"2022-08":1158.93,"2022-09":1241.61,"2022-10":1359.16,"2022-11":1420.69,"2022-12":1446.72,
-    "2023-01":1508.00,"2023-02":1525.11,"2023-03":1612.70,"2023-04":1657.47,"2023-05":1659.79,"2023-06":1739.30,"2023-07":1879.65,"2023-08":2042.49,"2023-09":2182.16,"2023-10":2241.06,"2023-11":2307.07,"2023-12":2364.00,
-    "2024-01":2524.87,"2024-02":2643.00,"2024-03":2760.55,"2024-04":2857.77,"2024-05":2935.73,"2024-06":2979.24,"2024-07":3083.42,"2024-08":3105.67,"2024-09":3174.73,"2024-10":3265.90,"2024-11":3361.14,"2024-12":3436.97,
-    "2025-01":3547.18,"2025-02":3619.53,"2025-03":3696.03,"2025-04":3802.21,"2025-05":3878.44,"2025-06":3929.87,"2025-07":3987.39,"2025-08":4048.23,"2025-09":4127.76,"2025-10":4208.78,"2025-11":4294.66,"2025-12":4374.23,
-    "2026-01":4462.15,"2026-02":4545.80,"2026-03":4626.70,"2026-04":4710.12
+    "2021-12":686.95,
+    "2022-01":763.20,"2022-02":799.91,"2022-03":843.59,"2022-04":904.75,"2022-05":931.71,"2022-06":977.83,"2022-07":1001.00,"2022-08":1015.62,"2022-09":1046.90,"2022-10":1083.96,"2022-11":1115.18,"2022-12":1128.34,
+    "2023-01":1203.37,"2023-02":1241.28,"2023-03":1269.70,"2023-04":1300.05,"2023-05":1300.57,"2023-06":1351.55,"2023-07":1479.81,"2023-08":1614.33,"2023-09":1691.01,"2023-10":1749.01,"2023-11":1806.37,"2023-12":1859.30,
+    "2024-01":1983.87,"2024-02":2073.74,"2024-03":2139.27,"2024-04":2207.30,"2024-05":2281.69,"2024-06":2319.11,"2024-07":2394.02,"2024-08":2453.15,"2024-09":2526.01,"2024-10":2598.76,"2024-11":2656.97,"2024-12":2684.34,
+    "2025-01":2819.36,"2025-02":2883.36,"2025-03":2954.29,"2025-04":3042.92,"2025-05":3089.47,"2025-06":3131.80,"2025-07":3196.31,"2025-08":3261.52,"2025-09":3366.87,"2025-10":3452.72,"2025-11":3482.76,"2025-12":3513.76,
+    "2026-01":3683.82,"2026-02":3792.86,"2026-03":3866.44,"2026-04":4028.06,"2026-05":4096.94,"2026-06":4137.50,"2026-07":4211.15,"2026-08":4288.63
   };
-  var ESTIMATED_FROM='2025-01';
-  function data(){var c=S.cpi();if(c&&Object.keys(c).length)return c;S.saveCpi(DEFAULT_CPI);return DEFAULT_CPI}
+  var DATA_VERSION=2;
+  function data(){
+    var c=S.cpi(),st=S.settings();
+    if(c&&Object.keys(c).length&&st.cpiVersion===DATA_VERSION)return c;
+    // Eski gömülü seri hatalıydı (2022 değerleri): kullanıcı hiç düzenlemediyse tamamen yenile,
+    // düzenlediyse onun değerlerini koruyup yalnız eksik ayları ekle
+    var next=Object.assign({},DEFAULT_CPI);
+    if(c&&st.cpiUserEdited)Object.keys(c).forEach(function(k){next[k]=c[k]});
+    S.saveCpi(next);S.saveSetting('cpiVersion',DATA_VERSION);return next;
+  }
   function isUserVerified(){return !!S.settings().cpiUserEdited}
   function latestMonth(){var keys=Object.keys(data()).sort();return keys[keys.length-1]}
   function get(m){var c=data();return c[m]||0}
+  // Endeksi olmayan ay (son veriden sonrası) son bilinen endeksle değerlenir; böylece seri tutarlı kalır
+  function indexAt(m){var c=data(),v=c[m];if(v)return v;var latest=latestMonth();return m>latest?c[latest]:0}
   function adjust(amount,fromMonth,toMonth){
     toMonth=toMonth||latestMonth();
-    var fc=get(fromMonth),tc=get(toMonth);
+    var fc=indexAt(fromMonth),tc=indexAt(toMonth);
     if(!fc||!tc)return amount;
     return amount*(tc/fc);
   }
+  function isStale(){return latestMonth()<shiftMonth(tm(),-2)}
   function setMode(m){
     _mode=m;
     document.getElementById('nwModeNominal').classList.toggle('active',m==='nominal');
@@ -2511,7 +2708,7 @@ App.Inflation=(function(){
       var c=data();c[newMonth]=num;S.saveCpi(c);S.saveSetting('cpiUserEdited',true);App.NetWorth.render();App.UI.toast('TÜFE güncellendi: '+newMonth+' = '+num);
     });
   }
-  return{data,latestMonth,get,adjust,setMode,getMode,editCpi,isUserVerified,ESTIMATED_FROM,DEFAULT_CPI}
+  return{data,latestMonth,get,adjust,setMode,getMode,editCpi,isUserVerified,isStale,DEFAULT_CPI}
 })();
 
 App.NetWorth=(function(){
@@ -2539,8 +2736,9 @@ App.NetWorth=(function(){
     var curTotal=mode==='real'?App.Inflation.adjust(nw.total,curM):nw.total;
     document.getElementById('nwVal').textContent=fmt(curTotal);
     document.getElementById('nwVal').style.color=curTotal<0?'var(--red)':'var(--txt)';
-    var cpiWarn=mode==='real'&&!App.Inflation.isUserVerified()?' · ⚠️ '+App.Inflation.ESTIMATED_FROM+' sonrası gömülü endeks tahminidir, TÜİK verisiyle güncelleyin':'';
-    document.getElementById('nwSub').textContent=(mode==='real'?'Reel (TÜFE ayarlı, bugünkü TL değeri)':'Hesaplar + Portföy − Kalan Borçlar')+cpiWarn;
+    var lm=App.Inflation.latestMonth(),lp=lm.split('-');
+    var cpiWarn=mode==='real'&&App.Inflation.isStale()?' · ⚠️ TÜFE verisi '+MF[+lp[1]-1]+' '+lp[0]+' sonrası için eksik; sonraki aylar son endeksle değerleniyor, güncelleyin':'';
+    document.getElementById('nwSub').textContent=(mode==='real'?'Reel (TÜFE ayarlı, '+MF[+lp[1]-1]+' '+lp[0]+' fiyatlarıyla)':'Hesaplar + Portföy − Kalan Borçlar')+cpiWarn;
     var hist=snapshot();
     var adjHist=hist.map(function(h){return{month:h.month,total:mode==='real'?App.Inflation.adjust(h.total,h.month):h.total}});
     var prev=adjHist.length>=2?adjHist[adjHist.length-2]:null;
@@ -2680,6 +2878,7 @@ App.ICS=(function(){
     months=months||12;
     var events=[],now=new Date(),curY=now.getFullYear(),curM=now.getMonth();
     S.recurring().forEach(function(r){
+      if(r.active===false)return;
       for(var i=0;i<months;i++){
         var targetM=curM+i,y=curY+Math.floor(targetM/12),m=((targetM%12)+12)%12;
         var lastOfMonth=new Date(y,m+1,0).getDate(),day=Math.min(r.day,lastOfMonth);
@@ -2691,8 +2890,8 @@ App.ICS=(function(){
       }
     });
     S.txns().forEach(function(t){if(t.installment&&t.date>=td()){var sum='📅 Taksit '+t.installment.index+'/'+t.installment.total+' — '+(t.installment.name||t.category)+' ₺'+t.amount.toLocaleString('tr-TR');events.push(_event('ins-'+t.id,t.date,sum,t.category))}});
-    S.fund().forEach(function(f){if(f.dueMonth){var targetMonth=f.dueMonth-1;var year=targetMonth>=curM?curY:curY+1;var date=year+'-'+_pad(targetMonth+1)+'-01';events.push(_event('fund-'+f.id+'-'+year,date,'💰 Yıllık Ödeme: '+f.name+' — ₺'+f.amount.toLocaleString('tr-TR'),'Yıllık fon'))}});
-    S.debts().forEach(function(d){var due=d.dueDate||d.date;if(!d.settled&&due){var sum='🤝 Borç Vade: '+d.person+' — ₺'+d.amount.toLocaleString('tr-TR');events.push(_event('debt-'+d.id,due,sum,d.note||(d.direction==='lent'?'Alacak':'Borç')))}});
+    S.fund().forEach(function(f){if(f.dueMonth){var nd=App.YearlyFund.nextDue(f);events.push(_event('fund-'+f.id+'-'+nd.year,nd.date,'💰 Yıllık Ödeme: '+f.name+' — ₺'+f.amount.toLocaleString('tr-TR'),'Yıllık fon'))}});
+    S.debts().forEach(function(d){var due=d.dueDate;if(!d.settled&&due&&due>=td()){var rem=Math.max(d.amount-d.payments.reduce(function(s,p){return s+p.amount},0),0);var sum='🤝 Borç Vade: '+d.person+' — ₺'+rem.toLocaleString('tr-TR');events.push(_event('debt-'+d.id,due,sum,d.note||(d.direction==='lent'?'Alacak':'Borç')))}});
     var cal=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//FinansTakip//TR','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:Finans Takip','X-WR-TIMEZONE:Europe/Istanbul'].concat(events).concat(['END:VCALENDAR']).join('\r\n');
     return{ics:cal,count:events.length};
   }
@@ -2724,11 +2923,12 @@ App.Notifications=(function(){
     var today=new Date(),tday=today.getDate(),out=[];
     var lastOfThis=new Date(today.getFullYear(),today.getMonth()+1,0).getDate();
     var lastOfNext=new Date(today.getFullYear(),today.getMonth()+2,0).getDate();
-    S.recurring().forEach(function(r){if(r.type!=='expense')return;var thisD=Math.min(r.day,lastOfThis),nextD=Math.min(r.day,lastOfNext),diff=thisD-tday;if(diff<0)diff=lastOfThis-tday+nextD;if(diff<=daysAhead)out.push({kind:'rec',id:r.id,text:(r.note||r.category)+' — '+fmt(r.amount),in:diff})});
+    var curMonth=tm(),loggedNow={};S.txns().forEach(function(t){if(t.recurringId&&t.date.substring(0,7)===curMonth)loggedNow[t.recurringId]=1});
+    S.recurring().forEach(function(r){if(r.type!=='expense'||r.active===false)return;var thisD=Math.min(r.day,lastOfThis),nextD=Math.min(r.day,lastOfNext),diff=thisD-tday;if(diff<0||loggedNow[r.id])diff=lastOfThis-tday+nextD;if(diff<=daysAhead)out.push({kind:'rec',id:r.id,text:(r.note||r.category)+' — '+fmt(r.amount),in:diff})});
     var todayIso=td();
     S.txns().forEach(function(t){if(!t.installment||t.balanceApplied!==false)return;if(t.date<todayIso)return;var diff=Math.round((new Date(t.date)-today)/(24*3600000));if(diff<=daysAhead)out.push({kind:'inst',id:t.id,text:'📅 Taksit '+(t.installment.index||'')+'/'+(t.installment.total||'')+' — '+fmt(t.amount),in:diff})});
-    S.fund().forEach(function(f){var dueDate=new Date(today.getFullYear(),f.dueMonth-1,1);if(dueDate<=today)dueDate=new Date(today.getFullYear()+1,f.dueMonth-1,1);var diff=Math.round((dueDate-today)/(24*3600000));if(diff<=daysAhead)out.push({kind:'fund',id:f.id,text:'💰 '+f.name+' — '+fmt(f.amount),in:diff})});
-    S.debts().forEach(function(d){if(d.settled||!d.dueDate)return;var due=new Date(d.dueDate),diff=Math.round((due-today)/(24*3600000));var paid=d.payments.reduce(function(s,p){return s+p.amount},0),rem=Math.max(d.amount-paid,0);if(diff<=daysAhead&&diff>=0)out.push({kind:'debt',id:d.id,text:'🤝 '+d.person+' — '+fmt(rem),in:diff})});
+    S.fund().forEach(function(f){var nd=App.YearlyFund.nextDue(f),diff=daysUntil(nd.date);if(diff<=daysAhead)out.push({kind:'fund',id:f.id,text:'💰 '+f.name+' — '+fmt(f.amount)+(nd.overdue?' (gecikmiş)':''),in:diff})});
+    S.debts().forEach(function(d){if(d.settled||!d.dueDate)return;var diff=daysUntil(d.dueDate);var paid=d.payments.reduce(function(s,p){return s+p.amount},0),rem=Math.max(d.amount-paid,0);if(diff<=daysAhead&&diff>=0)out.push({kind:'debt',id:d.id,text:'🤝 '+d.person+' — '+fmt(rem),in:diff})});
     return out;
   }
   function checkDueBills(forceShow){

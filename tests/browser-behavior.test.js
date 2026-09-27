@@ -194,11 +194,158 @@ async function run() {
   await r.ctx.close();
 }
 
+function monthShift(n) { var d = new Date(now.getFullYear(), now.getMonth() + n, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+var CUR_MONTH = TODAY.slice(0, 7);
+var IN_10_DAYS = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 10));
+
+async function reload(page) {
+  await page.reload();
+  await page.waitForFunction(function() { return window.App && App.Transactions && document.getElementById('heroNet'); });
+}
+
+// Denetim #3, orta/düşük öncelikli maddeler (8–21)
+async function runAudit3b() {
+  var A = 'a1700000000000_kkkk', B = 'a1700000000000_llll';
+
+  // 8) Carry-over counts every month since carryStart (no 6-month cap) with the limit valid in that month.
+  var r = await openApp({
+    pf_a: [acc(A, 'Banka', 'bank', 0)],
+    pf_b: { Market: 100 },
+    pf_bm: { Market: { carryOver: true, carryStart: monthShift(-8), history: { '0000-00': 50 } } }
+  });
+  var p = r.page;
+  eq('rollover spans all months since carryStart', await p.evaluate(function() { return App.Budget.rolloverBalance('Market'); }), 400);
+  await p.evaluate(function(m) { var bm = S.budgetMeta(); bm.Market.history[m] = 100; S.saveBudgetMeta(bm); }, monthShift(-2));
+  eq('rollover uses the limit valid in each month', await p.evaluate(function() { return App.Budget.rolloverBalance('Market'); }), 6 * 50 + 2 * 100);
+  await r.ctx.close();
+
+  // 9 + 10) Stats: budget usage over budgeted categories only; daily average over elapsed days.
+  r = await openApp({
+    pf_a: [acc(A, 'Banka', 'bank', 0)],
+    pf_b: { Market: 100 },
+    pf_t: [
+      { id: 't1700000000000_st01', type: 'expense', amount: 50, category: 'Market', date: CUR_MONTH + '-01', accountId: A, userId: 'u_self', ts: 1, balanceApplied: true },
+      { id: 't1700000000000_st02', type: 'expense', amount: 500, category: 'Yiyecek', date: CUR_MONTH + '-01', accountId: A, userId: 'u_self', ts: 2, balanceApplied: true }
+    ]
+  });
+  p = r.page;
+  await p.click('[data-nav="istatistikler"]');
+  var kpis = await p.locator('#statsKpis .skpi-val').allTextContents();
+  eq('budget usage ignores unbudgeted categories', kpis[3], '50.0%');
+  var dayAvg = (550 / now.getDate()).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  eq('daily average divides by elapsed days this month', kpis[2], '₺' + dayAvg);
+  await r.ctx.close();
+
+  // 11 + 17) Recurring: own account, logged month not projected twice, paused excluded, forgotten month can be logged.
+  r = await openApp({ pf_a: [acc(A, 'Banka', 'bank', 1000), acc(B, 'Kart', 'card', 0)] });
+  p = r.page;
+  await p.click('[data-nav="tekrarlayan"]');
+  await p.fill('#recAmt', '200');
+  await p.selectOption('#recCat', 'Faturalar');
+  await p.fill('#recDay', '28');
+  await p.fill('#recNote', 'İnternet');
+  await p.selectOption('#recAccount', B);
+  await p.click('#page-tekrarlayan .btn-primary');
+  var rid = await p.evaluate(function() { return S.recurring()[0].id; });
+  eq('recurring keeps chosen account', await p.evaluate(function() { return S.recurring()[0].accountId; }), B);
+  await p.evaluate(function(id) { App.Recurring.log(id); }, rid);
+  var logged = await p.evaluate(function() { return S.txns().map(function(t) { return [t.accountId, t.date.slice(0, 7)]; }); });
+  eq('log writes to the recurring account', logged, [[B, CUR_MONTH]]);
+  var projected = await p.evaluate(function(m) { return App.Cashflow.items(95).filter(function(x) { return x.label === 'İnternet' && x.date.slice(0, 7) === m; }).length; }, CUR_MONTH);
+  eq('logged month is not projected twice', projected <= 1, true);
+  await p.evaluate(function(id) { App.Recurring.log(id); }, rid);
+  await submitPrompt(p, { month: monthShift(-1) });
+  eq('second log records the forgotten previous month', await p.evaluate(function(m) { return S.txns().filter(function(t) { return t.date.slice(0, 7) === m; }).length; }, monthShift(-1)), 1);
+  await p.evaluate(function(id) { App.Recurring.togglePause(id); }, rid);
+  eq('paused recurring leaves cash-flow projection', await p.evaluate(function() { return App.Cashflow.items(95).filter(function(x) { return x.src === 'Tekrarlayan'; }).length; }), 0);
+  await reload(p);
+  eq('pause survives reload', await p.evaluate(function() { return S.recurring()[0].active; }), false);
+  await r.ctx.close();
+
+  // 12 + 13) Debts: legacy due==date means "no due"; explicit due feeds cash flow; settled debt's payment can be removed.
+  r = await openApp({
+    pf_a: [acc(A, 'Banka', 'bank', 0)],
+    pf_d: [{ id: 'd1700000000000_mmmm', direction: 'lent', person: 'Eski', amount: 100, date: PAST, dueDate: PAST, note: '', payments: [], settled: false, ts: 1 }]
+  });
+  p = r.page;
+  eq('legacy debt without explicit due has no due date', await p.evaluate(function() { return S.debts()[0].dueDate; }), '');
+  await p.click('[data-nav="borclar"]');
+  await p.fill('#debtPerson', 'Ali');
+  await p.fill('#debtAmt', '300');
+  await p.fill('#debtDue', IN_10_DAYS);
+  await p.click('#page-borclar .btn-primary');
+  eq('debt with due date appears in cash flow', await p.evaluate(function() { return App.Cashflow.items(30).filter(function(x) { return x.label === 'Ali'; }).map(function(x) { return [x.date, x.amount]; }); }), [[IN_10_DAYS, 300]]);
+  var did = await p.evaluate(function() { return S.debts().find(function(d) { return d.person === 'Ali'; }).id; });
+  await p.evaluate(function(id) { App.Debts.togglePay(id); }, did);
+  await p.fill('#pay_amt_' + did, '300');
+  await p.evaluate(function(id) { App.Debts.addPayment(id); }, did);
+  eq('full payment settles debt', await p.evaluate(function(id) { return S.debts().find(function(d) { return d.id === id; }).settled; }, did), true);
+  eq('settled debt still shows removable payment', await p.locator('#dpay_' + did + ' .pay-item .btn-del').count(), 1);
+  await p.evaluate(function(id) { var d = S.debts().find(function(x) { return x.id === id; }); App.Debts.removePayment(id, d.payments[0].id); }, did);
+  eq('removing payment reopens debt', await p.evaluate(function(id) { return S.debts().find(function(d) { return d.id === id; }).settled; }, did), false);
+  await r.ctx.close();
+
+  // 14) Yearly fund: "Ödendi" records the expense, resets contributions and moves to next year's cycle.
+  r = await openApp({
+    pf_a: [acc(A, 'Banka', 'bank', 5000)],
+    pf_f: [{ id: 'yf1700000000000_nnnn', name: 'MTV', amount: 1200, dueMonth: now.getMonth() + 1, contributed: 1200, ts: 1 }]
+  });
+  p = r.page;
+  await p.evaluate(function() { App.YearlyFund.markPaid('yf1700000000000_nnnn'); });
+  await submitPrompt(p, { record: 'yes', amount: '1200', accountId: A });
+  var fund = await p.evaluate(function() { var f = S.fund()[0]; return { c: f.contributed, y: f.paidYear, next: App.YearlyFund.nextDue(f).year }; });
+  eq('paid fund resets and rolls to next year', fund, { c: 0, y: now.getFullYear(), next: now.getFullYear() + 1 });
+  eq('paid fund recorded as expense', (await balances(p)).Banka, 3800);
+  await r.ctx.close();
+
+  // 15) CPI: stale bundled series is replaced; months after the last index use the last index.
+  r = await openApp({ pf_cpi: { '2022-12': 1446.72, '2023-12': 2364.0 } });
+  p = r.page;
+  var cpi = await p.evaluate(function() { var d = App.Inflation.data(); return { dec22: d['2022-12'], dec23: d['2023-12'], latest: App.Inflation.latestMonth() }; });
+  eq('CPI 2022-12 matches official chain (±0.2)', Math.abs(cpi.dec22 - 1128.45) < 0.2, true);
+  eq('CPI 2023-12 matches official chain (±0.2)', Math.abs(cpi.dec23 - 1859.38) < 0.2, true);
+  eq('real value after last CPI month is not left unadjusted', await p.evaluate(function(l) { return App.Inflation.adjust(100, '2099-01', l); }, cpi.latest), 100);
+  await r.ctx.close();
+
+  // 19 + 20 + 21) Bank-style CSV, Turkish amounts, undo delete.
+  r = await openApp({
+    pf_a: [acc(A, 'Banka', 'bank', 1000)],
+    pf_ru: [{ id: 'ru1700000000000_oooo', field: 'note', value: 'migros', category: 'Market', active: true, ts: 1 }]
+  });
+  p = r.page;
+  eq('"1.500" reads as fifteen hundred', await p.evaluate(function() { return parseMoney('1.500'); }), 1500);
+  eq('"1,5" still reads as one and a half', await p.evaluate(function() { return parseMoney('1,5'); }), 1.5);
+  await p.click('[data-nav="islemler"]');
+  await p.click('#pillExp');
+  await p.fill('#txnAmt', '1.500');
+  eq('amount preview shows parsed value', (await p.locator('#txnAmt + .money-hint').textContent()).trim(), '= ₺1.500,00');
+  var csv = '﻿İşlem Tarihi;Açıklama;Tutar\r\n' + TODAY.split('-').reverse().join('.') + ';MIGROS KADIKOY;-1.234,56\r\n' + TODAY.split('-').reverse().join('.') + ';MAAS;25.000,00\r\n';
+  await p.setInputFiles('#csvImport', { name: 'ekstre.csv', mimeType: 'text/csv', buffer: Buffer.from(csv, 'utf8') });
+  await p.waitForSelector('.app-dialog-holder [data-act="ok"]');
+  await p.click('.app-dialog-holder [data-act="ok"]');
+  var imported = await p.evaluate(function() { return S.txns().map(function(t) { return [t.type, t.amount, t.category]; }).sort(); });
+  eq('bank CSV: sign sets type, rule sets category', imported, [['expense', 1234.56, 'Market'], ['income', 25000, 'Diğer']]);
+  eq('bank CSV applied to balance', (await balances(p)).Banka, 24765.44);
+  var txId = await p.evaluate(function() { return S.txns().find(function(t) { return t.type === 'expense'; }).id; });
+  await p.evaluate(function(id) { App.Transactions.remove(id); }, txId);
+  eq('delete applies immediately', (await balances(p)).Banka, 26000);
+  await p.click('.toast .toast-act');
+  eq('undo restores transaction and balance', [await p.evaluate(function() { return S.txns().length; }), (await balances(p)).Banka], [2, 24765.44]);
+  var exported = await p.evaluate(function() {
+    var out = null, orig = URL.createObjectURL;
+    URL.createObjectURL = function(b) { out = b; return orig.call(URL, b); };
+    App.Transactions.exportCSV(); URL.createObjectURL = orig; return out.text();
+  });
+  eq('export uses ; and decimal comma', exported.split('\r\n')[0].replace('﻿', '') + ' | ' + /;"1234,56";/.test(exported), 'Tarih;Tür;Kategori;Tutar;Hesap;Üye;Not | true');
+  await r.ctx.close();
+}
+
 server.listen(0, '127.0.0.1', async function() {
   base = 'http://127.0.0.1:' + server.address().port;
   try {
     browser = await pw.chromium.launch();
     await run();
+    await runAudit3b();
   } catch (e) {
     fail++;
     console.log('✗ test run crashed: ' + (e && e.stack || e));
