@@ -340,12 +340,121 @@ async function runAudit3b() {
   await r.ctx.close();
 }
 
+// Denetim #4: eksik özellikler ve arayüz
+async function runAudit4() {
+  var A = 'a1700000000000_pppp', B = 'a1700000000000_qqqq';
+
+  // Custom category flows into every category select and survives reload.
+  var r = await openApp({ pf_a: [acc(A, 'Banka', 'bank', 1000)] });
+  var p = r.page;
+  await p.evaluate(function() { App.UI.nav('ayarlar'); });
+  await p.fill('#catName', 'Evcil Hayvan');
+  await p.fill('#catEmoji', '🐾');
+  await p.evaluate(function() { App.Categories.add(); });
+  await reload(p);
+  eq('custom category in budget and rule selects', await p.evaluate(function() {
+    return [document.getElementById('bCat').innerHTML.indexOf('Evcil Hayvan') >= 0, document.getElementById('ruCat').innerHTML.indexOf('Evcil Hayvan') >= 0, ci('Evcil Hayvan').i];
+  }), [true, true, '🐾']);
+  // Family emoji (multi code unit) is kept whole.
+  eq('multi-codepoint emoji kept', await p.evaluate(function() { return firstEmoji('👨‍👩‍👧x', '?'); }), '👨‍👩‍👧');
+
+  // Income rule + apply to existing transactions.
+  await p.evaluate(function(a) {
+    var t = S.txns(); t.push({ id: 't1700000000000_rul1', type: 'income', amount: 100, category: 'Diğer', date: '2026-01-05', note: 'ACME maaş', accountId: a, userId: 'u_self', ts: 1, balanceApplied: true });
+    t.push({ id: 't1700000000000_rul2', type: 'expense', amount: 40, category: 'Diğer', date: '2026-01-06', note: 'mama', accountId: a, userId: 'u_self', ts: 2, balanceApplied: true });
+    S.saveTxns(t);
+    var r = S.rules(); r.push({ id: 'ru1700000000000_r001', field: 'note', value: 'maaş', category: 'Maaş', active: true, ts: 1 }, { id: 'ru1700000000000_r002', field: 'note', value: 'mama', category: 'Evcil Hayvan', active: true, ts: 2 }); S.saveRules(r);
+    App.Rules.applyExisting();
+  }, A);
+  await p.click('.app-dialog-holder [data-act="ok"]');
+  eq('rules re-categorize existing income and expense', await p.evaluate(function() { var o = {}; S.txns().forEach(function(t) { o[t.id] = t.category; }); return [o.t1700000000000_rul1, o.t1700000000000_rul2]; }), ['Maaş', 'Evcil Hayvan']);
+
+  // Date range filter + filtered totals.
+  await p.evaluate(function() { App.UI.nav('islemler'); });
+  await p.fill('#fFrom', '2026-01-06');
+  await p.fill('#fTo', '2026-01-06');
+  await p.dispatchEvent('#fTo', 'change');
+  eq('date range filter narrows list', await p.locator('#txnList .ti').count(), 1);
+  eq('filtered totals shown', (await p.textContent('#txnFilterSum')).indexOf('Gider ₺40,00') >= 0, true);
+  await r.ctx.close();
+
+  // Auto-log recurring: due months since enabling are recorded on startup, once.
+  r = await openApp({
+    pf_a: [acc(A, 'Banka', 'bank', 1000)],
+    pf_r: [{ id: 'r1700000000000_auto', type: 'expense', amount: 100, category: 'Faturalar', day: 1, note: 'Aidat', accountId: A, userId: 'u_self', isSubscription: false, active: true, autoLog: true, autoFrom: monthShift(-2), ts: 1 }]
+  });
+  p = r.page;
+  eq('auto-log records due months (3)', await p.evaluate(function() { return S.txns().filter(function(t) { return t.recurringId === 'r1700000000000_auto'; }).length; }), 3);
+  eq('auto-log debits account', (await balances(p)).Banka, 700);
+  await reload(p);
+  eq('auto-log does not duplicate on next start', await p.evaluate(function() { return S.txns().length; }), 3);
+  await r.ctx.close();
+
+  // Portfolio: buy debits account (not an expense), partial sell credits it and keeps the rest.
+  r = await openApp({ pf_a: [acc(A, 'Banka', 'bank', 10000)], pf_s: { rates: { USD: 40, FUND: 1, updated: Date.now(), provider: 'Test' } } });
+  p = r.page;
+  await p.evaluate(function() { App.UI.nav('portfoy'); });
+  await p.selectOption('#portType', 'USD');
+  await p.fill('#portQty', '100');
+  await p.fill('#portCost', '35');
+  await p.selectOption('#portAccount', A);
+  await p.evaluate(function() { App.Portfolio.add(); });
+  eq('asset purchase debits account', (await balances(p)).Banka, 6500);
+  eq('asset purchase is not counted as expense', (await p.evaluate(function(m) { return App.Transactions.monthTotals(m); }, CUR_MONTH)).expense, 0);
+  var pid = await p.evaluate(function() { return S.portfolio()[0].id; });
+  await p.evaluate(function(id) { App.Portfolio.sell(id); }, pid);
+  await submitPrompt(p, { qty: '40', price: '42', accountId: A });
+  eq('partial sell keeps remaining units', await p.evaluate(function() { return S.portfolio()[0].qty; }), 60);
+  eq('sale proceeds credited to account', (await balances(p)).Banka, 8180);
+  await r.ctx.close();
+
+  // Debt linked to an account: lend, collect, delete → balances follow; totals untouched.
+  r = await openApp({ pf_a: [acc(A, 'Banka', 'bank', 1000)] });
+  p = r.page;
+  await p.evaluate(function() { App.UI.nav('borclar'); });
+  await p.fill('#debtPerson', 'Veli');
+  await p.fill('#debtAmt', '400');
+  await p.selectOption('#debtAccount', A);
+  await p.evaluate(function() { App.Debts.add(); });
+  eq('lending debits linked account', (await balances(p)).Banka, 600);
+  var did = await p.evaluate(function() { return S.debts()[0].id; });
+  await p.evaluate(function(id) { App.Debts.togglePay(id); }, did);
+  await p.fill('#pay_amt_' + did, '150');
+  await p.evaluate(function(id) { App.Debts.addPayment(id); }, did);
+  eq('collection credits linked account', (await balances(p)).Banka, 750);
+  eq('debt movements are not income/expense', await p.evaluate(function(m) { var t = App.Transactions.monthTotals(m); return [t.income, t.expense]; }, CUR_MONTH), [0, 0]);
+  await p.evaluate(function(id) { App.Debts.remove(id); }, did);
+  await p.click('.app-dialog-holder [data-act="ok"]');
+  eq('deleting debt reverts linked movements', [(await balances(p)).Banka, await p.evaluate(function() { return S.txns().length; })], [1000, 0]);
+  await r.ctx.close();
+
+  // Screen lock: set PIN, lock on reload, wrong PIN rejected, right PIN opens.
+  r = await openApp({ pf_a: [acc(A, 'Banka', 'bank', 1000)] });
+  p = r.page;
+  await p.evaluate(function() { App.Lock.set(); });
+  await submitPrompt(p, { pin: '2468', pin2: '2468' });
+  await p.waitForFunction(function() { return !!S.settings().lockHash; });
+  eq('PIN stored only as hash', await p.evaluate(function() { var s = JSON.stringify(S.settings()); return s.indexOf('2468') < 0 && S.settings().lockHash.length === 64; }), true);
+  await reload(p);
+  eq('app starts locked', await p.isVisible('#lockScreen'), true);
+  await p.fill('#lockPin', '1111');
+  await p.click('#lockBtn');
+  await p.waitForFunction(function() { return document.getElementById('lockMsg').textContent === 'PIN hatalı.'; });
+  eq('wrong PIN keeps lock', await p.isVisible('#lockScreen'), true);
+  await p.fill('#lockPin', '2468');
+  await p.click('#lockBtn');
+  await p.waitForFunction(function() { return document.getElementById('lockScreen').hidden; });
+  eq('right PIN unlocks', await p.isVisible('#lockScreen'), false);
+  await r.ctx.close();
+}
+
 server.listen(0, '127.0.0.1', async function() {
   base = 'http://127.0.0.1:' + server.address().port;
   try {
     browser = await pw.chromium.launch();
     await run();
     await runAudit3b();
+    await runAudit4();
   } catch (e) {
     fail++;
     console.log('✗ test run crashed: ' + (e && e.stack || e));
