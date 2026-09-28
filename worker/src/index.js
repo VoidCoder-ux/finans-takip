@@ -213,6 +213,7 @@ async function route(request, env, url, ctx) {
       if (!row) return json({ deleted: false });
       await env.DB.batch([
         env.DB.prepare('DELETE FROM push_subs WHERE vault_id = ?').bind(id),
+        env.DB.prepare('DELETE FROM receipt_usage WHERE vault_id = ?').bind(id),
         env.DB.prepare('DELETE FROM vaults WHERE id = ?').bind(id)
       ]);
       return json({ deleted: true });

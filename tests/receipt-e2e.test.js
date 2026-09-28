@@ -59,6 +59,8 @@ const mock = http.createServer((q, s) => {
     mode = 'unauth';
     eq('bad API key → 503 ai_key (no key leak)', await api('POST', path, token, { text }).then(r => [r.status, r.body.error, JSON.stringify(r.body).includes('key is invalid')]), [503, 'ai_key', false]);
     mode = 'ok';
+    // Başarısız çağrılar (unauth) hakkı tüketmez: 3 başarılı (ok, garbage, fenced) + 1 hak kaldı
+    eq('failed AI call does not use the daily quota', await api('POST', path, token, { text }).then(r => [r.status, r.body.used]), [200, 4]);
     const over = await api('POST', path, token, { text });
     eq('daily limit per vault', [over.status, over.body.error], [429, 'daily_limit']);
   } finally { mock.close(); }
