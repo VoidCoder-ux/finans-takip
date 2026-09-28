@@ -9,6 +9,7 @@
 //   Bir cihaz yeni sürüm yazınca hub diğerlerine yalnız {version} haberini yollar, onlar da hemen eşitlenir.
 
 import { readMarket, refreshMarket, isStale } from './market.js';
+import { readReceipt } from './receipt.js';
 
 const MAX_BODY = 2_000_000;
 const ID_RE = /^[A-Za-z0-9_-]{22,64}$/;
@@ -62,7 +63,7 @@ function cors(request, env) {
   const allow = !allowed.length ? '*' : (allowed.includes(origin) ? origin : allowed[0]);
   return {
     'Access-Control-Allow-Origin': allow,
-    'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, PUT, POST, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Register-Key, X-Device',
     'Access-Control-Max-Age': '86400',
     'Vary': 'Origin'
@@ -153,7 +154,7 @@ async function loadVault(env, id, token) {
 async function route(request, env, url, ctx) {
   const parts = url.pathname.split('/').filter(Boolean); // ['v1', ...]
   if (parts[1] === 'config' && parts.length === 2 && request.method === 'GET') {
-    return json({ api: 1, vapidPublicKey: vapidPublicKey(env), registrationRequired: !!env.REGISTRATION_KEY, live: !!env.HUB });
+    return json({ api: 1, vapidPublicKey: vapidPublicKey(env), registrationRequired: !!env.REGISTRATION_KEY, live: !!env.HUB, receiptAI: !!env.ANTHROPIC_API_KEY });
   }
   // Herkese açık piyasa verisi (kişisel veri yok). Eskimişse arka planda yenilenir; ?refresh=1 yenilemeyi bekler.
   if (parts[1] === 'market' && parts.length === 2 && request.method === 'GET') {
@@ -217,6 +218,16 @@ async function route(request, env, url, ctx) {
       return json({ deleted: true });
     }
     throw new HttpError(405, 'method_not_allowed');
+  }
+
+  // /v1/vault/:id/receipt: fiş fotoğrafını yapay zekâyla oku (isteğe bağlı; ANTHROPIC_API_KEY gerekir)
+  if (parts.length === 4 && parts[3] === 'receipt') {
+    if (request.method !== 'POST') throw new HttpError(405, 'method_not_allowed');
+    if (!env.ANTHROPIC_API_KEY) throw new HttpError(501, 'receipt_ai_disabled');
+    const row = await loadVault(env, id, token);
+    if (!row) throw new HttpError(404, 'no_vault');
+    const r = await readReceipt(env, id, await readJson(request), istanbulDay());
+    return json(r.body, r.status);
   }
 
   // /v1/vault/:id/push/:deviceId
