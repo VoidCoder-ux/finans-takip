@@ -67,6 +67,31 @@ const TOMORROW = iso(new Date(Date.now() + 864e5));
   eq('concurrent adds kept on B', await notes(B.page), ['Bakkal B', 'Eşzamanlı A', 'Eşzamanlı B', 'Migros A']);
   eq('balances converge after concurrent adds', [await bal(A.page), await bal(B.page)], [[['Ortak Hesap', 820]], [['Ortak Hesap', 820]]]);
 
+  // 3b) Anlık: A'da girilen işlem B'ye yenileme veya elle eşitleme olmadan gelir ve ekranda görünür
+  await B.page.waitForFunction(() => App.Sync.live(), null, { timeout: 10000 }).catch(() => {});
+  eq('B has a live connection', await B.page.evaluate(() => App.Sync.live()), true);
+  await B.page.evaluate(() => App.UI.nav('ozet'));
+  const t0 = Date.now();
+  await addExpense(A.page, '5', 'Anlık test');
+  let arrived = false;
+  try { await B.page.waitForFunction(() => S.txns().some(t => t.note === 'Anlık test'), null, { timeout: 10000 }); arrived = true; } catch (e) {}
+  const secs = (Date.now() - t0) / 1000;
+  eq('change reaches B without refresh (< 8 s, incl. 2.5 s save delay)', [arrived, secs < 8], [true, true]);
+  eq('B screen updated (recent list)', (await B.page.textContent('#ozet-txns')).includes('Anlık test'), true);
+  await A.page.evaluate(id => App.Transactions.purge(id), await A.page.evaluate(() => S.txns().find(t => t.note === 'Anlık test').id));
+  await sync(A.page); await sync(B.page);
+
+  // 3c) Eşitleme turu ağ beklerken yapılan yerel değişiklik kaybolmaz
+  const race = await A.page.evaluate(() => {
+    const origFetch = window.fetch;
+    let injected = false;
+    window.fetch = function(u, o) { const p = origFetch.apply(this, arguments); if (!injected && /\/v1\/vault\//.test(String(u)) && (!o || o.method === 'GET')) { injected = true; const t = S.txns(); t.push({ id: 't1700000000000_race', type: 'expense', amount: 1, category: 'Market', date: td(), note: 'Tur sırasında', accountId: 'a1700000000000_shar', userId: 'u_self', ts: 1, balanceApplied: false }); S.saveTxns(t); } return p; };
+    return App.Sync.syncNow({ quiet: true }).then(() => { window.fetch = origFetch; return S.txns().some(t => t.id === 't1700000000000_race'); });
+  });
+  eq('local edit during a sync round is kept', race, true);
+  await A.page.evaluate(() => App.Transactions.purge('t1700000000000_race'));
+  await sync(A.page); await sync(B.page);
+
   // 4) Aynı kaydın farklı alanlarını iki cihaz düzenler → alan düzeyinde birleşir
   await A.page.evaluate(() => { const t = S.txns(); t.find(x => x.id === 't1700000000000_aaa1').note = 'Migros (A notu)'; S.saveTxns(t); });
   await B.page.evaluate(() => { const t = S.txns(); t.find(x => x.id === 't1700000000000_aaa1').category = 'Yiyecek'; S.saveTxns(t); });

@@ -3,6 +3,8 @@
 name = "finans-takip"
 main = "src/index.js"
 compatibility_date = "2025-09-01"
+workers_dev = true
+preview_urls = false
 
 # Uygulama dosyaları deponun kökünden sunulur (hariç tutulanlar: ../.assetsignore)
 [assets]
@@ -15,13 +17,23 @@ database_name = "finans-takip"
 # `npx wrangler d1 create finans-takip` çıktısındaki database_id'yi buraya yazın
 database_id = "00000000-0000-0000-0000-000000000000"
 
+# Anlık eşitleme: kasa başına bir Durable Object (ücretsiz planda SQLite tabanlı)
+[[durable_objects.bindings]]
+name = "HUB"
+class_name = "VaultHub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["VaultHub"]
+
 # Her gün 06:00 UTC = 09:00 İstanbul: o gün bildirimi olan cihazlara push
 [triggers]
 crons = ["0 6 * * *"]
 
 [vars]
-# `npm run vapid` çıktısındaki genel anahtar (gizli anahtar `wrangler secret put VAPID_PRIVATE_JWK` ile)
-VAPID_PUBLIC_KEY = ""
+# Bildirim gönderen olarak e-posta adresiniz (push servisleri sorun olursa buraya yazar)
 VAPID_SUBJECT = "mailto:admin@example.com"
+# Genel anahtar boş bırakılabilir: gizli anahtardan (wrangler secret put VAPID_PRIVATE_JWK) otomatik türetilir
+VAPID_PUBLIC_KEY = ""
 # İsteğe bağlı: virgülle ayrılmış izinli kökenler (boş = hepsi; kimlik doğrulama Bearer belirteciyle)
 ALLOWED_ORIGINS = ""

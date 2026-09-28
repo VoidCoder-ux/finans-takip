@@ -469,7 +469,10 @@ async function runMergeCases() {
       budget: m.stores.pf_b,
       users: m.s.users.map(function(u) { return u.name; }),
       editBeatsDelete: m2.stores.pf_t.map(function(x) { return x.amount; }),
-      nested: m3.stores.pf_g[0].contributions.map(function(c) { return c.id; })
+      nested: m3.stores.pf_g[0].contributions.map(function(c) { return c.id; }),
+      // silinen kayıt, diğer cihazın yalnız otomatik "bakiyeye işlendi" güncellemesiyle geri gelmemeli
+      normalized: mergeSnapshot({ stores: { pf_t: [t('n', 4)] }, s: {} }, { stores: { pf_t: [] }, s: {} }, { stores: { pf_t: [Object.assign(t('n', 4), { transferId: '', recurringId: '', installment: null })] }, s: {} }).stores.pf_t.length,
+      derived: mergeSnapshot({ stores: { pf_t: [Object.assign(t('d', 3), { balanceApplied: false })] }, s: {} }, { stores: { pf_t: [] }, s: {} }, { stores: { pf_t: [Object.assign(t('d', 3), { balanceApplied: true })] }, s: {} }).stores.pf_t.length
     };
   });
   eq('merge: union of adds; t2 deleted here, t3 deleted remotely', res.ids, ['t1', 't4', 't5']);
@@ -478,6 +481,8 @@ async function runMergeCases() {
   eq('merge: shared settings merged by id', res.users, ['Ben (uzak)', 'Eş']);
   eq('merge: edit beats concurrent delete', res.editBeatsDelete, [2]);
   eq('merge: nested contributions from two devices kept', res.nested, ['c1', 'c2', 'c3']);
+  eq('merge: automatic balanceApplied change does not resurrect a deleted record', res.derived, 0);
+  eq('merge: fields filled with empty defaults on load do not resurrect a deleted record', res.normalized, 0);
   await r.ctx.close();
 }
 

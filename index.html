@@ -2,7 +2,7 @@
 <html lang="tr" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; worker-src 'self'; object-src 'none'; base-uri 'self'"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https: wss:; worker-src 'self'; object-src 'none'; base-uri 'self'"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
 <title>Finans Takip</title>
 <link rel="manifest" href="manifest.json"/>
@@ -3186,6 +3186,11 @@ var IDB=(function(){
 // Silme: bir tarafta silinip diğerinde değiştirilmemişse silinir; diğerinde düzenlendiyse düzenleme korunur.
 function stableStr(v){if(v===undefined)return'u';if(v===null||typeof v!=='object')return JSON.stringify(v);if(Array.isArray(v))return'['+v.map(stableStr).join(',')+']';return'{'+Object.keys(v).sort().filter(function(k){return v[k]!==undefined}).map(function(k){return JSON.stringify(k)+':'+stableStr(v[k])}).join(',')+'}'}
 function _same(a,b){return stableStr(a)===stableStr(b)}
+// Türetilmiş alanlar (hesap bakiyesi, "bakiyeye işlendi" işareti) her cihazda işlem geçmişinden yeniden hesaplanır:
+// bunların değişmesi "kullanıcı düzenlemesi" sayılmaz, yoksa silinen kayıt başka cihazın otomatik güncellemesiyle geri gelirdi
+// Yükleme sırasında boş değerle tamamlanan alanlar (transferId:'', installment:null…) da düzenleme sayılmaz
+function _content(x){if(!x||typeof x!=='object'||Array.isArray(x))return x;var o={};Object.keys(x).forEach(function(k){var v=x[k];if(k==='balanceApplied'||k==='balance'||v===''||v===null||v===undefined)return;o[k]=k==='installment'&&typeof v==='object'?_content(v):v});return o}
+function _sameContent(a,b){return stableStr(_content(a))===stableStr(_content(b))}
 function _listKey(arrs){var all=[].concat.apply([],arrs.filter(Array.isArray));if(!all.length)return null;var keys=['id','month','name'];for(var i=0;i<keys.length;i++){var k=keys[i];if(all.every(function(x){return x&&typeof x==='object'&&!Array.isArray(x)&&x[k]!=null}))return k}return null}
 // Anlık görüntülerde diziler kimliğe göre sıralı tutulur: karşılaştırma sıradan bağımsız olur
 function sortByKey(a,key){key=key||_listKey([a]);if(!key)return a;return a.slice().sort(function(x,y){var p=String(x[key]),q=String(y[key]);return p<q?-1:p>q?1:0})}
@@ -3196,8 +3201,8 @@ function mergeList(base,local,remote,key){
   function visit(id){
     if(seen[id])return;seen[id]=1;var b=B[id],l=L[id],r=R[id];
     if(l&&r)out.push(mergeRecord(b,l,r));
-    else if(l){if(!b||!_same(l,b))out.push(l)}
-    else if(r){if(!b||!_same(r,b))out.push(r)}
+    else if(l){if(!b||!_sameContent(l,b))out.push(l)}
+    else if(r){if(!b||!_sameContent(r,b))out.push(r)}
   }
   local.forEach(function(x){if(x&&x[key]!=null)visit(String(x[key]))});remote.forEach(function(x){if(x&&x[key]!=null)visit(String(x[key]))});
   return sortByKey(out,key);
@@ -3234,7 +3239,7 @@ App.Sync=(function(){
   var CFG_KEY='ft_sync',BASE_KEY='sync_base',ARRAY_STORES=['pf_t','pf_g','pf_a','pf_r','pf_d','pf_f','pf_p','pf_ru','pf_nw'],MAP_STORES=['pf_b','pf_bm','pf_cpi'];
   // Ayarların yalnız ortak kısmı eşitlenir; tema, aktif profil, kilit, AI modu cihaza özeldir
   var SHARED_SETTINGS=['users','customCats','portfolioTargets','rates','cpiUserEdited','cpiVersion'];
-  var _busy=null,_again=false,_timer=null,_applying=false,_key=null;
+  var _busy=null,_again=false,_timer=null,_applying=false,_key=null,_ws=null,_wsRetry=0,_wsTimer=null,_wsPing=null,_inited=false,_poll=null;
   function cfg(){try{return JSON.parse(localStorage.getItem(CFG_KEY)||'null')}catch(e){return null}}
   function saveCfg(c){try{if(c)localStorage.setItem(CFG_KEY,JSON.stringify(c));else localStorage.removeItem(CFG_KEY)}catch(e){}}
   function configured(){var c=cfg();return!!(c&&c.url&&c.vault&&c.key)}
@@ -3260,7 +3265,7 @@ App.Sync=(function(){
       .catch(function(e){throw new Error(e&&/Bu tarayıcı/.test(e.message)?e.message:'Veri çözülemedi: eşitleme kodu bu kasaya ait değil.')});
   }
   function api(c,method,path,body,extra){
-    return token(c).then(function(t){return fetch(c.url+'/v1/vault/'+c.vault+(path||''),{method:method,cache:'no-store',headers:Object.assign({'Content-Type':'application/json',Authorization:'Bearer '+t},extra||{}),body:body?JSON.stringify(body):undefined})})
+    return token(c).then(function(t){return fetch(c.url+'/v1/vault/'+c.vault+(path||''),{method:method,cache:'no-store',headers:Object.assign({'Content-Type':'application/json',Authorization:'Bearer '+t,'X-Device':c.deviceId||''},extra||{}),body:body?JSON.stringify(body):undefined})})
       .then(function(r){return r.json().catch(function(){return{}}).then(function(j){return{status:r.status,body:j}})});
   }
   function collect(){
@@ -3288,7 +3293,7 @@ App.Sync=(function(){
     clearTimeout(_timer);_timer=setTimeout(function(){syncNow({quiet:true})},2500);
   }
   function _round(tries){
-    var c=cfg(),local=collect();
+    var c=cfg(),local=collect(),localStr=stableStr(local);
     return IDB.get(BASE_KEY).then(function(stored){
       var base=stored&&stored.vault===c.vault&&stored.version===c.version?stored.snap:null;
       return api(c,'GET',base?'?known='+c.version:'').then(function(res){
@@ -3297,16 +3302,23 @@ App.Sync=(function(){
         if(res.status!==200)throw new Error('Sunucu yanıtı: '+res.status);
         var ver=res.body.version;
         return(res.body.unchanged?Promise.resolve(base):decrypt(c,res.body.data)).then(function(remote){
+          // Ağ beklenirken bu cihazda yeni değişiklik olduysa eski görüntüyle üzerine yazma: turu güncel veriyle yeniden başlat
+          if(stableStr(collect())!==localStr){if(tries<6)return _round(tries+1);throw new Error('Veri eşitleme sırasında değişti, tekrar deneyin.')}
           var merged=mergeSnapshot(base,local,remote);
           if(!_same(merged,local))apply(merged);
           var after=collect();
-          if(_same(after,remote)){c=cfg();c.version=ver;saveCfg(c);return IDB.set(BASE_KEY,{vault:c.vault,version:ver,snap:remote}).then(function(){return false})}
+          // Uzak sürüm uygulandı: "son bilinen sunucu durumu" hemen o sürüm olur. Gönderim 409 alıp yeniden denenirse
+          // uzaktan gelen kayıtlar yanlışlıkla "yerel ekleme" sayılıp başka cihazın sildikleri geri getirilmez.
+          c=cfg();c.version=ver;saveCfg(c);
+          return IDB.set(BASE_KEY,{vault:c.vault,version:ver,snap:remote}).then(function(){
+          if(_same(after,remote))return false;
           return encrypt(c,after).then(function(data){return api(c,'PUT','',{baseVersion:ver,data:data})}).then(function(put){
             if(put.status===409){if(tries<4)return _round(tries+1);throw new Error('Eşitleme çakışması çözülemedi, tekrar deneyin.')}
             if(put.status===413)throw new Error('Veri eşitleme için çok büyük.');
             if(put.status!==200)throw new Error('Sunucu yanıtı: '+put.status);
             c=cfg();c.version=put.body.version;saveCfg(c);
             return IDB.set(BASE_KEY,{vault:c.vault,version:c.version,snap:after}).then(function(){return true});
+          });
           });
         });
       });
@@ -3334,7 +3346,7 @@ App.Sync=(function(){
         if(r.status!==201)throw new Error('Kasa oluşturulamadı ('+r.status+').');
         c.version=r.body.version;c.lastSync=Date.now();saveCfg(c);
         return IDB.set(BASE_KEY,{vault:c.vault,version:c.version,snap:collect()});
-      }).then(function(){renderCard();App.UI.toast('Eşitleme başladı. Diğer cihazı "Cihaz Ekle" koduyla bağlayın.','ok');showCode();return true});
+      }).then(function(){renderCard();init();App.UI.toast('Eşitleme başladı. Diğer cihazı "Cihaz Ekle" koduyla bağlayın.','ok');showCode();return true});
     }).catch(function(e){App.UI.toast(e.message||'Eşitleme başlatılamadı.','err');return false});
   }
   function codeOf(c){return'FT1.'+b64u(new TextEncoder().encode(JSON.stringify({u:c.url,v:c.vault,k:c.key})))}
@@ -3351,7 +3363,7 @@ App.Sync=(function(){
       if(r.status!==200)throw new Error('Eşitleme kodu geçersiz.');
       return decrypt(c,r.body.data);
     }).then(function(){saveCfg(c);return resetBase()}).then(function(){return syncNow({quiet:false})}).then(function(ok){
-      renderCard();if(ok)App.UI.toast('Bu cihaz eşitlemeye katıldı; veriler birleştirildi.','ok');return ok;
+      renderCard();init();if(ok)App.UI.toast('Bu cihaz eşitlemeye katıldı; veriler birleştirildi.','ok');return ok;
     }).catch(function(e){App.UI.toast(e instanceof TypeError?'Sunucuya ulaşılamadı.':e.message,'err');return false});
   }
   function joinPrompt(prefill){
@@ -3379,14 +3391,14 @@ App.Sync=(function(){
   function disable(){
     App.UI.confirmModal({title:'Bu Cihazda Eşitlemeyi Kapat',text:'Bu cihaz eşitlemeden çıkar; buradaki veriler olduğu gibi kalır. Diğer cihazlar eşitlemeye devam eder.',okLabel:'Kapat'},function(){
       var p=App.Push?App.Push.unregister():Promise.resolve();
-      p.then(function(){saveCfg(null);return resetBase()}).then(function(){renderCard();App.UI.toast('Bu cihazda eşitleme kapatıldı.','info')});
+      p.then(function(){saveCfg(null);_closeLive();return resetBase()}).then(function(){renderCard();App.UI.toast('Bu cihazda eşitleme kapatıldı.','info')});
     });
   }
   function destroy(){
     App.UI.promptModal({title:'Sunucudaki Veriyi Sil',text:'Şifreli kasa ve bildirim kayıtları sunucudan kalıcı olarak silinir; tüm cihazlarda eşitleme durur. Cihazlardaki veriler kalır. Onay için SİL yazın.',fields:[{key:'c',label:'Onay',placeholder:'SİL'}],okLabel:'Sunucudan Sil'},function(v){
       if(String(v.c||'').trim().toLocaleUpperCase('tr-TR')!=='SİL'){App.UI.toast('Onay metni eşleşmedi.','info');return}
       var c=cfg();if(!c)return;
-      api(c,'DELETE','').then(function(r){if(r.status!==200)throw new Error();saveCfg(null);return resetBase()}).then(function(){renderCard();App.UI.toast('Sunucudaki veri silindi; eşitleme kapatıldı.','info')},function(){App.UI.toast('Silinemedi; bağlantıyı kontrol edin.','err')});
+      api(c,'DELETE','').then(function(r){if(r.status!==200)throw new Error();saveCfg(null);_closeLive();return resetBase()}).then(function(){renderCard();App.UI.toast('Sunucudaki veri silindi; eşitleme kapatıldı.','info')},function(){App.UI.toast('Silinemedi; bağlantıyı kontrol edin.','err')});
     });
   }
   function renderCard(){
@@ -3395,16 +3407,36 @@ App.Sync=(function(){
     if(!available()){el.innerHTML=head+'<div class="set-sub">Bu tarayıcıda kullanılamıyor (güvenli bağlantı gerekir).</div>';return}
     if(!configured()){el.innerHTML=head+'<div class="set-sub">Aile üyelerinin telefonları aynı verileri görsün. Veri cihazda uçtan uca şifrelenir; Cloudflare sunucusu içeriği okuyamaz.</div><div class="set-actions"><button class="btn btn-sm btn-ghost" onclick="App.Sync.startPrompt()">Eşitlemeyi Başlat</button><button class="btn btn-sm btn-ghost" onclick="App.Sync.joinPrompt()">Kodla Katıl</button></div>';return}
     var when=c.lastSync?new Date(c.lastSync).toLocaleString('tr-TR'):'henüz yok',host='';try{host=new URL(c.url).host}catch(e){}
-    el.innerHTML=head+'<div class="set-sub">'+(c.lastError?'<span style="color:var(--red)">⚠ '+esc(c.lastError)+'</span><br/>':'✓ Açık · ')+'Son eşitleme: '+esc(when)+' · '+esc(host)+'</div><div class="set-actions"><button class="btn btn-sm btn-ghost" onclick="App.Sync.syncNow({manual:true})">Şimdi Eşitle</button><button class="btn btn-sm btn-ghost" onclick="App.Sync.showCode()">Cihaz Ekle</button><button class="btn btn-sm btn-ghost" onclick="App.Sync.disable()">Bu Cihazda Kapat</button><button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Sync.destroy()">Sunucudan Sil</button></div>';
+    el.innerHTML=head+'<div class="set-sub">'+(c.lastError?'<span style="color:var(--red)">⚠ '+esc(c.lastError)+'</span><br/>':'✓ Açık · ')+'Son eşitleme: '+esc(when)+' · '+esc(host)+'<br/>'+(live()?'⚡ Anlık bağlantı açık: diğer cihazlardaki değişiklikler hemen gelir.':'Anlık bağlantı yok; 30 sn\'de bir kontrol ediliyor.')+'</div><div class="set-actions"><button class="btn btn-sm btn-ghost" onclick="App.Sync.syncNow({manual:true})">Şimdi Eşitle</button><button class="btn btn-sm btn-ghost" onclick="App.Sync.showCode()">Cihaz Ekle</button><button class="btn btn-sm btn-ghost" onclick="App.Sync.disable()">Bu Cihazda Kapat</button><button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Sync.destroy()">Sunucudan Sil</button></div>';
+  }
+  // ---- Anlık eşitleme: sunucudaki VaultHub'a WebSocket; başka cihaz yazınca {version} haberi gelir ----
+  function live(){return!!(_ws&&_ws.readyState===1)}
+  function _closeLive(){clearTimeout(_wsTimer);clearInterval(_wsPing);if(_ws){var w=_ws;_ws=null;w.onclose=null;try{w.close()}catch(e){}}renderCard()}
+  function connectLive(){
+    if(!configured()||!available()||document.hidden||!window.WebSocket)return;
+    if(_ws&&_ws.readyState<=1)return;
+    clearTimeout(_wsTimer);var c=cfg();
+    token(c).then(function(t){
+      if(!configured()||document.hidden||(_ws&&_ws.readyState<=1))return;
+      var ws=new WebSocket(c.url.replace(/^http/,'ws')+'/v1/vault/'+c.vault+'/live?device='+encodeURIComponent(c.deviceId||''),['ft',t]);_ws=ws;
+      ws.onopen=function(){_wsRetry=0;clearInterval(_wsPing);_wsPing=setInterval(function(){try{ws.send('ping')}catch(e){}},30000);renderCard();syncNow({quiet:true})};
+      ws.onmessage=function(e){var m;try{m=JSON.parse(e.data)}catch(err){return}if(m&&m.type==='version'&&m.version!==(cfg()||{}).version)syncNow({quiet:true})};
+      ws.onclose=function(){if(_ws!==ws)return;_ws=null;clearInterval(_wsPing);renderCard();
+        // Kopunca artan beklemeyle yeniden bağlan (2 sn → en fazla 1 dk); görünür değilse bekle
+        if(configured()&&!document.hidden){var d=Math.min(60000,2000*Math.pow(2,_wsRetry++));_wsTimer=setTimeout(connectLive,d)}};
+      ws.onerror=function(){};
+    });
   }
   function init(){
-    if(!configured())return;
-    syncNow({quiet:true});
-    document.addEventListener('visibilitychange',function(){if(!document.hidden)syncNow({quiet:true})});
-    window.addEventListener('online',function(){syncNow({quiet:true})});
-    setInterval(function(){if(!document.hidden)syncNow({quiet:true})},120000);
+    if(!configured()||_inited){if(configured())connectLive();return}
+    _inited=true;
+    syncNow({quiet:true});connectLive();
+    document.addEventListener('visibilitychange',function(){if(!configured())return;if(document.hidden){_closeLive()}else{syncNow({quiet:true});connectLive()}});
+    window.addEventListener('online',function(){if(configured()){syncNow({quiet:true});connectLive()}});
+    // Yedek yoklama: anlık bağlantı yokken 30 sn'de bir, varken 5 dk'da bir
+    var n=0;_poll=setInterval(function(){if(!configured()||document.hidden)return;n++;if(!live()||n%10===0)syncNow({quiet:true});if(!live())connectLive()},30000);
   }
-  return{configured:configured,available:available,cfg:cfg,syncNow:syncNow,touch:touch,resetBase:resetBase,start:start,startPrompt:startPrompt,join:join,joinPrompt:joinPrompt,parseCode:parseCode,codeOf:codeOf,showCode:showCode,disable:disable,destroy:destroy,renderCard:renderCard,init:init,api:api,encrypt:encrypt,decrypt:decrypt,collect:collect};
+  return{live:live,connectLive:connectLive,configured:configured,available:available,cfg:cfg,syncNow:syncNow,touch:touch,resetBase:resetBase,start:start,startPrompt:startPrompt,join:join,joinPrompt:joinPrompt,parseCode:parseCode,codeOf:codeOf,showCode:showCode,disable:disable,destroy:destroy,renderCard:renderCard,init:init,api:api,encrypt:encrypt,decrypt:decrypt,collect:collect};
 })();
 
 // ---- Uygulama kapalıyken bildirim (Web Push) ----

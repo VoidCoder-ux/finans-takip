@@ -51,8 +51,8 @@ npm run db:init
 npm run vapid
 ```
 
-- Çıktıdaki `VAPID_PUBLIC_KEY = "..."` satırını `wrangler.toml` içindeki `[vars]` bölümüne yazın.
-- `VAPID_SUBJECT` satırına kendi e-posta adresinizi yazın (`mailto:...`). Push servisleri sorun olursa bu adrese ulaşır.
+- `wrangler.toml` içindeki `VAPID_SUBJECT` satırına kendi e-posta adresinizi yazın (`mailto:...`). Push servisleri sorun olursa bu adrese ulaşır.
+- `VAPID_PUBLIC_KEY` boş kalabilir; sunucu genel anahtarı gizli anahtardan kendisi türetir.
 - Gizli anahtarı kaydedin: aşağıdaki komut sorunca, `npm run vapid` çıktısının son satırındaki `{"kty":"EC",...}` metnini yapıştırın.
 
 ```bash
@@ -92,12 +92,7 @@ npm run deploy
    2. Bildirimler her sabah 09:00'da (İstanbul) gelir: vadeden 2 gün önce, 1 gün önce ve vade günü.
    3. **iPhone:** yalnız ana ekrana eklenmiş uygulamada çalışır (iOS 16.4+).
 
-Eşitleme ne zaman çalışır?
-- uygulama açılınca,
-- öne gelince,
-- internet geri gelince,
-- her değişiklikten ~3 saniye sonra,
-- açıkken 2 dakikada bir.
+Eşitleme **anlıktır**: bir cihazda kaydedilen değişiklik ~3 saniye içinde sunucuya gider. Sunucu, uygulaması açık olan diğer cihazlara hemen haber verir (Durable Object + WebSocket); onlar yenilemeye gerek kalmadan güncellenir. Uygulama arka plandaysa öne gelince, internet kopmuşsa geri gelince eşitlenir. Anlık bağlantı kurulamazsa 30 saniyede bir kontrol edilir.
 
 İki kişi aynı anda farklı işlemler eklerse ikisi de korunur. Aynı kaydın farklı alanlarını düzenlerlerse ikisi de birleşir. Aynı alanı düzenlerlerse son eşitleyen cihazın değeri kalır. Hesap bakiyeleri her birleştirmeden sonra işlem geçmişinden yeniden hesaplanır.
 
@@ -105,7 +100,7 @@ Cihaza özel kalanlar (eşitlenmez): tema, aktif profil, ekran kilidi PIN'i, AI 
 
 ## Güncelleme
 
-Depoda yeni sürüm olduğunda:
+Depoda yeni sürüm olduğunda kodu indirin, `wrangler.toml` içine `database_id` ve `VAPID_SUBJECT` değerlerinizi yeniden yazın (gizli anahtarlar Cloudflare'de kalır, tekrar girilmez) ve:
 
 ```bash
 cd worker && npm run deploy
