@@ -10,7 +10,8 @@ const UA = 'Mozilla/5.0 (compatible; FinansTakip/1.0; +https://github.com/VoidCo
 const SRC = {
   tcmb: 'https://www.tcmb.gov.tr/kurlar/today.xml',
   truncgil: 'https://finans.truncgil.com/v4/today.json',
-  tefas: 'https://www.tefas.gov.tr/api/DB/BindHistoryInfo',
+  // Nisan 2026'da TEFAS yeni siteye geçti; eski /api/DB/BindHistoryInfo 404 döner
+  tefas: 'https://www.tefas.gov.tr/api/funds/fonGnlBlgSiraliGetir',
   cpi: 'https://www.tcmb.gov.tr/wps/wcm/connect/TR/TCMB+TR/Main+Menu/Istatistikler/Enflasyon+Verileri/Tuketici+Fiyatlari'
 };
 // Yenileme aralıkları: kurlar saatlik, fonlar ve TÜFE günlük
@@ -63,21 +64,38 @@ export function parseTruncgil(data) {
   return r;
 }
 
-// TEFAS BindHistoryInfo → {KOD: [fiyat, ad]} (aynı fon birden çok günle gelirse en yeni tarih)
-export function parseTefas(json) {
-  const rows = (json && Array.isArray(json.data)) ? json.data : [];
-  const out = {}, seen = {};
-  let latest = 0;
-  for (const r of rows) {
-    const code = String(r.FONKODU || '').trim().toUpperCase();
-    const price = num(r.FIYAT);
-    const t = Number(r.TARIH) || 0;
-    if (!/^[A-Z0-9]{2,5}$/.test(code) || !(price > 0)) continue;
-    if (seen[code] && seen[code] >= t) continue;
-    seen[code] = t; out[code] = [price, String(r.FONUNVAN || '').trim().slice(0, 90)];
-    if (t > latest) latest = t;
+// TEFAS tarih alanı → 'YYYY-MM-DD'. Yeni API ISO metin verir; eski API epoch ms verirdi; diğer biçimler de kabul
+export function tefasDay(v) {
+  if (v == null || v === '') return '';
+  if (typeof v === 'number' || /^\d{10,}$/.test(String(v))) {
+    const t = Number(v);
+    return t > 0 ? new Date(t + 3 * 3600e3).toISOString().slice(0, 10) : '';
   }
-  return { prices: out, date: latest ? new Date(latest + 3 * 3600e3).toISOString().slice(0, 10) : '' };
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-?(\d{2})-?(\d{2})/);
+  if (m) return m[1] + '-' + m[2] + '-' + m[3];
+  m = s.match(/^(\d{2})[./](\d{2})[./](\d{4})/);
+  if (m) return m[3] + '-' + m[2] + '-' + m[1];
+  return '';
+}
+
+// TEFAS yanıtı → {KOD: [fiyat, ad]} (aynı fon birden çok günle gelirse en yeni tarih)
+// Yeni API: {errorCode, errorMessage, resultList:[{fonKodu, fonUnvan, tarih, fiyat}]} · Eski API: {data:[{FONKODU, FONUNVAN, TARIH, FIYAT}]}
+export function parseTefas(json) {
+  const rows = !json ? [] : Array.isArray(json.resultList) ? json.resultList : Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
+  const out = {}, seen = {};
+  let latest = '';
+  for (const r of rows) {
+    if (!r || typeof r !== 'object') continue;
+    const code = String(r.fonKodu || r.FONKODU || '').trim().toUpperCase();
+    const price = num(r.fiyat != null ? r.fiyat : r.FIYAT);
+    const day = tefasDay(r.tarih != null ? r.tarih : r.TARIH);
+    if (!/^[A-Z0-9]{2,5}$/.test(code) || !(price > 0)) continue;
+    if (code in seen && seen[code] >= day) continue;
+    seen[code] = day; out[code] = [price, String(r.fonUnvan || r.FONUNVAN || '').trim().slice(0, 90)];
+    if (day > latest) latest = day;
+  }
+  return { prices: out, date: latest };
 }
 
 // TCMB tüketici fiyatları sayfası → {'YYYY-MM': aylık % değişim}. Satırlar: "MM-YYYY | yıllık % | aylık %"
@@ -102,7 +120,6 @@ async function get(url, init) {
   return res;
 }
 
-function trDate(d) { return String(d.getUTCDate()).padStart(2, '0') + '.' + String(d.getUTCMonth() + 1).padStart(2, '0') + '.' + d.getUTCFullYear(); }
 
 async function fetchRates(env) {
   const out = { provider: [], date: '' };
@@ -128,22 +145,32 @@ async function fetchRates(env) {
   return { data: out, warn: errors.join(' · ') };
 }
 
+function ymd(d) { return d.getUTCFullYear() + String(d.getUTCMonth() + 1).padStart(2, '0') + String(d.getUTCDate()).padStart(2, '0'); }
+
 async function fetchFunds(env, now) {
   const url = env.MARKET_TEFAS_URL || SRC.tefas;
   const all = {};
   let date = '';
-  // Hafta sonu/tatilde veri yok: bugünden geriye en fazla 7 gün, her fon türü için ilk dolu gün
+  const errors = [];
+  // Hafta sonu/tatilde veri yok: son 7 günü tek istekte al, her fonun en yeni fiyatı kalır.
+  // TEFAS dakikada ~6 istek sınırı koyar; fon türü başına tek istek (toplam 2).
+  const today = new Date(now + 3 * 3600e3);
+  const body = type => JSON.stringify({
+    fonTipi: type, fonKodu: null, aramaMetni: null, fonTurKod: null, fonGrubu: null, sfonTurKod: null, fonTurAciklama: null, kurucuKod: null,
+    basTarih: ymd(new Date(today.getTime() - 7 * 86400e3)), bitTarih: ymd(today), basSira: 1, bitSira: 100000, dil: 'TR',
+    sFonTurKod: '', fonKod: '', fonGrup: '', fonUnvanTip: ''
+  });
   for (const type of ['YAT', 'EMK']) {
-    for (let back = 0; back < 7; back++) {
-      const d = trDate(new Date(now + 3 * 3600e3 - back * 86400e3));
-      const body = new URLSearchParams({ fontip: type, sfontur: '', fonkod: '', fongrup: '', bastarih: d, bittarih: d, fonturkod: '', fonunvantip: '' });
-      const res = await get(url, { method: 'POST', body, headers: { 'User-Agent': UA, 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest', Origin: 'https://www.tefas.gov.tr', Referer: 'https://www.tefas.gov.tr/TarihselVeriler.aspx', Accept: 'application/json, text/javascript, */*' } });
-      const p = parseTefas(await res.json());
-      if (Object.keys(p.prices).length) { Object.assign(all, p.prices); if (p.date > date) date = p.date; break; }
-    }
+    try {
+      const res = await get(url, { method: 'POST', body: body(type), headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36', 'Content-Type': 'application/json', Accept: 'application/json, */*', Origin: 'https://www.tefas.gov.tr', Referer: 'https://www.tefas.gov.tr/tr/fon-verileri' } });
+      const json = await res.json();
+      const p = parseTefas(json);
+      if (!Object.keys(p.prices).length) throw new Error(json && json.errorMessage ? String(json.errorMessage).slice(0, 80) : 'boş yanıt');
+      Object.assign(all, p.prices); if (p.date > date) date = p.date;
+    } catch (e) { errors.push(type + ': ' + e.message); }
   }
-  if (!Object.keys(all).length) throw new Error('TEFAS boş yanıt');
-  return { data: { date, count: Object.keys(all).length, prices: all, provider: 'TEFAS' } };
+  if (!Object.keys(all).length) throw new Error('TEFAS ' + (errors.join(' · ') || 'boş yanıt'));
+  return { data: { date, count: Object.keys(all).length, prices: all, provider: 'TEFAS' }, warn: errors.join(' · ') };
 }
 
 async function fetchCpi(env) {

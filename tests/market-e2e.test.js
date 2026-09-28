@@ -33,7 +33,7 @@ const mock = http.createServer((q, s) => {
   if (!m.rates || m.rates.USD !== 41.6583) { console.log('Worker sahte kaynağa bağlanmadı: .dev.vars içinde MARKET_*_URL ayarlı değil; test atlandı.'); mock.close(); process.exit(0); }
   eq('rates: TCMB FX + Truncgil gold', [m.rates.USD, m.rates.EUR, m.rates.GOLD_GRAM, m.rates.GOLD_QUARTER, m.rates.GOLD_FULL, m.rates.provider], [41.6583, 48.771, 4381.2, 7165.5, 28580, 'TCMB + Truncgil']);
   eq('funds: all funds with latest price', [m.funds.count, m.funds.prices.TTE[0], m.funds.date], [2, 1.184523, '2026-09-26']);
-  if (hits.tefasBody) eq('TEFAS request is a form post for one day', /fontip=(YAT|EMK)/.test(hits.tefasBody) && /bastarih=\d{2}\.\d{2}\.\d{4}/.test(hits.tefasBody), true);
+  if (hits.tefasBody) { let b = {}; try { b = JSON.parse(hits.tefasBody); } catch (e) {} eq('TEFAS request is a JSON post for a 7-day range', /^(YAT|EMK)$/.test(b.fonTipi) && /^\d{8}$/.test(b.basTarih) && /^\d{8}$/.test(b.bitTarih) && b.bitSira >= 10000, true); }
   eq('cpi: monthly changes', m.cpi.monthly['2026-08'], 1.84);
   eq('status: no errors', [m.ratesStatus.error, m.fundsStatus.error, m.cpiStatus.error], ['', '', '']);
   const before = { tcmb: hits.tcmb, tefas: hits.tefas };
