@@ -8,6 +8,8 @@
 // - Anlık eşitleme: her kasanın bir VaultHub (Durable Object) örneği vardır; açık uygulamalar ona WebSocket ile bağlanır.
 //   Bir cihaz yeni sürüm yazınca hub diğerlerine yalnız {version} haberini yollar, onlar da hemen eşitlenir.
 
+import { readMarket, refreshMarket, isStale } from './market.js';
+
 const MAX_BODY = 2_000_000;
 const ID_RE = /^[A-Za-z0-9_-]{22,64}$/;
 const DEVICE_RE = /^[A-Za-z0-9_-]{8,64}$/;
@@ -39,8 +41,10 @@ export default {
     }
   },
 
+  // "0 6 * * *": günlük bildirim (09:00 İstanbul) + piyasa; diğer cron (saatlik): yalnız piyasa verileri
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(sendDuePushes(env));
+    if (event.cron === '0 6 * * *') ctx.waitUntil(sendDuePushes(env));
+    ctx.waitUntil(refreshMarket(env).catch(e => console.warn('market', e && e.message)));
   }
 };
 
@@ -146,6 +150,20 @@ async function route(request, env, url, ctx) {
   const parts = url.pathname.split('/').filter(Boolean); // ['v1', ...]
   if (parts[1] === 'config' && parts.length === 2 && request.method === 'GET') {
     return json({ api: 1, vapidPublicKey: vapidPublicKey(env), registrationRequired: !!env.REGISTRATION_KEY, live: !!env.HUB });
+  }
+  // Herkese açık piyasa verisi (kişisel veri yok). Eskimişse arka planda yenilenir; ?refresh=1 yenilemeyi bekler.
+  if (parts[1] === 'market' && parts.length === 2 && request.method === 'GET') {
+    let m = await readMarket(env);
+    const stale = ['rates', 'funds', 'cpi'].some(k => isStale(m[k], k));
+    if (stale && url.searchParams.get('refresh') === '1') { await refreshMarket(env); m = await readMarket(env); }
+    else if (stale && ctx) ctx.waitUntil(refreshMarket(env).catch(() => {}));
+    const out = { updated: Date.now() };
+    for (const k of ['rates', 'funds', 'cpi']) {
+      const e = m[k] || {};
+      out[k] = e.data ? Object.assign({}, e.data, { updated: e.updated }) : null;
+      out[k + 'Status'] = { updated: e.updated || 0, error: e.error || '' };
+    }
+    return json(out, 200, { 'Cache-Control': 'public, max-age=300' });
   }
   if (parts[1] !== 'vault' || !parts[2] || !ID_RE.test(parts[2])) throw new HttpError(404, 'not_found');
   const id = parts[2];

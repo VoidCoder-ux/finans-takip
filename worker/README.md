@@ -98,12 +98,28 @@ Eşitleme **anlıktır**: bir cihazda kaydedilen değişiklik ~3 saniye içinde 
 
 Cihaza özel kalanlar (eşitlenmez): tema, aktif profil, ekran kilidi PIN'i, AI ayarları.
 
+## Piyasa verileri
+
+Sunucu herkese açık piyasa verilerini çekip D1'e kaydeder; uygulamalar `/v1/market` adresinden alır.
+
+| Veri | Kaynak | Sıklık |
+|------|--------|--------|
+| USD, EUR, GBP | TCMB günlük kurlar (döviz alış) | saat başı |
+| Gram, çeyrek, tam altın | Truncgil (alış) | saat başı |
+| Fon fiyatları | TEFAS, tüm yatırım + emeklilik fonları | günde bir |
+| TÜFE aylık değişim | TCMB tüketici fiyatları tablosu | günde bir |
+
+Portföyde fon eklerken **Fon kodu (TEFAS)** alanına kodu yazın (ör. `TTE`); ad ve fiyat otomatik gelir, fiyat her gün güncellenir. Bir kaynak geçici olarak cevap vermezse son iyi veri kullanılır; durum Ayarlar > Piyasa Verileri kartında görünür.
+
 ## Güncelleme
 
 Depoda yeni sürüm olduğunda kodu indirin, `wrangler.toml` içine `database_id` ve `VAPID_SUBJECT` değerlerinizi yeniden yazın (gizli anahtarlar Cloudflare'de kalır, tekrar girilmez) ve:
 
 ```bash
-cd worker && npm run deploy
+cd worker
+npm install
+npm run db:init      # yeni tablolar varsa ekler; mevcut veriye dokunmaz
+npm run deploy
 ```
 
 Uygulama dosyaları Worker ile birlikte yayınlanır.

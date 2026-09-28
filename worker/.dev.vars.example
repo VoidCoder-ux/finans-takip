@@ -4,3 +4,8 @@ VAPID_PRIVATE_JWK='{"kty":"EC","crv":"P-256","x":"...","y":"...","d":"..."}'
 VAPID_SUBJECT=mailto:admin@example.com
 # Yerel sahte push servisi (http://127.0.0.1) için; üretimde KULLANMAYIN
 ALLOW_INSECURE_PUSH=1
+# Yalnız test: piyasa kaynaklarını sahte sunucuya yönlendir (tests/market-e2e.test.js)
+# MARKET_TCMB_URL=http://127.0.0.1:8799/tcmb
+# MARKET_TRUNCGIL_URL=http://127.0.0.1:8799/truncgil
+# MARKET_TEFAS_URL=http://127.0.0.1:8799/tefas
+# MARKET_CPI_URL=http://127.0.0.1:8799/cpi

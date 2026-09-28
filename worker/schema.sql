@@ -22,3 +22,12 @@ CREATE TABLE IF NOT EXISTS push_subs (
 );
 
 CREATE INDEX IF NOT EXISTS push_subs_vault ON push_subs(vault_id);
+
+-- Herkese açık piyasa verileri (kur, altın, fon fiyatları, TÜFE); kişisel veri yok
+CREATE TABLE IF NOT EXISTS market (
+  key         TEXT PRIMARY KEY,          -- 'rates' | 'funds' | 'cpi'
+  data        TEXT NOT NULL DEFAULT 'null',
+  updated_at  INTEGER NOT NULL DEFAULT 0,-- son başarılı çekim
+  error       TEXT,                      -- son denemenin hatası (başarılıysa boş)
+  checked_at  INTEGER NOT NULL DEFAULT 0 -- son deneme
+);

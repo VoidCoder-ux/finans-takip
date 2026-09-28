@@ -26,9 +26,10 @@ class_name = "VaultHub"
 tag = "v1"
 new_sqlite_classes = ["VaultHub"]
 
-# Her gün 06:00 UTC = 09:00 İstanbul: o gün bildirimi olan cihazlara push
+# 06:00 UTC = 09:00 İstanbul: o gün bildirimi olan cihazlara push (+ piyasa verileri)
+# Saat başı :15'te: kur/altın yenilenir; fon fiyatları ve TÜFE günde bir
 [triggers]
-crons = ["0 6 * * *"]
+crons = ["0 6 * * *", "15 * * * *"]
 
 [vars]
 # Bildirim gönderen olarak e-posta adresiniz (push servisleri sorun olursa buraya yazar)
