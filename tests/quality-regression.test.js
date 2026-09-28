@@ -274,5 +274,9 @@ ok('worker uses optimistic concurrency', /WHERE id = \? AND version = \?/.test(w
 ok('worker stores only token hash', /token_hash/.test(workerSrc) && /sha256Hex\(token\)/.test(workerSrc));
 ok('assets exclude worker, tests and docs', /^worker$/m.test(fs.readFileSync('.assetsignore', 'utf8')) && /^tests$/m.test(fs.readFileSync('.assetsignore', 'utf8')));
 
+ok('market data served by worker and refreshed hourly', /parts\[1\] === 'market'/.test(workerSrc) && /"15 \* \* \* \*"/.test(fs.readFileSync('worker/wrangler.toml', 'utf8')));
+ok('fund price auto-filled from TEFAS by code', /p\.priceSource='TEFAS'/.test(indexHtml) && /id="portCode"/.test(indexHtml));
+ok('CPI extended forward with published monthly changes', /function _applyCpi\(\)/.test(indexHtml));
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

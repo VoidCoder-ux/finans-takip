@@ -6,7 +6,7 @@ const BASE = process.argv[2] || process.env.SYNC_BASE || 'http://127.0.0.1:8787'
 let pass = 0, fail = 0;
 function eq(label, a, e) { const ok = JSON.stringify(a) === JSON.stringify(e); ok ? pass++ : fail++; console.log((ok ? '✓' : '✗') + ' ' + label + ' => ' + JSON.stringify(a) + (ok ? '' : ' (expected ' + JSON.stringify(e) + ')')); }
 const b64u = b => Buffer.from(b).toString('base64url');
-async function api(method, path, token, body, extra) {
+async function api(method, path, token, body, extra) { // extra: ek başlıklar
   const r = await fetch(BASE + path, { method, headers: Object.assign({ 'Content-Type': 'application/json' }, token ? { Authorization: 'Bearer ' + token } : {}, extra || {}), body: body ? JSON.stringify(body) : undefined });
   let j = null; try { j = await r.json(); } catch (e) {}
   return { status: r.status, body: j };
@@ -61,6 +61,21 @@ async function api(method, path, token, body, extra) {
   await fetch(BASE + '/__scheduled?cron=0+6+*+*+*');
   await new Promise(r => setTimeout(r, 1000));
   eq('same day not sent twice; expired sub removed', hits.length, 0);
+  // Anlık eşitleme: WebSocket (belirteç alt protokolde); yazan cihaza değil diğerlerine {version} haberi
+  if (typeof WebSocket !== 'undefined' && cfg.live) {
+    const wsUrl = BASE.replace(/^http/, 'ws') + '/v1/vault/' + id + '/live?device=';
+    const bad = await new Promise(res => { const w = new WebSocket(wsUrl + 'devA0001', ['ft', other]); w.onopen = () => { res('open'); w.close(); }; w.onerror = () => res('rejected'); });
+    eq('live socket with wrong token rejected', bad, 'rejected');
+    const open = (dev) => new Promise((res, rej) => { const w = new WebSocket(wsUrl + dev, ['ft', token]); const msgs = []; w.onmessage = e => msgs.push(JSON.parse(e.data)); w.onopen = () => res({ w, msgs }); w.onerror = rej; });
+    const a = await open('devLiveA1'), b = await open('devLiveB1');
+    const cur = (await api('GET', '/v1/vault/' + id, token)).body.version;
+    await api('PUT', '/v1/vault/' + id, token, { baseVersion: cur, data: 'TElWRQ' }, { 'X-Device': 'devLiveA1' });
+    await new Promise(r => setTimeout(r, 800));
+    eq('other device notified of new version, writer not', [b.msgs.map(m => m.version), a.msgs.length], [[cur + 1], 0]);
+    const pong = await new Promise(res => { b.w.onmessage = e => res(e.data); b.w.send('ping'); setTimeout(() => res('none'), 2000); });
+    eq('keep-alive ping answered without waking hub', pong, 'pong');
+    a.w.close(); b.w.close();
+  }
   eq('delete vault', (await api('DELETE', '/v1/vault/' + id, token)).body, { deleted: true });
   eq('vault gone', (await api('GET', '/v1/vault/' + id, token)).status, 404);
   srv.close();

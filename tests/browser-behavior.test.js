@@ -469,7 +469,10 @@ async function runMergeCases() {
       budget: m.stores.pf_b,
       users: m.s.users.map(function(u) { return u.name; }),
       editBeatsDelete: m2.stores.pf_t.map(function(x) { return x.amount; }),
-      nested: m3.stores.pf_g[0].contributions.map(function(c) { return c.id; })
+      nested: m3.stores.pf_g[0].contributions.map(function(c) { return c.id; }),
+      // silinen kayıt, diğer cihazın yalnız otomatik "bakiyeye işlendi" güncellemesiyle geri gelmemeli
+      normalized: mergeSnapshot({ stores: { pf_t: [t('n', 4)] }, s: {} }, { stores: { pf_t: [] }, s: {} }, { stores: { pf_t: [Object.assign(t('n', 4), { transferId: '', recurringId: '', installment: null })] }, s: {} }).stores.pf_t.length,
+      derived: mergeSnapshot({ stores: { pf_t: [Object.assign(t('d', 3), { balanceApplied: false })] }, s: {} }, { stores: { pf_t: [] }, s: {} }, { stores: { pf_t: [Object.assign(t('d', 3), { balanceApplied: true })] }, s: {} }).stores.pf_t.length
     };
   });
   eq('merge: union of adds; t2 deleted here, t3 deleted remotely', res.ids, ['t1', 't4', 't5']);
@@ -478,6 +481,39 @@ async function runMergeCases() {
   eq('merge: shared settings merged by id', res.users, ['Ben (uzak)', 'Eş']);
   eq('merge: edit beats concurrent delete', res.editBeatsDelete, [2]);
   eq('merge: nested contributions from two devices kept', res.nested, ['c1', 'c2', 'c3']);
+  eq('merge: automatic balanceApplied change does not resurrect a deleted record', res.derived, 0);
+  eq('merge: fields filled with empty defaults on load do not resurrect a deleted record', res.normalized, 0);
+  await r.ctx.close();
+}
+
+// Tekrarlayan işlemde "Kimin?": eşin maaşı eşe yazılır; yanlış kişiyle eklenmişse geçmiş kayıtlarla birlikte düzeltilir
+async function runRecurringOwner() {
+  var A = 'a1700000000000_rrrr';
+  var r = await openApp({ pf_a: [acc(A, 'Banka', 'bank', 0)] });
+  var p = r.page;
+  await p.evaluate(function() { App.UI.nav('tekrarlayan'); });
+  eq('recurring form lists family members', await p.evaluate(function() { return Array.prototype.map.call(document.querySelectorAll('#recUser option'), function(o) { return o.value; }); }), ['u_self', 'u_partner']);
+  await p.selectOption('#recType', 'income');
+  await p.fill('#recAmt', '50000');
+  await p.selectOption('#recCat', 'Maaş');
+  await p.fill('#recDay', '1');
+  await p.fill('#recNote', 'Eşimin maaşı');
+  await p.selectOption('#recUser', 'u_partner');
+  await p.evaluate(function() { App.Recurring.add(); });
+  var rid = await p.evaluate(function() { return S.recurring()[0].id; });
+  eq('recurring saved for chosen member', await p.evaluate(function() { return S.recurring()[0].userId; }), 'u_partner');
+  eq('member name visible on recurring card', (await p.textContent('#recList')).indexOf('Eş') >= 0, true);
+  await p.evaluate(function(id) { App.Recurring.log(id); }, rid);
+  var stats = await p.evaluate(function() { return [App.Users.stats('u_self').income, App.Users.stats('u_partner').income, S.txns()[0].userId]; });
+  eq('logged salary counts for spouse, not for me', stats, [0, 50000, 'u_partner']);
+  // Yanlışlıkla bana yazılmış eski maaş: düzenle → Eş, geçmiş kayıtlar da düzelsin
+  await p.evaluate(function(a) {
+    var rec = S.recurring(); rec.push({ id: 'r1700000000000_wrng', type: 'income', amount: 30000, category: 'Maaş', day: 5, note: 'Eski kayıt', accountId: a, userId: 'u_self', isSubscription: false, active: true, ts: 1 }); S.saveRecurring(rec);
+    var t = S.txns(); t.push({ id: 't1700000000000_wrg1', type: 'income', amount: 30000, category: 'Maaş', date: '2026-01-05', note: 'Eski kayıt', accountId: a, userId: 'u_self', recurringId: 'r1700000000000_wrng', ts: 1, balanceApplied: true }); S.saveTxns(t);
+    App.Recurring.edit('r1700000000000_wrng');
+  }, A);
+  await submitPrompt(p, { userId: 'u_partner', pastUser: '1' });
+  eq('editing owner fixes past logged transactions', await p.evaluate(function() { return [S.recurring().find(function(x) { return x.id === 'r1700000000000_wrng'; }).userId, S.txns().find(function(t) { return t.id === 't1700000000000_wrg1'; }).userId]; }), ['u_partner', 'u_partner']);
   await r.ctx.close();
 }
 
@@ -489,6 +525,7 @@ server.listen(0, '127.0.0.1', async function() {
     await runAudit3b();
     await runAudit4();
     await runMergeCases();
+    await runRecurringOwner();
   } catch (e) {
     fail++;
     console.log('✗ test run crashed: ' + (e && e.stack || e));

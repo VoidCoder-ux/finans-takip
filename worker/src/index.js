@@ -5,6 +5,10 @@
 // - Kasa (vault) iyimser eşzamanlılıkla güncellenir: yazma, istemcinin bildiği sürüm güncelse kabul edilir, değilse 409.
 // - Bildirim: cihaz yalnız "hangi günlerde haber verilsin" listesini gönderir. Cron o gün içeriksiz bir web push atar;
 //   bildirim metnini telefondaki service worker yerel veriden oluşturur.
+// - Anlık eşitleme: her kasanın bir VaultHub (Durable Object) örneği vardır; açık uygulamalar ona WebSocket ile bağlanır.
+//   Bir cihaz yeni sürüm yazınca hub diğerlerine yalnız {version} haberini yollar, onlar da hemen eşitlenir.
+
+import { readMarket, refreshMarket, isStale } from './market.js';
 
 const MAX_BODY = 2_000_000;
 const ID_RE = /^[A-Za-z0-9_-]{22,64}$/;
@@ -24,7 +28,9 @@ export default {
     }
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(request, env) });
     try {
-      const res = await route(request, env, url);
+      const live = url.pathname.match(/^\/v1\/vault\/([A-Za-z0-9_-]{22,64})\/live$/);
+      if (live) return await openLive(request, env, live[1], url);
+      const res = await route(request, env, url, ctx);
       const h = new Headers(res.headers);
       for (const [k, v] of Object.entries(cors(request, env))) h.set(k, v);
       return new Response(res.body, { status: res.status, headers: h });
@@ -35,8 +41,10 @@ export default {
     }
   },
 
+  // "0 6 * * *": günlük bildirim (09:00 İstanbul) + piyasa; diğer cron (saatlik): yalnız piyasa verileri
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(sendDuePushes(env));
+    if (event.cron === '0 6 * * *') ctx.waitUntil(sendDuePushes(env));
+    ctx.waitUntil(refreshMarket(env).catch(e => console.warn('market', e && e.message)));
   }
 };
 
@@ -54,7 +62,7 @@ function cors(request, env) {
   return {
     'Access-Control-Allow-Origin': allow,
     'Access-Control-Allow-Methods': 'GET, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Register-Key',
+    'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Register-Key, X-Device',
     'Access-Control-Max-Age': '86400',
     'Vary': 'Origin'
   };
@@ -85,6 +93,52 @@ function bearer(request) {
   return m[1];
 }
 
+// Tarayıcı WebSocket'i başlık gönderemez: belirteç alt protokol olarak gelir ("ft", "<belirteç>"); URL'de/loglarda görünmez
+async function openLive(request, env, id, url) {
+  if (request.headers.get('Upgrade') !== 'websocket') throw new HttpError(426, 'websocket_required');
+  if (!env.HUB) throw new HttpError(501, 'live_disabled');
+  const protos = (request.headers.get('Sec-WebSocket-Protocol') || '').split(',').map(s => s.trim());
+  const token = protos.find(p => TOKEN_RE.test(p));
+  if (protos[0] !== 'ft' || !token) throw new HttpError(401, 'unauthorized');
+  const row = await loadVault(env, id, token);
+  if (!row) throw new HttpError(404, 'no_vault');
+  const device = DEVICE_RE.test(url.searchParams.get('device') || '') ? url.searchParams.get('device') : '';
+  return env.HUB.get(env.HUB.idFromName(id)).fetch('https://hub/connect?device=' + device, { headers: { Upgrade: 'websocket' } });
+}
+
+function notifyHub(env, ctx, id, version, device) {
+  if (!env.HUB || !ctx) return;
+  ctx.waitUntil(env.HUB.get(env.HUB.idFromName(id)).fetch('https://hub/notify', { method: 'POST', body: JSON.stringify({ version, device }) }).catch(() => {}));
+}
+
+// Kasa başına tek örnek; WebSocket Hibernation API ile boştayken ücret/bellek harcamaz
+export class VaultHub {
+  constructor(ctx) {
+    this.ctx = ctx;
+    this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
+  }
+  async fetch(request) {
+    const url = new URL(request.url);
+    if (url.pathname === '/notify') {
+      const { version, device } = await request.json();
+      const msg = JSON.stringify({ type: 'version', version });
+      for (const ws of this.ctx.getWebSockets()) {
+        if (device && this.ctx.getTags(ws).includes(device)) continue; // yazan cihaza haber gerekmez
+        try { ws.send(msg); } catch (e) {}
+      }
+      return new Response('ok');
+    }
+    const pair = new WebSocketPair();
+    const [client, server] = Object.values(pair);
+    const device = url.searchParams.get('device');
+    this.ctx.acceptWebSocket(server, device ? [device] : []);
+    return new Response(null, { status: 101, webSocket: client, headers: { 'Sec-WebSocket-Protocol': 'ft' } });
+  }
+  webSocketMessage() {}
+  webSocketClose(ws, code, reason) { try { ws.close(code, reason); } catch (e) {} }
+  webSocketError() {}
+}
+
 async function loadVault(env, id, token) {
   const row = await env.DB.prepare('SELECT id, token_hash, version, data, updated_at FROM vaults WHERE id = ?').bind(id).first();
   if (!row) return null;
@@ -92,10 +146,24 @@ async function loadVault(env, id, token) {
   return row;
 }
 
-async function route(request, env, url) {
+async function route(request, env, url, ctx) {
   const parts = url.pathname.split('/').filter(Boolean); // ['v1', ...]
   if (parts[1] === 'config' && parts.length === 2 && request.method === 'GET') {
-    return json({ api: 1, vapidPublicKey: env.VAPID_PUBLIC_KEY || '', registrationRequired: !!env.REGISTRATION_KEY });
+    return json({ api: 1, vapidPublicKey: vapidPublicKey(env), registrationRequired: !!env.REGISTRATION_KEY, live: !!env.HUB });
+  }
+  // Herkese açık piyasa verisi (kişisel veri yok). Eskimişse arka planda yenilenir; ?refresh=1 yenilemeyi bekler.
+  if (parts[1] === 'market' && parts.length === 2 && request.method === 'GET') {
+    let m = await readMarket(env);
+    const stale = ['rates', 'funds', 'cpi'].some(k => isStale(m[k], k));
+    if (stale && url.searchParams.get('refresh') === '1') { await refreshMarket(env); m = await readMarket(env); }
+    else if (stale && ctx) ctx.waitUntil(refreshMarket(env).catch(() => {}));
+    const out = { updated: Date.now() };
+    for (const k of ['rates', 'funds', 'cpi']) {
+      const e = m[k] || {};
+      out[k] = e.data ? Object.assign({}, e.data, { updated: e.updated }) : null;
+      out[k + 'Status'] = { updated: e.updated || 0, error: e.error || '' };
+    }
+    return json(out, 200, { 'Cache-Control': 'public, max-age=300' });
   }
   if (parts[1] !== 'vault' || !parts[2] || !ID_RE.test(parts[2])) throw new HttpError(404, 'not_found');
   const id = parts[2];
@@ -123,6 +191,7 @@ async function route(request, env, url) {
         const ins = await env.DB.prepare('INSERT OR IGNORE INTO vaults (id, token_hash, version, data, created_at, updated_at) VALUES (?, ?, 1, ?, ?, ?)')
           .bind(id, await sha256Hex(token), body.data, now, now).run();
         if (!ins.meta.changes) return json({ error: 'conflict', version: -1 }, 409);
+        notifyHub(env, ctx, id, 1, request.headers.get('X-Device') || '');
         return json({ version: 1, updatedAt: now }, 201);
       }
       const upd = await env.DB.prepare('UPDATE vaults SET data = ?, version = version + 1, updated_at = ? WHERE id = ? AND version = ?')
@@ -131,6 +200,7 @@ async function route(request, env, url) {
         const cur = await env.DB.prepare('SELECT version FROM vaults WHERE id = ?').bind(id).first();
         return json({ error: 'conflict', version: cur ? cur.version : 0 }, 409);
       }
+      notifyHub(env, ctx, id, base + 1, request.headers.get('X-Device') || '');
       return json({ version: base + 1, updatedAt: now });
     }
     if (request.method === 'DELETE') {
@@ -186,6 +256,24 @@ function b64url(bytes) {
   return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+// Genel anahtar ayrıca verilmezse gizli anahtarın (JWK) x,y değerlerinden türetilir: 0x04 || x || y
+function vapidPublicKey(env) {
+  if (env.VAPID_PUBLIC_KEY) return env.VAPID_PUBLIC_KEY;
+  try {
+    const j = JSON.parse(env.VAPID_PRIVATE_JWK || '');
+    const dec = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), c => c.charCodeAt(0));
+    const x = dec(j.x), y = dec(j.y), raw = new Uint8Array(65);
+    raw[0] = 4; raw.set(x, 1); raw.set(y, 33);
+    return b64url(raw);
+  } catch (e) { return ''; }
+}
+
+function vapidSubject(env) {
+  const s = String(env.VAPID_SUBJECT || '').trim();
+  if (!s) return 'mailto:admin@example.com';
+  return /^(mailto:|https:)/.test(s) ? s : 'mailto:' + s;
+}
+
 let _vapidKey = null;
 async function vapidKey(env) {
   if (_vapidKey) return _vapidKey;
@@ -196,13 +284,13 @@ async function vapidKey(env) {
 
 export async function vapidAuthHeader(env, endpoint, now = Date.now()) {
   const enc = s => b64url(new TextEncoder().encode(JSON.stringify(s)));
-  const unsigned = enc({ typ: 'JWT', alg: 'ES256' }) + '.' + enc({ aud: new URL(endpoint).origin, exp: Math.floor(now / 1000) + 12 * 3600, sub: env.VAPID_SUBJECT || 'mailto:admin@example.com' });
+  const unsigned = enc({ typ: 'JWT', alg: 'ES256' }) + '.' + enc({ aud: new URL(endpoint).origin, exp: Math.floor(now / 1000) + 12 * 3600, sub: vapidSubject(env) });
   const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, await vapidKey(env), new TextEncoder().encode(unsigned));
-  return 'vapid t=' + unsigned + '.' + b64url(sig) + ', k=' + env.VAPID_PUBLIC_KEY;
+  return 'vapid t=' + unsigned + '.' + b64url(sig) + ', k=' + vapidPublicKey(env);
 }
 
 export async function sendDuePushes(env, now = Date.now()) {
-  if (!env.VAPID_PRIVATE_JWK || !env.VAPID_PUBLIC_KEY) { console.warn('VAPID anahtarı yok; push atlanıyor'); return { sent: 0, removed: 0, failed: 0 }; }
+  if (!env.VAPID_PRIVATE_JWK || !vapidPublicKey(env)) { console.warn('VAPID anahtarı yok; push atlanıyor'); return { sent: 0, removed: 0, failed: 0 }; }
   const today = istanbulDay(now);
   const { results } = await env.DB.prepare(`SELECT vault_id, device_id, endpoint FROM push_subs
     WHERE ping_days LIKE ? AND (last_sent IS NULL OR last_sent <> ?)`).bind('%"' + today + '"%', today).all();
