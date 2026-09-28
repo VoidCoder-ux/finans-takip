@@ -585,6 +585,24 @@ async function runQC() {
   await r.ctx.close();
 }
 
+// Her telefon kendi profilini hatırlar; "Kim yaptı" varsayılanı o profil, kayıt başına değiştirilebilir; profil eşitlenmez
+async function runDeviceProfile() {
+  var A = 'a1700000000000_dvce';
+  var r = await openApp({ pf_a: [acc(A, 'Banka', 'bank', 1000)] });
+  var p = r.page;
+  await p.evaluate(function() { App.UI.nav('ayarlar'); App.Users.chooseDevice(); });
+  await submitPrompt(p, { u: 'u_partner' });
+  eq('device profile chosen and form follows it', await p.evaluate(function() { return [S.settings().activeUser, document.getElementById('txnUser').value, document.getElementById('recUser').value, document.getElementById('setDeviceCard').textContent.indexOf('Eş') >= 0]; }), ['u_partner', 'u_partner', 'u_partner', true]);
+  await p.evaluate(function() { App.UI.nav('islemler'); App.UI.setType('expense'); });
+  await p.fill('#txnAmt', '120'); await p.selectOption('#txnAccount', A); await p.selectOption('#txnUser', 'u_self');
+  await p.evaluate(function() { App.Transactions.add(); });
+  eq('who-did-it can be changed per entry, then returns to device profile', await p.evaluate(function() { return [S.txns()[0].userId, document.getElementById('txnUser').value]; }), ['u_self', 'u_partner']);
+  eq('active profile is not part of synced data', await p.evaluate(function() { var c = App.Sync.collect(); return [Object.prototype.hasOwnProperty.call(c.s || {}, 'activeUser'), Object.prototype.hasOwnProperty.call(c.s || {}, 'users')]; }), [false, true]);
+  await p.reload(); await p.waitForFunction(function() { return window.App && App.Transactions; });
+  eq('device profile survives restart', await p.evaluate(function() { return [S.settings().activeUser, document.getElementById('txnUser').value]; }), ['u_partner', 'u_partner']);
+  await r.ctx.close();
+}
+
 server.listen(0, '127.0.0.1', async function() {
   base = 'http://127.0.0.1:' + server.address().port;
   try {
@@ -595,6 +613,7 @@ server.listen(0, '127.0.0.1', async function() {
     await runMergeCases();
     await runRecurringOwner();
     await runQC();
+    await runDeviceProfile();
   } catch (e) {
     fail++;
     console.log('✗ test run crashed: ' + (e && e.stack || e));
