@@ -253,7 +253,7 @@ ok('escape closes topmost modal generically', /modal-bd\.show/.test(indexHtml.sp
 ok('no mojibake in UI strings', indexHtml.indexOf('â€') === -1);
 ok('rules page reachable from desktop sidebar', /class="nav-item" data-nav="kurallar"/.test(indexHtml));
 ok('transfer type pill exists', /id="pillTrf"/.test(indexHtml) && /id="txnToAccount"/.test(indexHtml));
-ok('monthly totals skip transfers', /if\(isTransfer\(t\)\|\|!t\.date\.startsWith\(month\)\)return;count\+\+/.test(indexHtml));
+ok('monthly totals skip transfers and future plans', /if\(isTransfer\(t\)\|\|!t\.date\.startsWith\(month\)\|\|t\.date>today\)return;count\+\+/.test(indexHtml));
 ok('category totals skip transfers', /t\.type!=='expense'\|\|isTransfer\(t\)\|\|!t\.date\.startsWith\(month\)/.test(indexHtml));
 ok('goal transfer mode creates a real transfer', /App\.Transactions\.createTransfer\(\{from:src,to:accountId/.test(indexHtml));
 ok('transactions and accounts are editable', /App\.Transactions\.edit\(/.test(indexHtml) && /App\.Accounts\.edit\(/.test(indexHtml));

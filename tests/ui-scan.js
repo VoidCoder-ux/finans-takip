@@ -17,7 +17,7 @@ function seed() {
     { id: A, name: 'Ziraat Bankası Vadesiz', type: 'bank', owner: 'shared', balance: 48250.75, openingBalance: 0, ts: 1 },
     { id: C, name: 'Bonus Platinum Kredi Kartı', type: 'card', owner: 'shared', statementDay: 15, balance: -12840.5, openingBalance: 0, ts: 2 },
     { id: V, name: 'Birikim', type: 'savings', owner: 'shared', balance: 150000, openingBalance: 0, ts: 3 },
-    { id: P, name: 'Ayşe Cep', type: 'cash', owner: 'personal', userId: 'u_partner', balance: 1250, openingBalance: 0, ts: 4 }
+    { id: P, name: 'Ayşe Nakit Cep Harçlığı ve Market Alışverişleri Hesabı Uzun', type: 'cash', owner: 'personal', userId: 'u_partner', balance: 1250, openingBalance: 0, ts: 4 }
   ];
   const cats = ['Market', 'Yiyecek', 'Ulaşım', 'Faturalar', 'Eğlence', 'Sağlık', 'Giyim', 'Eğitim'];
   const t = []; let k = 0;
@@ -44,10 +44,10 @@ function seed() {
       { id: 'r1700000000000_r003', type: 'expense', amount: 17500, category: 'Faturalar', day: 1, note: 'Kira', accountId: A, userId: 'u_self', isSubscription: false, active: false, ts: 3 }
     ],
     pf_d: [
-      { id: 'd1700000000000_d001', direction: 'lent', person: 'Mehmet Yılmaz', amount: 7500, date: iso(new Date(now.getFullYear(), now.getMonth() - 1, 3)), hasDue: true, dueDate: iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 12)), note: 'Araba tamiri', payments: [{ id: 'p1700000000000_p001', amount: 2500, date: iso(now) }], settled: false, ts: 1 },
+      { id: 'd1700000000000_d001', direction: 'lent', person: 'Çağrıhan Gökçe Özdemiroğlu (Mehmet Yılmaz’ın kardeşi)', amount: 1234567.89, date: iso(new Date(now.getFullYear(), now.getMonth() - 1, 3)), hasDue: true, dueDate: iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 12)), note: 'Araba tamiri', payments: [{ id: 'p1700000000000_p001', amount: 2500, date: iso(now) }], settled: false, ts: 1 },
       { id: 'd1700000000000_d002', direction: 'borrowed', person: 'Kardeşim', amount: 3000, date: iso(new Date(now.getFullYear(), now.getMonth() - 3, 3)), note: '', payments: [{ id: 'p1700000000000_p002', amount: 3000, date: iso(new Date(now.getFullYear(), now.getMonth() - 1, 3)) }], settled: true, ts: 2 }
     ],
-    pf_g: [{ id: 'g1700000000000_g001', name: 'Yaz Tatili — Kaş', target: 60000, emoji: '🏖️', accountId: V, txnMode: 'none', contributions: [{ id: 'c1700000000000_c001', amount: 22000, date: iso(now), note: '' }], done: null, ts: 1 }],
+    pf_g: [{ id: 'g1700000000000_g001', name: 'Yaz Tatili — Kaş, Kalkan ve Fethiye Tekne Turu Dahil', target: 60000, emoji: '🏖️', accountId: V, txnMode: 'none', contributions: [{ id: 'c1700000000000_c001', amount: 22000, date: iso(now), note: '' }], done: null, ts: 1 }],
     pf_f: [{ id: 'yf1700000000000_f001', name: 'Kasko', amount: 24000, dueMonth: ((now.getMonth() + 3) % 12) + 1, contributed: 8000, ts: 1 }, { id: 'yf1700000000000_f002', name: 'MTV', amount: 6800, dueMonth: 7, contributed: 0, ts: 2 }],
     pf_p: [{ id: 'pa1700000000000_p001', type: 'USD', qty: 1500, cost: 33.5, currentPrice: 0, label: '', ts: 1 }, { id: 'pa1700000000000_p002', type: 'GOLD_GRAM', qty: 42.5, cost: 2900, currentPrice: 0, label: 'Düğün', ts: 2 }, { id: 'pa1700000000000_p003', type: 'FUND', qty: 25431.123456, cost: 0.9, currentPrice: 1.184523, label: 'TTE Fon', ts: 3 }],
     pf_ru: [{ id: 'ru1700000000000_r001', field: 'note', value: 'migros', category: 'Market', active: true, ts: 1 }],

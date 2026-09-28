@@ -24,7 +24,17 @@ const TCMB = `<?xml version="1.0" encoding="UTF-8"?>
 
 const TRUNCGIL = { Update_Date: '2026-09-28 10:03:01', USD: { Type: 'Currency', Buying: 41.62, Selling: 41.70 }, GRA: { Type: 'Gold', Name: 'Gram Altın', Buying: '4.381,20', Selling: '4.382,90' }, CEYREKALTIN: { Type: 'Gold', Buying: 7165.5, Selling: 7290 }, TAMALTIN: { Type: 'Gold', Buying: '28.580', Selling: '29.100' }, ONS: { Type: 'Gold', Buying: 3765 } };
 
-const TEFAS = { draw: 0, recordsTotal: 3, data: [
+// Yeni TEFAS API (Nisan 2026 sonrası): /api/funds/fonGnlBlgSiraliGetir
+const TEFAS = { errorCode: null, errorMessage: null, resultList: [
+  { tarih: '2026-09-26T00:00:00', fonKodu: 'TTE', fonUnvan: 'İŞ PORTFÖY BIST TEKNOLOJİ AĞIRLIK SINIRLAMALI ENDEKS HİSSE SENEDİ FONU', fiyat: 1.184523, tedPaySayisi: 1, kisiSayisi: 1, portfoyBuyukluk: 1 },
+  { tarih: '2026-09-25T00:00:00', fonKodu: 'TTE', fonUnvan: 'eski gün', fiyat: 1.17 },
+  { tarih: '2026-09-26T00:00:00', fonKodu: 'AFT', fonUnvan: 'AK PORTFÖY YENİ TEKNOLOJİLER YABANCI HİSSE SENEDİ FONU', fiyat: 0.412398 },
+  { tarih: '2026-09-26T00:00:00', fonKodu: '', fonUnvan: 'bozuk', fiyat: 1 },
+  { tarih: '2026-09-26T00:00:00', fonKodu: 'XYZ', fonUnvan: 'fiyatsız', fiyat: 0 }
+] };
+
+// Eski TEFAS API (BindHistoryInfo) biçimi; ayrıştırıcı ikisini de okur
+const TEFAS_LEGACY = { draw: 0, recordsTotal: 3, data: [
   { TARIH: '1790380800000', FONKODU: 'TTE', FONUNVAN: 'İŞ PORTFÖY BIST TEKNOLOJİ AĞIRLIK SINIRLAMALI ENDEKS HİSSE SENEDİ FONU', FIYAT: 1.184523 },
   { TARIH: '1790294400000', FONKODU: 'TTE', FONUNVAN: 'eski gün', FIYAT: 1.17 },
   { TARIH: '1790380800000', FONKODU: 'AFT', FONUNVAN: 'AK PORTFÖY YENİ TEKNOLOJİLER YABANCI HİSSE SENEDİ FONU', FIYAT: 0.412398 },
@@ -40,4 +50,4 @@ const CPI = `<div class="table"><table class="table table-bordered"><tbody>
 <tr><td>05-2026</td><td>32.61</td><td>-0.20</td></tr>
 </tbody></table></div>`;
 
-module.exports = { TCMB, TRUNCGIL, TEFAS, CPI };
+module.exports = { TCMB, TRUNCGIL, TEFAS, TEFAS_LEGACY, CPI };

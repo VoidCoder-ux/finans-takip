@@ -17,6 +17,7 @@ const TOKEN_RE = /^[A-Za-z0-9_-]{43}$/;
 const B64_RE = /^[A-Za-z0-9+/=_-]*$/;
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 // Yalnız tarayıcıların push servislerine istek atılır (sunucu keyfi adreslere istek göndermesin)
+const MAX_LIVE = 20;
 const PUSH_HOST_RE = /(^|\.)(fcm\.googleapis\.com|android\.googleapis\.com|push\.services\.mozilla\.com|push\.apple\.com|notify\.windows\.com)$/;
 const MAX_DEVICES = 10;
 
@@ -128,9 +129,12 @@ export class VaultHub {
       }
       return new Response('ok');
     }
+    // Kasa başına canlı bağlantı sınırı: bir aile için fazlasıyla yeterli, kötüye kullanımı sınırlar
+    const open = this.ctx.getWebSockets();
+    if (open.length >= MAX_LIVE) { try { open[0].close(4000, 'too_many'); } catch (e) {} }
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
-    const device = url.searchParams.get('device');
+    const device = (url.searchParams.get('device') || '').slice(0, 64);
     this.ctx.acceptWebSocket(server, device ? [device] : []);
     return new Response(null, { status: 101, webSocket: client, headers: { 'Sec-WebSocket-Protocol': 'ft' } });
   }
@@ -187,7 +191,7 @@ async function route(request, env, url, ctx) {
       const row = await loadVault(env, id, token);
       if (!row) {
         if (base !== 0) return json({ error: 'conflict', version: 0 }, 409);
-        if (env.REGISTRATION_KEY && request.headers.get('X-Register-Key') !== env.REGISTRATION_KEY) throw new HttpError(403, 'registration_required');
+        if (env.REGISTRATION_KEY && !timingSafeEqualHex(await sha256Hex(request.headers.get('X-Register-Key') || ''), await sha256Hex(env.REGISTRATION_KEY))) throw new HttpError(403, 'registration_required');
         const ins = await env.DB.prepare('INSERT OR IGNORE INTO vaults (id, token_hash, version, data, created_at, updated_at) VALUES (?, ?, 1, ?, ?, ?)')
           .bind(id, await sha256Hex(token), body.data, now, now).run();
         if (!ins.meta.changes) return json({ error: 'conflict', version: -1 }, 409);
@@ -225,7 +229,7 @@ async function route(request, env, url, ctx) {
       let ep;
       try { ep = new URL(String(body.endpoint || '')); } catch (e) { throw new HttpError(400, 'bad_endpoint'); }
       const insecureOk = env.ALLOW_INSECURE_PUSH === '1' && (ep.hostname === '127.0.0.1' || ep.hostname === 'localhost');
-      if (!insecureOk && (ep.protocol !== 'https:' || !PUSH_HOST_RE.test(ep.hostname))) throw new HttpError(400, 'bad_endpoint');
+      if (!insecureOk && (ep.protocol !== 'https:' || !PUSH_HOST_RE.test(ep.hostname) || ep.username || ep.password || ep.port)) throw new HttpError(400, 'bad_endpoint');
       const cnt = await env.DB.prepare('SELECT COUNT(*) AS n, SUM(device_id = ?) AS mine FROM push_subs WHERE vault_id = ?').bind(device, id).first();
       if (cnt && !cnt.mine && cnt.n >= MAX_DEVICES) throw new HttpError(429, 'too_many_devices');
       const days = Array.isArray(body.pingDays) ? body.pingDays.filter(d => typeof d === 'string' && DAY_RE.test(d)).slice(0, 400) : [];
