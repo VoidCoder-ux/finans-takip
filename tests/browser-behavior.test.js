@@ -517,6 +517,74 @@ async function runRecurringOwner() {
   await r.ctx.close();
 }
 
+// Kalite kontrol denetimi (QC) bulguları: tekrarlayan otomatik kayıt, yedek, CSV, yuvarlama, fon, borç, pencere doğrulaması
+async function runQC() {
+  var A = 'a1700000000000_qcqc';
+  var cur = iso(now).slice(0, 7), m3 = iso(new Date(now.getFullYear(), now.getMonth() - 3, 1)).slice(0, 7);
+  var r = await openApp({ pf_a: [acc(A, 'Banka', 'bank', 10000)], pf_r: [
+    { id: 'r1700000000000_auto', type: 'expense', amount: 100, category: 'Faturalar', day: 1, note: 'Kira', accountId: A, userId: 'u_self', active: true, autoLog: true, autoFrom: m3, ts: 1 },
+    { id: 'r1700000000000_paus', type: 'expense', amount: 50, category: 'Eğlence', day: 1, note: 'Dizi', accountId: A, userId: 'u_self', active: false, autoLog: true, autoFrom: m3, autoDone: m3, ts: 1 }
+  ] });
+  var p = r.page;
+  var st = await p.evaluate(function() { return { n: S.txns().filter(function(t) { return t.recurringId === 'r1700000000000_auto'; }).length, done: S.recurring()[0].autoDone, ids: S.txns().map(function(t) { return t.id; }), bal: S.accounts()[0].balance }; });
+  eq('auto-log backfills due months once', [st.n, st.done, st.bal], [4, cur, 9600]);
+  eq('auto-log ids are per month (devices merge into one)', st.ids.indexOf('trr1700000000000_auto_' + cur.replace('-', '')) >= 0, true);
+  await p.evaluate(function(id) { App.Transactions.remove(id); }, 'trr1700000000000_auto_' + cur.replace('-', ''));
+  await p.reload(); await p.waitForFunction(function() { return window.App && App.Transactions; });
+  eq('deleted auto-log is not re-created on next open', await p.evaluate(function() { return [S.txns().filter(function(t) { return t.recurringId === 'r1700000000000_auto'; }).length, S.accounts()[0].balance]; }), [3, 9700]);
+  await p.evaluate(function() { App.Recurring.togglePause('r1700000000000_paus'); });
+  await p.reload(); await p.waitForFunction(function() { return window.App && App.Transactions; });
+  eq('resuming a paused auto-log does not charge paused months', await p.evaluate(function() { return S.txns().filter(function(t) { return t.recurringId === 'r1700000000000_paus'; }).length; }), 0);
+  // Biçim ve ayrıştırma
+  eq('no negative zero from float residue', await p.evaluate(function() { return fmt(100.1 + 200.2 - 300.3); }), '₺0,00');
+  eq('dot parsing: 0.500 money, 1.500 thousands, 1.234 qty', await p.evaluate(function() { return [parseMoney('0.500'), parseMoney('1.500'), parseQty('1.234')]; }), [0.5, 1500, 1.234]);
+  eq('csv header/type folding and formula-guard strip', await p.evaluate(function() { return [csvFold('TARIH'), csvFold('AÇIKLAMA'), csvFold('GIDER'), csvText("'-avans"), csvText("'=SUM(A1)"), csvText("normal")]; }), ['tarih', 'aciklama', 'gider', '-avans', '=SUM(A1)', 'normal']);
+  eq('goal completes despite float sums', await p.evaluate(function() { return !!App.Goals.refreshDone({ target: 0.8, contributions: [{ amount: 0.7 }, { amount: 0.1 }], done: null }).done; }), true);
+  // Yıllık fon döngüsü
+  eq('yearly fund: overdue shortly after due, paid moves one year, year boundary', await p.evaluate(function() {
+    var ts = new Date(2025, 0, 1).getTime(), N = App.YearlyFund.nextDue;
+    var a = N({ dueMonth: 3, paidYear: 0, contributed: 0, ts: ts }, new Date(2026, 3, 15));
+    var b = N({ dueMonth: 3, paidYear: a.year, contributed: 0, ts: ts }, new Date(2026, 3, 15));
+    var c = N({ dueMonth: 12, paidYear: 0, contributed: 9000, ts: ts }, new Date(2027, 0, 10));
+    var d = N({ dueMonth: 3, paidYear: 0, contributed: 0, ts: ts }, new Date(2026, 8, 15));
+    return [a.year, a.overdue, b.year, b.overdue, c.year, c.overdue, d.year, d.overdue];
+  }), [2026, true, 2027, false, 2026, true, 2027, false]);
+  // Planlı kayıt ay toplamına bugün gelmeden girmez
+  eq('month totals exclude future-dated plans', await p.evaluate(function(a) {
+    var fut = new Date(); fut.setDate(fut.getDate() + 1); var f = fut.getFullYear() + '-' + String(fut.getMonth() + 1).padStart(2, '0') + '-' + String(fut.getDate()).padStart(2, '0');
+    var before = App.Transactions.monthTotals(f.slice(0, 7)).expense, t = S.txns();
+    t.push({ id: 't1700000000000_futr', type: 'expense', amount: 777, category: 'Market', date: f, note: '', accountId: a, userId: 'u_self', ts: 1, balanceApplied: false }); S.saveTxns(t);
+    return App.Transactions.monthTotals(f.slice(0, 7)).expense - before;
+  }, A), 0);
+  // Borç: ileri tarihli ödeme reddedilir
+  await p.evaluate(function(a) {
+    S.saveDebts([{ id: 'd1700000000000_qc01', direction: 'borrowed', person: 'X', amount: 1000, date: td(), hasDue: false, dueDate: '', note: '', accountId: '', txnId: '', payments: [], settled: false, ts: 1 }]);
+    App.UI.nav('borclar'); App.Debts.renderAll(); App.Debts.togglePay('d1700000000000_qc01');
+    document.getElementById('pay_amt_d1700000000000_qc01').value = '400'; document.getElementById('pay_date_d1700000000000_qc01').value = '2099-01-01'; App.Debts.addPayment('d1700000000000_qc01');
+  }, A);
+  eq('future-dated debt payment rejected', await p.evaluate(function() { return S.debts()[0].payments.length; }), 0);
+  // Düzenleme penceresi hatalı tutarda açık kalır
+  var tid = await p.evaluate(function(a) { var t = S.txns(); t.push({ id: 't1700000000000_edit', type: 'expense', amount: 10, category: 'Market', date: td(), note: '', accountId: a, userId: 'u_self', ts: 1, balanceApplied: true }); S.saveTxns(t); App.Transactions.edit('t1700000000000_edit'); return 't1700000000000_edit'; }, A);
+  await submitPrompt(p, { amount: 'abc' });
+  eq('edit modal stays open on invalid amount', await p.evaluate(function() { return document.querySelectorAll('.app-dialog-holder').length; }), 1);
+  await submitPrompt(p, { amount: '449,9' });
+  eq('edit modal closes after valid save', await p.evaluate(function(id) { return [document.querySelectorAll('.app-dialog-holder').length, S.txns().find(function(t) { return t.id === id; }).amount]; }, tid), [0, 449.9]);
+  await p.evaluate(function(id) { App.Transactions.edit(id); }, tid);
+  eq('edit field shows two decimals (449,90)', await p.evaluate(function() { return document.querySelector('.app-dialog-holder [data-pkey="amount"]').value; }), '449,90');
+  await p.keyboard.press('Escape');
+  // İç hareket (borç/portföy) düzenlemesinde yalnız not
+  await p.evaluate(function(a) { var id = App.Transactions.addInternal({ type: 'expense', amount: 200, date: td(), accountId: a, note: 'Borç verildi: Y' }); App.Transactions.edit(id); }, A);
+  eq('internal movement edit offers only the note', await p.evaluate(function() { return Array.prototype.map.call(document.querySelectorAll('.app-dialog-holder [data-pkey]'), function(x) { return x.getAttribute('data-pkey'); }); }), ['note']);
+  await p.keyboard.press('Escape');
+  // Bozuk yedek mevcut veriyi silmez
+  var before = await p.evaluate(function() { return S.txns().length; });
+  await p.evaluate(function() { App.Backup.restore({ files: [new File(['{"app":"finanstakip","stores":{"pf_t":"garbage","pf_a":{"x":1}}}'], 'b.json', { type: 'application/json' })] }); });
+  await p.waitForTimeout(300);
+  eq('malformed backup is rejected without a confirm', await p.evaluate(function() { return document.querySelectorAll('.app-dialog-holder').length; }), 0);
+  eq('data intact after malformed backup', await p.evaluate(function() { return S.txns().length; }), before);
+  await r.ctx.close();
+}
+
 server.listen(0, '127.0.0.1', async function() {
   base = 'http://127.0.0.1:' + server.address().port;
   try {
@@ -526,6 +594,7 @@ server.listen(0, '127.0.0.1', async function() {
     await runAudit4();
     await runMergeCases();
     await runRecurringOwner();
+    await runQC();
   } catch (e) {
     fail++;
     console.log('✗ test run crashed: ' + (e && e.stack || e));
