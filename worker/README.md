@@ -96,7 +96,7 @@ Eşitleme **anlıktır**: bir cihazda kaydedilen değişiklik ~3 saniye içinde 
 
 İki kişi aynı anda farklı işlemler eklerse ikisi de korunur. Aynı kaydın farklı alanlarını düzenlerlerse ikisi de birleşir. Aynı alanı düzenlerlerse son eşitleyen cihazın değeri kalır. Hesap bakiyeleri her birleştirmeden sonra işlem geçmişinden yeniden hesaplanır.
 
-Cihaza özel kalanlar (eşitlenmez): tema, aktif profil, ekran kilidi PIN'i, AI ayarları.
+Cihaza özel kalanlar (eşitlenmez): tema, "Bu telefon kimin?" profili (eşitlemeye katılınca sorulur; Ayarlar > Bu Telefon Kimin?), ekran kilidi PIN'i, AI ayarları.
 
 ## Piyasa verileri
 

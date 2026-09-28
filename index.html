@@ -486,7 +486,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
   <div class="nav-item" data-nav="kurallar"><span class="nav-icon">🔧</span>Kurallar</div>
   <div class="nav-item" data-nav="ayarlar"><span class="nav-icon">⚙️</span>Ayarlar</div>
   <div class="sidebar-bottom">
-    <div id="activeProfileBar" style="font-size:.72rem;color:var(--txt2);padding:6px 0;margin-bottom:6px;display:flex;align-items:center;gap:6px;cursor:pointer" onclick="App.UI.nav('aile')"></div>
+    <div id="activeProfileBar" style="font-size:.72rem;color:var(--txt2);padding:6px 0;margin-bottom:6px;display:flex;align-items:center;gap:6px;cursor:pointer" onclick="App.Users.chooseDevice()"></div>
     <button class="theme-btn" id="themeBtn"><span id="themeIcon">☀️</span><span id="themeLabel">Açık Tema</span><div class="toggle-track" id="toggleTrack"><div class="toggle-thumb"></div></div></button>
   </div>
 </aside>
@@ -847,6 +847,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="card set-card"><div class="sh-title">📊 Enflasyon (TÜFE)</div><div class="set-sub" id="setCpiInfo"></div><button class="btn btn-sm btn-ghost" onclick="App.Inflation.editCpi()">TÜFE Güncelle</button></div>
     <div class="card set-card"><div class="sh-title">🧠 AI Asistan</div><div class="set-sub" id="setAiInfo"></div><div class="set-actions"><button class="btn btn-sm btn-ghost" onclick="App.UI.nav('asistan')">Asistan</button><button class="btn btn-sm btn-ghost" onclick="App.Portfolio.openApiSettings()">Proxy Ayarları</button></div></div>
     <div class="card set-card" id="setLockCard"></div>
+    <div class="card set-card" id="setDeviceCard"></div>
     <div class="card set-card" id="setSyncCard"></div>
     <div class="card set-card" id="setMarketCard"></div>
   </div>
@@ -862,7 +863,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.09.28.2</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.09.28.3</div>
 </section>
 
 </main>
@@ -1247,17 +1248,20 @@ App.UI=(function(){
     if(el)el.innerHTML='<option value="">Tüm Hesaplar</option>'+accs.map(function(a){return'<option value="'+a.id+'">'+esc(a.name)+'</option>'}).join('');
     refreshUserSelects();
   }
-  function refreshUserSelects(){
+  // force: "Kim yaptı" kutuları bu cihazın profiline döner (profil değişince / kayıt eklenince)
+  function refreshUserSelects(force){
     var users=S.settings().users||[],active=S.settings().activeUser;
-    var uopts=users.map(function(u){return'<option value="'+u.id+'"'+(u.id===active?' selected':'')+'>'+esc(u.emoji||'🙋')+' '+esc(u.name)+'</option>'}).join('');
-    ['txnUser','accUser','recUser'].forEach(function(id){var el=document.getElementById(id);if(el){var prev=el.value;el.innerHTML=uopts;if(prev)el.value=prev}});
+    var uopts=users.map(function(u){return'<option value="'+escAttr(u.id)+'"'+(u.id===active?' selected':'')+'>'+esc(u.emoji||'🙋')+' '+esc(u.name)+'</option>'}).join('');
+    ['txnUser','accUser','recUser'].forEach(function(id){var el=document.getElementById(id);if(el){var prev=el.value;el.innerHTML=uopts;el.value=!force&&prev&&users.some(function(u){return u.id===prev})?prev:active}});
     var fu=document.getElementById('fUser');
     if(fu)fu.innerHTML='<option value="">Tüm Üyeler</option>'+users.map(function(u){return'<option value="'+u.id+'">'+esc(u.emoji||'🙋')+' '+esc(u.name)+'</option>'}).join('')+'<option value="__shared__">👨‍👩‍👧 Sadece Ortak</option>';
   }
   function syncActiveProfilePill(){
     var u=App.Users.active();if(!u)return;
     var bar=document.getElementById('activeProfileBar');
-    if(bar)bar.innerHTML='<span class="ap-emoji" style="font-size:1rem">'+esc(u.emoji||'🙋')+'</span><span>Aktif: <strong>'+esc(u.name)+'</strong></span>';
+    if(bar)bar.innerHTML='<span class="ap-emoji" style="font-size:1rem">'+esc(u.emoji||'🙋')+'</span><span>Bu telefon: <strong>'+esc(u.name)+'</strong> <span style="color:var(--teal)">(değiştir)</span></span>';
+    var card=document.getElementById('setDeviceCard');
+    if(card)card.innerHTML='<div class="sh-title">📱 Bu Telefon Kimin?</div><div class="set-sub">Bu cihazda yeni kayıtlar <strong>'+esc(u.emoji||'🙋')+' '+esc(u.name)+'</strong> adına açılır; her kayıtta "Kim yaptı" değiştirilebilir. Her telefon kendi profilini hatırlar, işlemler herkeste ortak görünür.</div><button class="btn btn-sm btn-ghost" onclick="App.Users.chooseDevice()">Profili Değiştir</button>';
   }
   function refreshFilterDropdowns(){
     var ac=EC.concat(IC).filter(function(c,i,a){return a.indexOf(c)===i});
@@ -1533,7 +1537,7 @@ App.Transactions=(function(){
     var txns=S.txns(),x=txns.find(function(y){return y.id===id});if(!x)return false;
     var today=td();_unapply(x,today);Object.keys(fields).forEach(function(k){x[k]=fields[k]});_apply(x,today);S.saveTxns(txns);return true;
   }
-  function _clearForm(){document.getElementById('txnAmt').value='';document.getElementById('txnNote').value='';document.getElementById('txnInst').value='';document.getElementById('txnInstStart').value=''}
+  function _clearForm(){document.getElementById('txnAmt').value='';document.getElementById('txnNote').value='';document.getElementById('txnInst').value='';document.getElementById('txnInstStart').value='';var u=document.getElementById('txnUser');if(u&&App.Users.get(S.settings().activeUser))u.value=S.settings().activeUser}
   function _signed(t){return t.type==='income'?t.amount:-t.amount}
   function _unapply(t,today){if(t.accountId&&isBalanceApplied(t,today))App.Accounts.adjustBalance(t.accountId,-_signed(t))}
   function _apply(t,today){t.balanceApplied=t.date<=today;if(t.installment)t.installment.balanceApplied=t.balanceApplied;if(t.accountId&&t.balanceApplied)App.Accounts.adjustBalance(t.accountId,_signed(t))}
@@ -1884,6 +1888,7 @@ App.Recurring=(function(){
     var acc=sel?App.Accounts.get(sel):App.Accounts.sharedAccount();if(!acc){App.UI.toast('Önce hesap oluşturun.','err');return}
     var arr=S.recurring();arr.push({id:gid('r'),type,amount:amt,category:cat,day,note,accountId:acc.id,userId:(document.getElementById('recUser')||{}).value||S.settings().activeUser,isSubscription:isSub,active:true,autoLog:auto,autoFrom:auto?tm():'',autoDone:'',ts:Date.now()});if(auto)arr[arr.length-1].autoDone=_lastDue(arr[arr.length-1]);S.saveRecurring(arr);
     document.getElementById('recAmt').value='';document.getElementById('recNote').value='';document.getElementById('recDay').value='';document.getElementById('recIsSub').checked=false;if(document.getElementById('recAuto'))document.getElementById('recAuto').checked=false;
+    var ru=document.getElementById('recUser');if(ru&&App.Users.get(S.settings().activeUser))ru.value=S.settings().activeUser;
     _rerender();App.UI.toast(isSub?'Abonelik eklendi. 📺':'Tekrarlayan işlem eklendi.');
   }
   function _rerender(){renderList();renderOzet();renderSubSummary();App.Cashflow.renderMini()}
@@ -2322,9 +2327,14 @@ App.Users=(function(){
   }
   function setActive(id){
     var u=get(id);if(!u)return;
-    S.saveSetting('activeUser',id);App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();renderAll();renderFamilyPanel();
+    S.saveSetting('activeUser',id);App.UI.refreshUserSelects(true);App.UI.syncActiveProfilePill();renderAll();renderFamilyPanel();
     App.Transactions.renderList();App.Transactions.renderRecent();App.Transactions.renderSummaryMetrics();App.WeeklySummary.render();
-    App.UI.toast('Aktif profil: '+u.name);
+    App.UI.toast('Bu telefonun profili: '+u.name);
+  }
+  // Bu telefon kimin? Seçim yalnız bu cihazda saklanır (eşitlenmez); eşitlemeye katılınca da sorulur
+  function chooseDevice(text){
+    var us=list();if(!us.length)return;
+    App.UI.promptModal({title:'Bu Telefon Kimin?',text:text||'Seçilen kişi bu telefonda yeni kayıtların varsayılan "Kim yaptı" kişisi olur. Diğer telefonlar etkilenmez.',fields:[{key:'u',label:'Kişi',type:'select',value:S.settings().activeUser,options:us.map(function(u){return{value:u.id,label:(u.emoji||'🙋')+' '+u.name}})}],okLabel:'Kaydet'},function(v){if(get(v.u))setActive(v.u)});
   }
   function stats(userId){
     var accs=S.accounts().filter(function(a){return a.owner==='personal'&&a.userId===userId});
@@ -2356,7 +2366,7 @@ App.Users=(function(){
     cards+=users.map(function(u){var st=stats(u.id),net=st.income-st.expense;return'<div class="wallet-row" onclick="App.UI.nav(\'aile\')" style="cursor:pointer"><div class="wr-left"><span class="wr-emoji">'+esc(u.emoji||'🙋')+'</span><div><div class="wr-name">'+esc(u.name)+'</div><div class="wr-meta">Bu ay '+fmt(st.income)+' gelir · '+fmt(st.expense)+' gider · '+st.count+' işlem</div></div></div><div class="wr-bal '+(net>=0?'pos':'neg')+'">'+fmt(net)+'</div></div>'}).join('');
     el.innerHTML=cards;
   }
-  return{list,active,get,add,edit,remove,setActive,stats,sharedStats,renderAll,renderFamilyPanel}
+  return{list,active,get,add,edit,remove,setActive,chooseDevice,stats,sharedStats,renderAll,renderFamilyPanel}
 })();
 
 App.Rules=(function(){
@@ -3513,7 +3523,7 @@ App.Sync=(function(){
       if(r.status!==200)throw new Error('Eşitleme kodu geçersiz.');
       return decrypt(c,r.body.data);
     }).then(function(){saveCfg(c);return resetBase()}).then(function(){return syncNow({quiet:false})}).then(function(ok){
-      renderCard();init();if(ok)App.UI.toast('Bu cihaz eşitlemeye katıldı; veriler birleştirildi.','ok');return ok;
+      renderCard();init();if(ok){App.UI.toast('Bu cihaz eşitlemeye katıldı; veriler birleştirildi.','ok');setTimeout(function(){App.Users.chooseDevice('Eşitleme tamam. Bu telefonu kim kullanıyor? Bu telefonda yeni kayıtlar seçilen kişi adına açılır; işlemler herkeste ortak görünür.')},600)}return ok;
     }).catch(function(e){App.UI.toast(e instanceof TypeError?'Sunucuya ulaşılamadı.':e.message,'err');return false});
   }
   function joinPrompt(prefill){
@@ -3747,7 +3757,7 @@ App.Settings=(function(){
     var c=document.getElementById('setCpiInfo');if(c){var lm=App.Inflation.latestMonth().split('-');c.textContent='Son endeks: '+MF[+lm[1]-1]+' '+lm[0]+(App.Inflation.isStale()?' · güncelleme gerekiyor':'')}
     var a=document.getElementById('setAiInfo');if(a){var m=st.aiMode||'local';a.textContent=m==='local'?'Yerel analiz: veri cihazdan çıkmaz.':m==='proxy'?'Proxy modu'+(st.aiProxyUrl?'':' (URL eksik)'):'Geçici API key modu'}
     var t=document.getElementById('setThemeBtn');if(t)t.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀️ Açık temaya geç':'🌙 Koyu temaya geç';
-    App.Notifications.syncBtn();App.Categories.render();if(App.Lock)App.Lock.renderCard();if(App.Sync)App.Sync.renderCard();if(App.Push)App.Push.render();if(App.Market)App.Market.renderCard();
+    App.Notifications.syncBtn();App.Categories.render();App.UI.syncActiveProfilePill();if(App.Lock)App.Lock.renderCard();if(App.Sync)App.Sync.renderCard();if(App.Push)App.Push.render();if(App.Market)App.Market.renderCard();
   }
   function wipe(){
     App.UI.promptModal({title:'Tüm Verileri Sil',text:'Bu işlem geri alınamaz. Onaylamak için SİL yazın.',fields:[{key:'confirm',label:'Onay',placeholder:'SİL'}],okLabel:'Kalıcı Olarak Sil'},function(v){
