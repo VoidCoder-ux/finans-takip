@@ -537,7 +537,7 @@ async function runQC() {
   eq('resuming a paused auto-log does not charge paused months', await p.evaluate(function() { return S.txns().filter(function(t) { return t.recurringId === 'r1700000000000_paus'; }).length; }), 0);
   // Biçim ve ayrıştırma
   eq('no negative zero from float residue', await p.evaluate(function() { return fmt(100.1 + 200.2 - 300.3); }), '₺0,00');
-  eq('dot parsing: 0.500 money, 1.500 thousands, 1.234 qty', await p.evaluate(function() { return [parseMoney('0.500'), parseMoney('1.500'), parseQty('1.234')]; }), [0.5, 1500, 1.234]);
+  eq('dot parsing: 0.500 money, 1.500 thousands, 1.234 qty (Turkish thousands), 1,234 qty decimal', await p.evaluate(function() { return [parseMoney('0.500'), parseMoney('1.500'), parseQty('1.234'), parseQty('1,234'), parseQty('3.200'), parseQty('1.184523')]; }), [0.5, 1500, 1234, 1.234, 3200, 1.184523]);
   eq('csv header/type folding and formula-guard strip', await p.evaluate(function() { return [csvFold('TARIH'), csvFold('AÇIKLAMA'), csvFold('GIDER'), csvText("'-avans"), csvText("'=SUM(A1)"), csvText("normal")]; }), ['tarih', 'aciklama', 'gider', '-avans', '=SUM(A1)', 'normal']);
   eq('goal completes despite float sums', await p.evaluate(function() { return !!App.Goals.refreshDone({ target: 0.8, contributions: [{ amount: 0.7 }, { amount: 0.1 }], done: null }).done; }), true);
   // Yıllık fon döngüsü
@@ -646,6 +646,58 @@ async function runReceipt() {
   await r.ctx.close();
 }
 
+// Yayın öncesi QC (2): ± düğmesi, yedekte cihaz profili, gerçekleşen toplamlar, kur yokken portföy, fiş birleştirme/marka
+async function runQC2() {
+  var A = 'a1700000000000_qc2a';
+  var r = await openApp({ pf_a: [acc(A, 'Banka', 'bank', 1000)] });
+  var p = r.page;
+  // ± yazdıktan sonra da çalışır, iki kez basınca geri alır
+  await p.evaluate(function() { App.UI.nav('hesaplar'); });
+  await p.fill('#accBal', '4.250,50');
+  await p.click('#accBal + .sign-btn');
+  var v1 = await p.inputValue('#accBal');
+  await p.click('#accBal + .sign-btn');
+  var v2 = await p.inputValue('#accBal');
+  await p.click('#accBal + .sign-btn');
+  eq('± flips the sign after typing, and back again', [v1, v2, await p.inputValue('#accBal'), await p.evaluate(function() { return document.querySelector('.signed-row').nextElementSibling.classList.contains('money-hint'); })], ['-4.250,50', '4.250,50', '-4.250,50', true]);
+  // Gerçekleşen toplamlar ileri tarihli taksiti saymaz
+  eq('all-time totals count only what has happened', await p.evaluate(function(a) {
+    var t = S.txns(); t.push({ id: 't1700000000000_fut2', type: 'expense', amount: 999, category: 'Market', date: '2099-01-01', note: '', accountId: a, userId: 'u_self', ts: 1, balanceApplied: false }); S.saveTxns(t);
+    return App.Transactions.allTimeTotals().expense;
+  }, A), 0);
+  // Kur yokken portföy alış fiyatıyla görünür
+  eq('holding keeps cost value when rate is unknown', await p.evaluate(function() {
+    var st = S.settings(); st.rates = Object.assign({}, st.rates, { USD: 0 }); S.saveSetting('rates', st.rates);
+    S.savePortfolio([{ id: 'pa1700000000000_usd1', type: 'USD', qty: 100, cost: 34.5, currentPrice: 0, label: '', ts: 1 }]);
+    App.UI.nav('portfoy'); return document.getElementById('portfolioSummary').textContent.indexOf('3.450') >= 0;
+  }), true);
+  // Fiş: iki okuma aynı nakit satırını ayrı oy saymaz; farklı toplamlar uyarı ister
+  eq('merge: cash line is not promoted by two passes', await p.evaluate(function() {
+    var P = App.Receipt.parseText, a = P('MARKET X\nTOPLAM *173,40\nNAKİT *200,00'), b = P('MARKET X\nTOPLAM *178,40\nNAKİT *200,00'), m = App.Receipt._debug.merge(a, b);
+    return [m.total, m.confident];
+  }), [173.4, false]);
+  eq('brand matching is word based (no false chains)', await p.evaluate(function() {
+    var P = App.Receipt.parseText; return ['KOTON MAGAZACILIK TEKSTIL\nTOPLAM *10,00', 'CEVAHIR ALISVERIS MERKEZI\nTOPLAM *10,00', 'BAKKAL OK MARKET\nTOPLAM *10,00', 'ORACLE MICROS\nTOPLAM *10,00', 'BIM BIRLESIK MAGAZALAR A.S.\nTOPLAM *10,00'].map(function(t) { return P(t).merchant; });
+  }), ['Koton', 'Cevahir Alisveris Merkezi', 'Bakkal Ok Market', 'Oracle Micros', 'BİM']);
+  eq('parser edge cases: amount-less TOPLAM + time line, TOPLAM KAZANÇ, space not thousands', await p.evaluate(function() {
+    var P = App.Receipt.parseText;
+    return [P('MARKET\nTOPLAM\nTARIH 21.09.2026 SAAT 14.35\nKART *50,00').total, P('MIGROS\nTOPLAM KAZANC *25,00\nTOPLAM *150,00').total, P('MARKET\nTOPLAM 3 150,00').total];
+  }), [50, 150, 150]);
+  await r.ctx.close();
+  // Yedek geri yüklenince bu telefonun profili korunur
+  r = await openApp({ pf_a: [acc(A, 'Banka', 'bank', 1000)], pf_s: { onboarded: true, activeUser: 'u_partner', theme: 'light', users: [{ id: 'u_self', name: 'Ben', emoji: '🙋', color: '#14b8a6' }, { id: 'u_partner', name: 'Eş', emoji: '💑', color: '#ec4899' }] } });
+  p = r.page;
+  await p.evaluate(function() {
+    var backup = { app: 'finanstakip', version: 2, stores: { pf_t: [], pf_a: S.accounts(), pf_s: { onboarded: true, activeUser: 'u_self', theme: 'dark', users: S.settings().users } } };
+    App.Backup.restore({ files: [new File([JSON.stringify(backup)], 'b.json', { type: 'application/json' })] });
+  });
+  await p.waitForSelector('.app-dialog-holder [data-act="ok"]', { state: 'attached' });
+  await p.evaluate(function() { document.querySelector('.app-dialog-holder [data-act="ok"]').click(); });
+  await p.waitForTimeout(900); await p.waitForFunction(function() { return window.App && App.Transactions; });
+  eq('backup restore keeps this phone\'s profile and theme', await p.evaluate(function() { return [S.settings().activeUser, S.settings().theme]; }), ['u_partner', 'light']);
+  await r.ctx.close();
+}
+
 server.listen(0, '127.0.0.1', async function() {
   base = 'http://127.0.0.1:' + server.address().port;
   try {
@@ -658,6 +710,7 @@ server.listen(0, '127.0.0.1', async function() {
     await runQC();
     await runDeviceProfile();
     await runReceipt();
+    await runQC2();
   } catch (e) {
     fail++;
     console.log('✗ test run crashed: ' + (e && e.stack || e));

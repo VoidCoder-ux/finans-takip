@@ -44,7 +44,9 @@ srv.listen(0,'127.0.0.1',async()=>{
   // 3) Kamera izni yok → fotoğraf seçimine düşer
   await p.evaluate(()=>{window.__camMode='deny';window.__picked=0;document.getElementById('receiptFile').click=()=>{window.__picked++};App.Receipt.open()});
   await p.waitForTimeout(300);
-  out.denyFallback=await p.evaluate(()=>[window.__picked,!!document.getElementById('rcpScan')]);
+  out.denyFallback=await p.evaluate(()=>[window.__picked,!!document.getElementById('rcpScan'),document.querySelector('#rcpScan [data-act="shot"]').hidden,/Galeri/.test(document.getElementById('rcpScanHint').textContent)]);
+  await p.evaluate(()=>document.querySelector('#rcpScan [data-act="gallery"]').click());
+  out.denyGallery=await p.evaluate(()=>[window.__picked,!!document.getElementById('rcpScan')]);
   // 4) Escape kamerayı kapatır
   await p.evaluate(()=>{window.__camMode='receipt';App.Receipt.open()});await p.waitForTimeout(500);await p.keyboard.press('Escape');await p.waitForTimeout(600);
   out.escClosed=await p.evaluate(()=>!document.getElementById('rcpScan'));
@@ -52,7 +54,8 @@ srv.listen(0,'127.0.0.1',async()=>{
   eq('live camera reads e-Arşiv QR automatically',out.qr,['523,40','2026-09-20','✓ Fişin karekodundan okundu.',false]);
   eq('camera stopped after QR',out.streamStopped,true);
   eq('shot without QR goes through text recognition',out.shot,['331,50','2026-09-26','BİM','Market']);
-  eq('camera denied falls back to photo picker',out.denyFallback,[1,false]);
+  eq('camera denied: scanner stays with a hint, no auto picker (iOS needs a tap)',out.denyFallback,[0,true,true,true]);
+  eq('tapping Galeri / Dosya then opens the picker',out.denyGallery,[1,false]);
   eq('Escape closes the scanner',out.escClosed,true);
   eq('no page errors',errs,[]);
   await b.close();srv.close();console.log('\n'+pass+' passed, '+fail+' failed');process.exit(fail?1:0);

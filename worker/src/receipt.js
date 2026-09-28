@@ -55,12 +55,17 @@ async function useQuota(env, vaultId, day) {
   return { ok: !row || row.n <= limit, used: row ? row.n : 1, limit };
 }
 
+// Başarısız çağrı günlük hakkı tüketmesin
+async function refund(env, vaultId, day) {
+  try { await env.DB.prepare('UPDATE receipt_usage SET n = n - 1 WHERE vault_id = ? AND day = ? AND n > 0').bind(vaultId, day).run(); } catch (e) {}
+}
+
 let _model = null;
 async function pickModel(env, base) {
   if (env.DEEPSEEK_MODEL) return env.DEEPSEEK_MODEL;
   if (_model) return _model;
   try {
-    const r = await fetch(base + '/models', { headers: { Authorization: 'Bearer ' + env.DEEPSEEK_API_KEY } });
+    const r = await fetch(base + '/models', { headers: { Authorization: 'Bearer ' + env.DEEPSEEK_API_KEY }, signal: AbortSignal.timeout(10_000) });
     if (r.ok) {
       const ids = ((await r.json()).data || []).map(m => m && m.id).filter(Boolean);
       _model = PREFERRED.find(id => ids.includes(id)) || ids.find(id => /flash/.test(id) && !/vision/.test(id)) || ids.find(id => !/vision|reason/.test(id)) || null;
@@ -97,9 +102,11 @@ export async function readReceipt(env, vaultId, body, day) {
       signal: AbortSignal.timeout(60_000)
     });
   } catch (e) {
+    await refund(env, vaultId, day);
     return { status: 503, body: { error: 'ai_unreachable' } };
   }
   if (!res.ok) {
+    await refund(env, vaultId, day);
     const detail = await res.text().catch(() => '');
     console.error('receipt ai', res.status, detail.slice(0, 300));
     if (res.status === 401 || res.status === 403) return { status: 503, body: { error: 'ai_key' } };
@@ -111,6 +118,6 @@ export async function readReceipt(env, vaultId, body, day) {
   let content = '';
   try { const j = await res.json(); content = j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content || ''; } catch (e) {}
   let parsed;
-  try { parsed = JSON.parse(String(content).replace(/^```(?:json)?\s*|\s*```$/g, '')); } catch (e) { return { status: 502, body: { error: 'ai_bad_output' } }; }
+  try { parsed = JSON.parse(String(content).replace(/^```(?:json)?\s*|\s*```$/g, '')); } catch (e) { await refund(env, vaultId, day); return { status: 502, body: { error: 'ai_bad_output' } }; }
   return { status: 200, body: Object.assign(cleanResult(parsed, categories), { used: quota.used, limit: quota.limit }) };
 }
