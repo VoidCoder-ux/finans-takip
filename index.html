@@ -516,7 +516,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <button class="quick-btn qexp" onclick="App.UI.quickAdd('expense')"><span class="qi">−</span><span>Hızlı Gider</span></button>
     <button class="quick-btn qrcp" onclick="App.Receipt.open()"><span class="qi">📷</span><span>Fiş Okut</span></button>
   </div>
-  <input type="file" id="receiptFile" accept="image/*" style="display:none" aria-label="Fiş fotoğrafı" onchange="App.Receipt.onFile(this)"/>
+  <input type="file" id="receiptFile" accept="image/*,application/pdf,.pdf" style="display:none" aria-label="Fiş fotoğrafı" onchange="App.Receipt.onFile(this)"/>
   <div class="report-btn-row">
     <button class="report-btn" onclick="App.Report.open()"><span class="ri">📄</span><span>Aylık Detaylı Rapor (PDF)</span></button>
   </div>
@@ -873,7 +873,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.09.28.5</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.09.28.6</div>
 </section>
 
 </main>
@@ -3737,7 +3737,7 @@ App.Market=(function(){
 // Fiş okutma: önce telefonda (e-Arşiv karekodu, yoksa yazı tanıma), sonuç kötüyse sunucudaki yapay zekâ (isteğe bağlı).
 // Telefonda okuma çevrimdışı çalışır ve fotoğraf cihazdan çıkmaz; yapay zekâ yalnız kullanıcı onaylayınca kullanılır.
 App.Receipt=(function(){
-  var _cur=null,_ocr=null,_scripts={},_aiConf=null,_cancel=false;
+  var _cur=null,_ocr=null,_scripts={},_aiConf=null,_cancel=false,_pdfjs=null;
   // Mutlak adres: yazı tanıma işçisi kendi konumuna göre çözer (vendor/tesseract/vendor/... olmasın)
   function _base(){return new URL('vendor/tesseract/',location.href).href}
   // Kelime sınırı Türkçe harflerle (\b yalnız ASCII tanır: "ŞOK", "BİM" kaçardı)
@@ -3752,7 +3752,7 @@ App.Receipt=(function(){
     [W('S[İI]NEMA|C[İI]NEMAX|T[İI]YATRO|KONSER|OYUNCAK'),'Eğlence'],
     [W('TURKCELL|VODAFONE|TÜRK TELEKOM|DOĞALGAZ|FATURA'),'Faturalar']
   ];
-  var LEGAL=/^(T[İI]CARET|T[İI]C\.?|SANAY[İI]|SAN\.?|A\.?Ş\.?|AŞ|LTD\.?|ŞT[İI]\.?|VE|PAZARLAMA|GIDA|MA[ĞG]AZACILIK|ANON[İI]M|Ş[İI]RKET[İI])$/;
+  var LEGAL=/^(T[İI]CARET|T[İI]C\.?|SANAY[İI]|SAN\.?|A\.?[ŞS]\.?|AŞ|LTD\.?|ŞT[İI]\.?|VE|PAZARLAMA|GIDA|MA[ĞG]AZACILIK|ANON[İI]M|Ş[İI]RKET[İI])$/;
   function _load(src){
     if(_scripts[src])return _scripts[src];
     _scripts[src]=new Promise(function(res,rej){var s=document.createElement('script');s.src=src;s.onload=res;s.onerror=function(){delete _scripts[src];rej(new Error('Okuma paketi indirilemedi; internet bağlantısını kontrol edin.'))};document.head.appendChild(s)});
@@ -3785,7 +3785,9 @@ App.Receipt=(function(){
       if(/^(TAR[İI]H|SAAT|F[İI]Ş|VKN|V\.?D|TEL|ADRES|MERS[İI]S)/.test(_upper(l)))continue;
       l=_upper(l).split(' ').filter(function(w){return w&&!LEGAL.test(w)}).join(' ');
       if(l.length<2)continue;
-      return l.toLocaleLowerCase('tr-TR').replace(/(^|\s)(\S)/g,function(a,s,c){return s+c.toLocaleUpperCase('tr-TR')}).slice(0,40);
+      // Türkçe harf yoksa (ör. "MIGROS") I → ı olmasın: İngilizce kuralla küçült
+      var loc=/[İŞĞÜÖÇ]/.test(l)?'tr-TR':'en-US';
+      return l.toLocaleLowerCase(loc).replace(/(^|\s)(\S)/g,function(a,s,c){return s+c.toLocaleUpperCase(loc)}).slice(0,40);
     }
     return '';
   }
@@ -3910,9 +3912,49 @@ App.Receipt=(function(){
       review({total:0,date:'',merchant:'',category:guessCategory(''),items:[],confident:false},'fail',e&&e.message);
     });
   }
+  // ---- PDF (Dosyalar > Belgeleri Tara, e-Arşiv fatura PDF'i) ----
+  function _pdfLib(){
+    if(!_pdfjs)_pdfjs=import(new URL('vendor/pdfjs/pdf.min.js',location.href).href).then(function(m){
+      var lib=m&&m.getDocument?m:(window.pdfjsLib||m);lib.GlobalWorkerOptions.workerSrc=new URL('vendor/pdfjs/pdf.worker.min.js',location.href).href;return lib;
+    }).catch(function(e){_pdfjs=null;throw new Error('PDF okuyucu yüklenemedi; internet bağlantısını kontrol edin.')});
+    return _pdfjs;
+  }
+  // Yazı katmanını satırlara çevirir: aynı yükseklikteki parçalar soldan sağa birleşir
+  function _pdfLines(tc){
+    var rows=[];(tc.items||[]).forEach(function(it){
+      if(!it||!it.str||!String(it.str).trim())return;var x=it.transform[4],y=it.transform[5];
+      var r=rows.find(function(q){return Math.abs(q.y-y)<Math.max(2,(it.height||8)*0.5)});if(!r){r={y:y,parts:[]};rows.push(r)}r.parts.push({x:x,s:it.str});
+    });
+    rows.sort(function(a,b){return b.y-a.y});
+    return rows.map(function(r){return r.parts.sort(function(a,b){return a.x-b.x}).map(function(p){return p.s}).join(' ').replace(/\s+/g,' ').trim()}).join('\n');
+  }
+  function _pdf(file){
+    _busy('Belge açılıyor…',0.05);
+    file.arrayBuffer().then(function(buf){return _pdfLib().then(function(lib){return lib.getDocument({data:new Uint8Array(buf),isEvalSupported:false}).promise})})
+      .then(function(doc){return doc.getPage(1).then(function(page){
+        return page.getTextContent().then(function(tc){
+          var text=_pdfLines(tc),parsed=text.length>=20?parseText(text):null;
+          // Görüntü (önizleme ve gerekirse yazı tanıma için): sayfa ~1600 px genişlikte çizilir
+          var vp=page.getViewport({scale:1}),sc=Math.min(4,1600/vp.width),v=page.getViewport({scale:sc}),c=document.createElement('canvas');
+          c.width=Math.round(v.width);c.height=Math.round(v.height);var ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
+          return page.render({canvasContext:ctx,viewport:v}).promise.then(function(){return{canvas:c,text:text,parsed:parsed,pages:doc.numPages}});
+        });
+      })})
+      .then(function(r){
+        if(_cancel)return;
+        r.canvas.toBlob(function(b){
+          if(_cur&&_cur.url)URL.revokeObjectURL(_cur.url);var url=URL.createObjectURL(b);
+          if(r.parsed&&r.parsed.total>0){_busy(null);_cur={url:url,canvas:r.canvas,text:r.text};r.parsed.text=r.text;review(r.parsed,'pdf');return}
+          _process(r.canvas,url);
+        },'image/jpeg',0.9);
+      })
+      .catch(function(e){_busy(null);App.UI.toast(e&&/PDF okuyucu/.test(e.message)?e.message:'PDF açılamadı. Taranmış belgeyi yeniden kaydedip deneyin.','err')});
+  }
   function onFile(input){
     var f=input&&input.files&&input.files[0];if(!f)return;
-    if(!/^image\//.test(f.type||'image/')){App.UI.toast('Lütfen fişin fotoğrafını seçin.','err');return}
+    var isPdf=/pdf/i.test(f.type||'')||/\.pdf$/i.test(f.name||'');
+    if(!isPdf&&!/^image\//.test(f.type||'image/')){App.UI.toast('Lütfen fişin fotoğrafını ya da taranmış PDF\'ini seçin.','err');return}
+    if(isPdf){if(!S.accounts().length){App.UI.toast('Önce bir hesap oluşturun.','err');App.UI.nav('hesaplar');return}_stopScan();_cancel=false;_pdf(f);return}
     if(!S.accounts().length){App.UI.toast('Önce bir hesap oluşturun.','err');App.UI.nav('hesaplar');return}
     _stopScan();if(_cur&&_cur.url)URL.revokeObjectURL(_cur.url);
     var url=URL.createObjectURL(f),img=new Image();
@@ -3965,16 +4007,19 @@ App.Receipt=(function(){
     el.innerHTML='<div class="modal-bd show"><div class="modal rcp-scan" role="dialog" aria-modal="true" aria-labelledby="rcpScanT"><div class="modal-title" id="rcpScanT">📷 Fiş Okut</div>'+
       '<div class="rcp-cam"><video playsinline muted autoplay></video><div class="rcp-frame"></div></div>'+
       '<div class="rcp-src" id="rcpScanHint">Kamera açılıyor…</div>'+
-      '<div class="modal-actions" style="flex-wrap:wrap"><button class="btn btn-ghost" data-act="cancel">Vazgeç</button><button class="btn btn-ghost" data-act="gallery">🖼 Galeri</button><button class="btn btn-ghost" data-act="torch" hidden>🔦</button><button class="btn btn-primary" data-act="shot">📸 Çek</button></div></div></div>';
+      '<div class="modal-actions" style="flex-wrap:wrap"><button class="btn btn-ghost" data-act="cancel">Vazgeç</button><button class="btn btn-ghost" data-act="gallery">📄 Galeri / Dosya</button><button class="btn btn-ghost" data-act="torch" hidden>🔦</button><button class="btn btn-primary" data-act="shot">📸 Çek</button></div></div></div>';
     el.querySelector('[data-act="cancel"]').addEventListener('click',_stopScan);
     el.querySelector('[data-act="gallery"]').addEventListener('click',function(){_stopScan();_pick()});
     App.UI.mountModal(el,'[data-act="shot"]');
     var video=el.querySelector('video');
+    // iPhone: sessiz ve sayfa içinde oynatılmazsa görüntü başlamaz
+    video.muted=true;video.setAttribute('playsinline','');video.setAttribute('webkit-playsinline','');
+    setTimeout(function(){if(document.getElementById('rcpScan')&&!video.videoWidth)_hint('Kamera görüntüsü gelmedi. 📄 Galeri / Dosya ile fotoğraf çekebilir ya da taranmış belge seçebilirsiniz.')},6000);
     navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}}}).then(function(stream){
       if(!document.getElementById('rcpScan')){stream.getTracks().forEach(function(t){t.stop()});return}
       var sc=_scan={stream:stream,video:video,timer:null,busy:false,detector:null};
       video.srcObject=stream;var pl=video.play();if(pl&&pl.catch)pl.catch(function(){});
-      _hint('Fişin karekodunu çerçeveye getirin; karekod yoksa fişin tamamını görüntüleyip 📸 Çek\'e basın.');
+      _hint('Fişin karekodunu çerçeveye getirin; karekod yoksa fişin tamamını görüntüleyip 📸 Çek\'e basın. Dosyalar\'da taradığınız belge için 📄 Galeri / Dosya > Dosya Seç.');
       var track=stream.getVideoTracks()[0],caps={};try{caps=track.getCapabilities?track.getCapabilities():{}}catch(e){}
       if(caps.torch){var tb=el.querySelector('[data-act="torch"]'),on=false;tb.hidden=false;tb.addEventListener('click',function(){on=!on;track.applyConstraints({advanced:[{torch:on}]}).catch(function(){})})}
       el.querySelector('[data-act="shot"]').addEventListener('click',function(){
@@ -4018,7 +4063,7 @@ App.Receipt=(function(){
     var date=r.date||td(),users=App.Users.list(),active=S.settings().activeUser,accs=S.accounts(),defAcc=(App.Accounts.sharedAccount()||accs[0]||{}).id;
     var cats=EC.slice();if(cats.indexOf(draft.category)<0)cats.push(draft.category);
     var dupe=r.total>0&&S.txns().some(function(t){return t.type==='expense'&&t.date===date&&Math.abs(t.amount-r.total)<0.005});
-    var msg=src==='qr'?'✓ Fişin karekodundan okundu.':src==='ai'?'🤖 Yapay zekâ ile okundu'+(r.limit?' (bugün '+r.used+'/'+r.limit+')':'')+'. Kontrol edip kaydedin.':src==='ocr'?(r.confident?'📱 Telefonda okundu. Tutarı ve tarihi kontrol edin.':'⚠ Toplam net okunamadı; lütfen tutarı kontrol edin.'):'⚠ Fiş okunamadı'+(err?' ('+err+')':'')+'. Bilgileri elle girebilirsiniz.';
+    var msg=src==='qr'?'✓ Fişin karekodundan okundu.':src==='pdf'?'📄 Belgedeki yazıdan okundu. Tutarı ve tarihi kontrol edin.':src==='ai'?'🤖 Yapay zekâ ile okundu'+(r.limit?' (bugün '+r.used+'/'+r.limit+')':'')+'. Kontrol edip kaydedin.':src==='ocr'?(r.confident?'📱 Telefonda okundu. Tutarı ve tarihi kontrol edin.':'⚠ Toplam net okunamadı; lütfen tutarı kontrol edin.'):'⚠ Fiş okunamadı'+(err?' ('+err+')':'')+'. Bilgileri elle girebilirsiniz.';
     var items=(r.items||[]).length?'<div class="rcp-items">'+r.items.map(function(i){return'<div><span>'+esc(i.name)+'</span><span>'+fmt(i.amount)+'</span></div>'}).join('')+'</div>':'';
     var note=(draft.note||'')+((r.items||[]).length?' — '+r.items.slice(0,12).map(function(i){return i.name}).join(', '):'');
     var html='<div class="modal-bd show"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="rcpTitle"><div class="modal-title" id="rcpTitle">🧾 Fişten Gider</div>'+

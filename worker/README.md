@@ -119,6 +119,8 @@ Portföyde fon eklerken **Fon kodu (TEFAS)** alanına kodu yazın (ör. `TTE`); 
 2. **Yazı tanıma (ücretsiz, telefonda):** Karekod yoksa **📸 Çek** ile fotoğraf çekilir; telefonda yazılar okunur (tesseract.js, Türkçe). Gölgeye dayanıklı siyah-beyaz dönüştürme, küçük fotoğrafı büyütme ve gerekirse ikinci deneme yapılır. Toplam (GENEL TOPLAM > ÖDENECEK > TOPLAM; KDV, ara toplam, para üstü hariç; TOPLAM ile KART/NAKİT satırı eşleşirse o seçilir), tarih, mağaza ve kategori bulunur. Fotoğraf telefondan çıkmaz. İlk kullanımda okuma paketi (~6 MB) bir kez indirilir.
 3. **Yapay zekâ (isteğe bağlı, DeepSeek):** Sonuç yanlışsa kontrol penceresinde **🤖 Yapay Zekâyla Oku** çıkar. Fotoğraf değil, **telefonun okuduğu yazı** DeepSeek'e gönderilir; mağaza, tarih, toplam ve kalemler çıkarılır. Yalnız eşitlemedeki cihazlar kullanabilir; kasa başına günlük sınır vardır (varsayılan 50).
 
+**iPhone'da taranmış belge:** Dosyalar > ••• > **Belgeleri Tara** ile taradığınız fişi uygulamada **📷 Fiş Okut > 📄 Galeri / Dosya > Dosya Seç** ile açın (iOS, ana ekrana eklenen web uygulamalarını Paylaş menüsünde göstermez). PDF'te yazı katmanı varsa (e-Arşiv fatura PDF'leri) doğrudan o okunur; yoksa sayfa görüntüye çevrilip yazı tanımayla okunur. PDF okuyucu (pdf.js, ~1,8 MB) yalnız PDF seçildiğinde bir kez indirilir.
+
 Her durumda kaydetmeden önce kontrol penceresi açılır; tutar, tarih, kategori, hesap ve kişi değiştirilebilir. Ürün barkodları fiyat içermez; gider için fişin karekodu ya da yazısı gerekir.
 
 Yapay zekâyı açmak için DeepSeek API anahtarınızı (`sk-...`, platform.deepseek.com) sunucuya kaydedin:
