@@ -7,6 +7,7 @@
 - `tests/quality-regression.test.js`: 105/105
 - `tests/browser-behavior.test.js`: 72/72 (gerçek `index.html`, headless Chromium)
 - `tests/ui-scan.js`: 0 sorun (3 ekran genişliği × 2 tema × 14 sayfa + 14 modal)
+- `tests/worker-api.test.js`: 22/22 ve `tests/sync-e2e.test.js`: 25/25 (yerel `wrangler dev` ile)
 
 ## 1. Hesaplama ve veri hataları (düzeltildi)
 
@@ -76,8 +77,7 @@ Elle ekran görüntüsü incelemesinde bulunan ve düzeltilen sorunlar:
 
 ## 4. Bilinen sınırlar (açık)
 
-- **Çok cihaz / bulut eşitleme yok.** Veri yalnız tarayıcıda; yedek dosyasıyla taşınır. Sunucu gerektirir.
-- **Hatırlatmalar yalnız uygulama açıkken çalışır.** Push bildirim sunucu gerektirir.
+- ~~Çok cihaz / bulut eşitleme yok~~ ve ~~hatırlatmalar yalnız uygulama açıkken~~: Cloudflare Worker ile eklendi (`worker/README.md`). Uçtan uca şifreli eşitleme ve içeriksiz web push; kurulum için bir Cloudflare hesabı gerekir.
 - **Ekran kilidi veriyi şifrelemez.**
 - **AI "geçici API key" modu** anahtarı tarayıcıdan gönderir; proxy modu önerilir.
 - **Kur servisleri** (truncgil, frankfurter) üçüncü taraftır; erişilemezse elle giriş açılır.

@@ -1,0 +1,9 @@
+# Cloudflare Worker statik varlıklarına dahil edilmeyecekler (gitignore sözdizimi)
+worker
+tests
+docs
+node_modules
+.git
+.gitignore
+.assetsignore
+*.md

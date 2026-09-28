@@ -1,4 +1,4 @@
-const CACHE = 'finanstakip-v3';
+const CACHE = 'finanstakip-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -7,7 +7,6 @@ const ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
-const API_HOSTS = ['api.deepseek.com', 'finans.truncgil.com', 'api.frankfurter.app'];
 
 self.addEventListener('install', function(e) {
   e.waitUntil(
@@ -31,10 +30,8 @@ self.addEventListener('fetch', function(e) {
   var req = e.request;
   if (req.method !== 'GET') return;
   var url = new URL(req.url);
-  if (API_HOSTS.indexOf(url.hostname) !== -1) {
-    e.respondWith(fetch(req, { cache: 'no-store' }).catch(function() { return new Response('', { status: 504, statusText: 'Offline' }); }));
-    return;
-  }
+  // Dış servisler (kur, AI, eşitleme sunucusu) ve eşitleme API'si hiç önbelleğe alınmaz: eski veri görülmesin
+  if (url.origin !== self.location.origin || url.pathname.indexOf('/v1/') !== -1) return;
   var isHTML = req.mode === 'navigate' || (req.headers.get('accept') || '').indexOf('text/html') !== -1;
   if (isHTML) {
     e.respondWith(
@@ -61,4 +58,51 @@ self.addEventListener('fetch', function(e) {
       }).catch(function() { return new Response('', { status: 504, statusText: 'Offline' }); });
     })
   );
+});
+
+// ---- Uygulama kapalıyken bildirim ----
+// Sunucu içeriksiz push atar; metin, uygulamanın IndexedDB'ye yazdığı hatırlatma listesinden burada oluşturulur.
+function readReminders() {
+  return new Promise(function(res) {
+    try {
+      var r = indexedDB.open('finanstakip', 1);
+      r.onupgradeneeded = function() { r.result.createObjectStore('kv'); };
+      r.onerror = function() { res([]); };
+      r.onsuccess = function() {
+        try {
+          var q = r.result.transaction('kv', 'readonly').objectStore('kv').get('reminders');
+          q.onsuccess = function() { res((q.result && q.result.items) || []); };
+          q.onerror = function() { res([]); };
+        } catch (err) { res([]); }
+      };
+    } catch (err) { res([]); }
+  });
+}
+
+function localDay(offset) {
+  var d = new Date(); d.setDate(d.getDate() + (offset || 0));
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+self.addEventListener('push', function(e) {
+  e.waitUntil(readReminders().then(function(items) {
+    var today = localDay(0), limit = localDay(2), when = {};
+    when[today] = 'bugün'; when[localDay(1)] = 'yarın'; when[limit] = '2 gün sonra';
+    var due = items.filter(function(x) { return x.date >= today && x.date <= limit; }).sort(function(a, b) { return a.date < b.date ? -1 : 1; });
+    var body = due.length
+      ? due.slice(0, 4).map(function(x) { return (when[x.date] || x.date) + ': ' + x.text; }).join('\n') + (due.length > 4 ? '\n+' + (due.length - 4) + ' ödeme daha' : '')
+      : 'Yaklaşan ödemelerinizi kontrol edin.';
+    return self.registration.showNotification(due.length > 1 ? '💰 ' + due.length + ' yaklaşan ödeme' : '💰 Yaklaşan ödeme', {
+      body: body, icon: './icons/icon-192.png', badge: './icons/icon-192.png', tag: 'ft-due', renotify: true, data: { url: './index.html#dashboard' }
+    });
+  }));
+});
+
+self.addEventListener('notificationclick', function(e) {
+  e.notification.close();
+  var target = new URL((e.notification.data && e.notification.data.url) || './index.html', self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(list) {
+    for (var i = 0; i < list.length; i++) { if (list[i].url.indexOf(self.registration.scope) === 0 && 'focus' in list[i]) return list[i].focus(); }
+    return self.clients.openWindow(target);
+  }));
 });

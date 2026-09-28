@@ -448,6 +448,39 @@ async function runAudit4() {
   await r.ctx.close();
 }
 
+// Eşitleme birleştirmesi (sunucusuz, saf fonksiyon): tests/sync-e2e.test.js gerçek sunucuyla aynı kuralları doğrular
+async function runMergeCases() {
+  var r = await openApp({});
+  var p = r.page;
+  var res = await p.evaluate(function() {
+    var t = function(id, amount, note) { return { id: id, type: 'expense', amount: amount, note: note || '' }; };
+    var base = { stores: { pf_t: [t('t1', 10), t('t2', 20), t('t3', 30)], pf_b: { Market: 100 } }, s: { users: [{ id: 'u1', name: 'Ben' }] } };
+    var local = { stores: { pf_t: [Object.assign(t('t1', 10), { note: 'yerel not' }), t('t3', 30), t('t4', 40)], pf_b: { Market: 150 } }, s: { users: [{ id: 'u1', name: 'Ben' }, { id: 'u2', name: 'Eş' }] } };
+    var remote = { stores: { pf_t: [Object.assign(t('t1', 15)), t('t2', 20), t('t5', 50)], pf_b: { Market: 100, Yiyecek: 80 } }, s: { users: [{ id: 'u1', name: 'Ben (uzak)' }] } };
+    var m = mergeSnapshot(base, local, remote);
+    // düzenleme vs silme
+    var m2 = mergeSnapshot({ stores: { pf_t: [t('x', 1)] }, s: {} }, { stores: { pf_t: [] }, s: {} }, { stores: { pf_t: [t('x', 2)] }, s: {} });
+    // iç içe liste: aynı hedefe iki cihazdan katkı
+    var g = function(c) { return { stores: { pf_g: [{ id: 'g1', name: 'Tatil', contributions: c }] }, s: {} }; };
+    var m3 = mergeSnapshot(g([{ id: 'c1', amount: 5 }]), g([{ id: 'c1', amount: 5 }, { id: 'c2', amount: 7 }]), g([{ id: 'c1', amount: 5 }, { id: 'c3', amount: 9 }]));
+    return {
+      ids: m.stores.pf_t.map(function(x) { return x.id; }),
+      t1: [m.stores.pf_t[0].amount, m.stores.pf_t[0].note],
+      budget: m.stores.pf_b,
+      users: m.s.users.map(function(u) { return u.name; }),
+      editBeatsDelete: m2.stores.pf_t.map(function(x) { return x.amount; }),
+      nested: m3.stores.pf_g[0].contributions.map(function(c) { return c.id; })
+    };
+  });
+  eq('merge: union of adds; t2 deleted here, t3 deleted remotely', res.ids, ['t1', 't4', 't5']);
+  eq('merge: field-level (remote amount + local note)', res.t1, [15, 'yerel not']);
+  eq('merge: map keys merged', res.budget, { Market: 150, Yiyecek: 80 });
+  eq('merge: shared settings merged by id', res.users, ['Ben (uzak)', 'Eş']);
+  eq('merge: edit beats concurrent delete', res.editBeatsDelete, [2]);
+  eq('merge: nested contributions from two devices kept', res.nested, ['c1', 'c2', 'c3']);
+  await r.ctx.close();
+}
+
 server.listen(0, '127.0.0.1', async function() {
   base = 'http://127.0.0.1:' + server.address().port;
   try {
@@ -455,6 +488,7 @@ server.listen(0, '127.0.0.1', async function() {
     await run();
     await runAudit3b();
     await runAudit4();
+    await runMergeCases();
   } catch (e) {
     fail++;
     console.log('✗ test run crashed: ' + (e && e.stack || e));
