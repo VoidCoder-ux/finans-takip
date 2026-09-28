@@ -113,24 +113,21 @@ Portföyde fon eklerken **Fon kodu (TEFAS)** alanına kodu yazın (ör. `TTE`); 
 
 ## Fiş okutma
 
-İşlemler ve Özet sayfasındaki **📷 Fiş Okut** düğmesi fişin fotoğrafından gider ekler:
+Özet ve İşlemler sayfasındaki **📷 Fiş Okut** kamerayı açar:
 
-1. **Telefonda (ücretsiz, her zaman açık):** Fişte e-Arşiv karekodu varsa ondan okunur. Yoksa telefonda yazı tanıma çalışır: toplam, tarih ve mağaza bulunur, kategori tahmin edilir. Fotoğraf telefondan çıkmaz. İlk kullanımda okuma paketi (birkaç MB) bir kez indirilir, sonra çevrimdışı da çalışır.
-2. **Yapay zekâ (isteğe bağlı):** Telefondaki sonuç yanlışsa kontrol penceresinde **🤖 Yapay Zekâyla Oku** düğmesi çıkar. Claude mağazayı, tarihi, toplamı ve kalemleri okur. Yalnız eşitlemedeki cihazlar kullanabilir. Fotoğraf sunucuda saklanmaz. Kasa başına günlük sınır vardır (varsayılan 30).
+1. **Karekod (anında):** Kamera fişteki e-Arşiv / e-Fatura karekodunu sürekli arar; bulunca tutar ve tarih kesin olarak okunur. Android'de tarayıcının yerleşik okuyucusu, iPhone'da jsQR kullanılır.
+2. **Yazı tanıma (ücretsiz, telefonda):** Karekod yoksa **📸 Çek** ile fotoğraf çekilir; telefonda yazılar okunur (tesseract.js, Türkçe). Gölgeye dayanıklı siyah-beyaz dönüştürme, küçük fotoğrafı büyütme ve gerekirse ikinci deneme yapılır. Toplam (GENEL TOPLAM > ÖDENECEK > TOPLAM; KDV, ara toplam, para üstü hariç; TOPLAM ile KART/NAKİT satırı eşleşirse o seçilir), tarih, mağaza ve kategori bulunur. Fotoğraf telefondan çıkmaz. İlk kullanımda okuma paketi (~6 MB) bir kez indirilir.
+3. **Yapay zekâ (isteğe bağlı, DeepSeek):** Sonuç yanlışsa kontrol penceresinde **🤖 Yapay Zekâyla Oku** çıkar. Fotoğraf değil, **telefonun okuduğu yazı** DeepSeek'e gönderilir; mağaza, tarih, toplam ve kalemler çıkarılır. Yalnız eşitlemedeki cihazlar kullanabilir; kasa başına günlük sınır vardır (varsayılan 50).
 
-Her iki durumda da kaydetmeden önce kontrol penceresi açılır; tutar, tarih, kategori, hesap ve kişi değiştirilebilir.
+Her durumda kaydetmeden önce kontrol penceresi açılır; tutar, tarih, kategori, hesap ve kişi değiştirilebilir. Ürün barkodları fiyat içermez; gider için fişin karekodu ya da yazısı gerekir.
 
-Yapay zekâyı açmak için:
-
-1. https://console.anthropic.com adresinde hesap açın, **Billing** bölümünden kredi yükleyin.
-2. **API Keys** bölümünden bir anahtar oluşturun (`sk-ant-...`).
-3. `worker` klasöründe:
+Yapay zekâyı açmak için DeepSeek API anahtarınızı (`sk-...`, platform.deepseek.com) sunucuya kaydedin:
 
 ```bash
-npx wrangler secret put ANTHROPIC_API_KEY     # anahtarı yapıştırın
+npx wrangler secret put DEEPSEEK_API_KEY     # anahtarı yapıştırın
 ```
 
-Günlük sınırı değiştirmek için `wrangler.toml` içindeki `[vars]` bölümüne `RECEIPT_DAILY_LIMIT = "50"` ekleyin. Anahtarı kaldırmak için `npx wrangler secret delete ANTHROPIC_API_KEY`.
+Model sunucunun listesinden kendiliğinden seçilir; belirli bir model için `wrangler.toml` `[vars]` altına `DEEPSEEK_MODEL = "..."` ekleyin. Günlük sınır: `RECEIPT_DAILY_LIMIT = "100"`. Kapatmak için `npx wrangler secret delete DEEPSEEK_API_KEY`.
 
 ## Güncelleme
 

@@ -614,6 +614,9 @@ async function runReceipt() {
     var b = P(['OPET PETROLCÜLÜK A.Ş.', 'TARİH 14/09/2026', 'KURŞUNSUZ 95 40,12 LT', 'ARA TOPLAM 1.100,00', 'KDV 134,56', 'GENEL TOPLAM 1.234,56', 'KREDİ KARTI 1.234,56'].join('\n'));
     var c = P(['ECZANE ŞİFA', '05.09.26 10:12', 'İLAÇ *45,50', 'TOPLAM', '*45,50'].join('\n'));
     var d = P('bulanık yazı\nhiç tutar yok');
+    var e = P(['A101 YENİ MAĞAZACILIK', '12.O9.2026', 'SU *15,OO', 'T0PLAM *29O,4O', 'KREDİ KARTI *290,40'].join('\n'));
+    var f = P(['BAKKAL', 'EKMEK *12,50', 'NAKİT *200,00', 'TOPLAM *112,50', 'PARA ÜSTÜ *87,50'].join('\n'));
+    window.__qcExtra = [[e.total, e.date, e.confident], [f.total]];
     var q = App.Receipt.parseQr('{"vkntckn":"1234567890","tarih":"2026-09-20","odenecek":"523.40","parabirimi":"TRY"}');
     return [[a.total, a.date, a.merchant, a.category, a.confident], [b.total, b.date, b.merchant, b.category], [c.total, c.date, c.category], [d.total, d.confident], [q && q.total, q && q.date], App.Receipt.parseQr('https://example.com')];
   });
@@ -622,6 +625,8 @@ async function runReceipt() {
   eq('receipt text: amount on the line after TOPLAM, 2-digit year', res[2], [45.5, '2026-09-05', 'Sağlık']);
   eq('receipt text: nothing readable', res[3], [0, false]);
   eq('e-Arşiv QR read, other QR ignored', [res[4], res[5]], [[523.4, '2026-09-20'], null]);
+  eq('OCR letter/digit mix-ups and card line agree (T0PLAM *29O,4O)', await p.evaluate(function() { return window.__qcExtra[0]; }), [290.4, '2026-09-12', true]);
+  eq('cash handed over is not taken as the total', await p.evaluate(function() { return window.__qcExtra[1]; }), [112.5]);
   // Kontrol penceresi → gider kaydı (hesap bakiyesi, kişi, kategori)
   await p.evaluate(function() { App.Receipt.review({ total: 296.4, date: td(), merchant: 'Migros', category: 'Market', items: [{ name: 'Süt', amount: 34.9 }], confident: true }, 'ai'); });
   eq('review modal pre-filled', await p.evaluate(function() { var h = document.getElementById('rcpReview'); return [h.querySelector('[data-rk="amount"]').value, h.querySelector('[data-rk="category"]').value, h.querySelector('[data-rk="userId"]').value, h.querySelectorAll('.rcp-items div').length]; }), ['296,40', 'Market', 'u_self', 1]);

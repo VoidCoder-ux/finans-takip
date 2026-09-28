@@ -9,7 +9,7 @@ ALLOW_INSECURE_PUSH=1
 # MARKET_TRUNCGIL_URL=http://127.0.0.1:8799/truncgil
 # MARKET_TEFAS_URL=http://127.0.0.1:8799/tefas
 # MARKET_CPI_URL=http://127.0.0.1:8799/cpi
-# Yalnız test: fiş okumayı sahte Claude API'sine yönlendir (tests/receipt-e2e.test.js; gerçek istek/ücret yok)
-# ANTHROPIC_API_KEY=test-key
-# ANTHROPIC_BASE_URL=http://127.0.0.1:8798
+# Yalnız test: fiş okumayı sahte DeepSeek API'sine yönlendir (tests/receipt-e2e.test.js; gerçek istek/ücret yok)
+# DEEPSEEK_API_KEY=test-key
+# DEEPSEEK_BASE_URL=http://127.0.0.1:8798
 # RECEIPT_DAILY_LIMIT=4

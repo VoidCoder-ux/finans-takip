@@ -1,46 +1,24 @@
-// Fiş okuma (isteğe bağlı): telefonun çektiği fiş fotoğrafını Claude'a gönderir, mağaza/tarih/toplam/kalemleri JSON alır.
-// Yalnız ANTHROPIC_API_KEY tanımlıysa açıktır ve yalnız eşitlemedeki cihazlar (kasa belirteci) kullanabilir.
-// Fotoğraf sunucuda saklanmaz; kasa başına günlük sınır maliyeti ve kötüye kullanımı sınırlar.
+// Fiş okuma (isteğe bağlı): telefonun fişten okuduğu YAZIYI DeepSeek'e gönderir, mağaza/tarih/toplam/kalemleri JSON alır.
+// Fotoğraf gönderilmez (DeepSeek'in genel modelleri metin tabanlıdır). Yalnız DEEPSEEK_API_KEY tanımlıysa açıktır ve yalnız
+// eşitlemedeki cihazlar (kasa belirteci) kullanabilir. Kasa başına günlük sınır maliyeti ve kötüye kullanımı sınırlar.
 
-import Anthropic from '@anthropic-ai/sdk';
+const DEFAULT_BASE = 'https://api.deepseek.com';
+// Model adları zamanla değişiyor (deepseek-chat 2026'da emekliye ayrıldı); sunucunun listesinden ilk uygun olan seçilir
+const PREFERRED = ['deepseek-flash', 'deepseek-v4-flash', 'deepseek-v4.1-flash', 'deepseek-chat'];
+export const MAX_TEXT = 8000;
+const DEFAULT_DAILY_LIMIT = 50;
 
-const MODEL = 'claude-opus-5';
-export const MAX_IMAGE_B64 = 1_400_000; // ~1 MB JPEG
-const MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const DEFAULT_DAILY_LIMIT = 30;
-
-const SYSTEM = `You read photos of shop receipts (mostly Turkish "fiş" and e-Arşiv invoices) and return the purchase as JSON.
-- total: the final amount paid (TOPLAM / GENEL TOPLAM / ÖDENECEK). Not the KDV (tax) line, not a subtotal, not the change (PARA ÜSTÜ).
-- Turkish receipts write numbers as 1.234,56 (dot = thousands, comma = decimals). Return plain numbers, e.g. 1234.56.
-- date: the purchase date as YYYY-MM-DD; empty string if not visible.
-- merchant: the shop's short trade name as printed at the top (e.g. "Migros", "BİM", "Opet"), not the full legal company title.
-- items: purchased lines with their line totals. Skip tax, discount summaries, payment and change lines. Empty list if unreadable.
-- category: pick the single best match from the allowed list for the whole receipt.
-- readable: false when the photo is not a receipt or the total cannot be read; then use total 0.`;
-
-function schema(categories) {
-  return {
-    type: 'object',
-    properties: {
-      readable: { type: 'boolean' },
-      merchant: { type: 'string' },
-      date: { type: 'string' },
-      total: { type: 'number' },
-      category: { type: 'string', enum: categories },
-      items: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: { name: { type: 'string' }, amount: { type: 'number' } },
-          required: ['name', 'amount'],
-          additionalProperties: false
-        }
-      }
-    },
-    required: ['readable', 'merchant', 'date', 'total', 'category', 'items'],
-    additionalProperties: false
-  };
-}
+const SYSTEM = `You extract purchase details from the OCR text of a shop receipt (usually a Turkish "fiş" or e-Arşiv invoice).
+The OCR text can contain misread characters (O instead of 0, broken lines). Answer with a single json object only, like:
+{"readable": true, "merchant": "Migros", "date": "2026-09-27", "total": 296.40, "category": "Market", "items": [{"name": "Süt 1 L", "amount": 34.90}]}
+Rules:
+- total: the final amount paid (TOPLAM / GENEL TOPLAM / ÖDENECEK). Not KDV/TOPKDV (tax), not ARA TOPLAM (subtotal), not PARA ÜSTÜ (change), not the cash handed over.
+- Turkish numbers use 1.234,56 (dot = thousands, comma = decimals). Output plain numbers such as 1234.56.
+- date: purchase date as YYYY-MM-DD, or "" if absent.
+- merchant: the shop's short trade name (e.g. "Migros", "BİM", "Opet"), not the legal company title.
+- items: purchased lines with their line totals; skip tax, discount summary, payment and change lines. [] if unclear.
+- category: exactly one value from the allowed list given by the user.
+- readable: false if this is not a receipt or the total cannot be determined; then total 0.`;
 
 export function cleanCategories(list) {
   const out = [];
@@ -55,7 +33,7 @@ export function cleanCategories(list) {
 
 // Modelin döndürdüğü değerleri uygulamanın beklediği sınırlara çeker
 export function cleanResult(r, categories) {
-  const num = v => { const n = Number(v); return Number.isFinite(n) && n >= 0 && n < 1e9 ? Math.round(n * 100) / 100 : 0; };
+  const num = v => { const n = Number(typeof v === 'string' ? v.replace(/\s/g, '') : v); return Number.isFinite(n) && n >= 0 && n < 1e9 ? Math.round(n * 100) / 100 : 0; };
   const date = /^\d{4}-\d{2}-\d{2}$/.test(String(r && r.date || '')) ? r.date : '';
   const items = (Array.isArray(r && r.items) ? r.items : []).slice(0, 80)
     .map(i => ({ name: String(i && i.name || '').trim().slice(0, 80), amount: num(i && i.amount) }))
@@ -77,44 +55,62 @@ async function useQuota(env, vaultId, day) {
   return { ok: !row || row.n <= limit, used: row ? row.n : 1, limit };
 }
 
+let _model = null;
+async function pickModel(env, base) {
+  if (env.DEEPSEEK_MODEL) return env.DEEPSEEK_MODEL;
+  if (_model) return _model;
+  try {
+    const r = await fetch(base + '/models', { headers: { Authorization: 'Bearer ' + env.DEEPSEEK_API_KEY } });
+    if (r.ok) {
+      const ids = ((await r.json()).data || []).map(m => m && m.id).filter(Boolean);
+      _model = PREFERRED.find(id => ids.includes(id)) || ids.find(id => /flash/.test(id) && !/vision/.test(id)) || ids.find(id => !/vision|reason/.test(id)) || null;
+    }
+  } catch (e) {}
+  return _model || PREFERRED[0];
+}
+
 export async function readReceipt(env, vaultId, body, day) {
-  const image = String(body && body.image || '');
-  const mediaType = MEDIA_TYPES.includes(body && body.mediaType) ? body.mediaType : 'image/jpeg';
-  if (!image || image.length > MAX_IMAGE_B64 || !/^[A-Za-z0-9+/=]+$/.test(image)) return { status: 400, body: { error: 'bad_image' } };
+  const text = String(body && body.text || '').replace(/\u0000/g, '').trim();
+  if (text.length < 10) return { status: 400, body: { error: 'no_text' } };
+  if (text.length > MAX_TEXT) return { status: 413, body: { error: 'too_large' } };
   const categories = cleanCategories(body && body.categories);
   const quota = await useQuota(env, vaultId, day);
   if (!quota.ok) return { status: 429, body: { error: 'daily_limit', limit: quota.limit } };
 
-  const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, baseURL: env.ANTHROPIC_BASE_URL || undefined, maxRetries: 1, timeout: 90_000 });
-  let response;
+  const base = String(env.DEEPSEEK_BASE_URL || DEFAULT_BASE).replace(/\/+$/, '');
+  const model = await pickModel(env, base);
+  let res;
   try {
-    response = await client.beta.messages.create({
-      model: MODEL,
-      max_tokens: 8000,
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      // Fiş okumak basit bir çıkarım işi: düşük efor maliyeti ve süreyi azaltır
-      output_config: { effort: 'low', format: { type: 'json_schema', schema: schema(categories) } },
-      system: SYSTEM,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: mediaType, data: image } },
-          { type: 'text', text: 'Read this receipt. Allowed categories: ' + categories.join(', ') }
-        ]
-      }]
+    res = await fetch(base + '/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + env.DEEPSEEK_API_KEY },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: SYSTEM },
+          { role: 'user', content: 'Allowed categories: ' + categories.join(', ') + '\n\nReceipt OCR text:\n' + text }
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0,
+        max_tokens: 2000
+      }),
+      signal: AbortSignal.timeout(60_000)
     });
   } catch (e) {
-    // En özelden genele: yoğunluk / anahtar-bakiye sorunu / bağlantı / diğer API hataları
-    if (e instanceof Anthropic.RateLimitError) return { status: 503, body: { error: 'ai_busy' } };
-    if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) { console.error('receipt ai auth', e.status); return { status: 503, body: { error: 'ai_key' } }; }
-    if (e instanceof Anthropic.APIConnectionError) return { status: 503, body: { error: 'ai_unreachable' } };
-    if (e instanceof Anthropic.APIError) { console.error('receipt ai', e.status, e.type, e.message); return { status: 502, body: { error: e.status === 402 ? 'ai_billing' : 'ai_error' } }; }
-    throw e;
+    return { status: 503, body: { error: 'ai_unreachable' } };
   }
-  if (response.stop_reason === 'refusal') return { status: 422, body: { error: 'ai_refused' } };
-  const text = (response.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    console.error('receipt ai', res.status, detail.slice(0, 300));
+    if (res.status === 401 || res.status === 403) return { status: 503, body: { error: 'ai_key' } };
+    if (res.status === 402) return { status: 503, body: { error: 'ai_billing' } };
+    if (res.status === 429 || res.status === 503) return { status: 503, body: { error: 'ai_busy' } };
+    if ((res.status === 400 || res.status === 404) && /model/i.test(detail)) _model = null;
+    return { status: 502, body: { error: 'ai_error' } };
+  }
+  let content = '';
+  try { const j = await res.json(); content = j && j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content || ''; } catch (e) {}
   let parsed;
-  try { parsed = JSON.parse(text); } catch (e) { return { status: 502, body: { error: 'ai_bad_output' } }; }
+  try { parsed = JSON.parse(String(content).replace(/^```(?:json)?\s*|\s*```$/g, '')); } catch (e) { return { status: 502, body: { error: 'ai_bad_output' } }; }
   return { status: 200, body: Object.assign(cleanResult(parsed, categories), { used: quota.used, limit: quota.limit }) };
 }

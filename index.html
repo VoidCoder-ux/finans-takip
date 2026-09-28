@@ -101,6 +101,8 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .rcp-src{font-size:.74rem;color:var(--txt2);margin-bottom:10px;line-height:1.45}.rcp-src.warn{color:var(--yellow)}
 .rcp-items{font-size:.74rem;color:var(--txt2);max-height:120px;overflow:auto;border:1px solid var(--border);border-radius:var(--r);padding:6px 10px;margin-bottom:10px}
 .rcp-items div{display:flex;justify-content:space-between;gap:10px;padding:2px 0}.rcp-items span:last-child{white-space:nowrap}
+.rcp-cam{position:relative;background:#000;border-radius:var(--r2);overflow:hidden;margin-bottom:10px;aspect-ratio:3/4;max-height:58vh;max-height:58dvh}.rcp-cam video{width:100%;height:100%;object-fit:cover;display:block}
+.rcp-frame{position:absolute;inset:12% 10%;border:3px solid rgba(255,255,255,.85);border-radius:14px;box-shadow:0 0 0 999px rgba(0,0,0,.28);pointer-events:none}
 .rcp-bar{height:6px;background:var(--bg4);border-radius:99px;overflow:hidden;margin:12px 0 4px}.rcp-bar div{height:100%;width:0;background:var(--grad);transition:width .3s}
 .quick-btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:16px 12px;border-radius:var(--r2);font-size:.95rem;font-weight:700;cursor:pointer;border:1.5px solid;transition:all var(--tr)}
 .quick-btn .qi{font-size:1.4rem;line-height:1}
@@ -871,7 +873,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.09.28.4</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.09.28.5</div>
 </section>
 
 </main>
@@ -3764,6 +3766,8 @@ App.Receipt=(function(){
     while((m=re.exec(line))){var n=Number(m[1].replace(/[.\s]/g,'')+'.'+m[2]);if(n>0&&n<1e7)out.push(n)}
     return out;
   }
+  // Rakam içindeki harf karışıklıkları: "*29O,4O" → "*290,40", "27.O9.2026" → "27.09.2026"
+  function _fixNum(u){return u.replace(/[\d*][\dOo.,]*[\dOo]/g,function(m){return m.replace(/[Oo]/g,'0')})}
   function _date(text){
     var today=td(),re=/(\d{1,2})\s?[.\/-]\s?(\d{1,2})\s?[.\/-]\s?(\d{4}|\d{2})(?!\d)/g,m;
     while((m=re.exec(text))){
@@ -3787,19 +3791,30 @@ App.Receipt=(function(){
   }
   // Fiş metninden toplam/tarih/mağaza. Öncelik: GENEL TOPLAM > ÖDENECEK > TOPLAM (ara toplam ve KDV hariç) > ödeme satırı > en büyük "*" tutar
   function parseText(text){
-    var lines=String(text||'').split(/\r?\n/).map(function(l){return l.trim()}).filter(Boolean),U=lines.map(_upper);
-    var ranks=[[/GENEL\s*TOPLAM/,1],[/ÖDENECEK|ODENECEK/,2],[/(^|[^A-ZÇĞİÖŞÜ])TOP(LAM|\.)?(\b|$)|TOPLAM/,3],[/NAK[İI]T|KRED[İI]\s*KART|K\.?\s?KART|BANKA\s*KART|KART\s*[İI]LE|TUTAR/,4]],best=null;
+    var lines=String(text||'').split(/\r?\n/).map(function(l){return l.trim()}).filter(Boolean),U=lines.map(function(l){return _fixNum(_upper(l))});
+    // OCR'ın sık karıştırdıkları: TOPLAM → T0PLAM / TOP1AM / TOPLAN, GENEL → GENE1
+    var TOP='T[O0Ö]P\\s?[LIİ1|]\\s?[AÄ4]\\s?[MN]';
+    var ranks=[[new RegExp('GENE[LI1]\\s*'+TOP),1],[/[ÖO0]DENECEK/,2],[new RegExp('(^|[^A-ZÇĞİÖŞÜ])TOP(\\.|\\s|$)|'+TOP),3],[/NAK[İI1]T|KRED[İI1]\s*KART|K\.?\s?KART|BANKA\s*KART|KART\s*[İI]LE|TUTAR/,4]],best=null;
+    // Aday tutarlar: her anahtar satırın son tutarı. Aynı tutar birden çok satırda geçiyorsa (TOPLAM ve KART/NAKİT) o seçilir
+    var cands=[];
     U.forEach(function(u,i){
-      if(/KDV|ARA\s*TOP|PARA\s*ÜST|ÜSTÜ|İNDİRİM|INDIRIM|MATRAH|PUAN/.test(u))return;
-      ranks.forEach(function(r){
-        if(!r[0].test(u))return;
+      if(/KDV|K[DO0]V\s*%|ARA\s*T[O0]P|PARA\s*ÜST|ÜSTÜ|İNDİRİM|INDIRIM|MATRAH|PUAN/.test(u))return;
+      for(var k=0;k<ranks.length;k++){
+        if(!ranks[k][0].test(u))continue;
         var a=_amounts(u);if(!a.length&&U[i+1]&&!/KDV/.test(U[i+1]))a=_amounts(U[i+1]);
-        if(a.length&&(!best||r[1]<best.rank||(r[1]===best.rank&&a[a.length-1]>best.total)))best={rank:r[1],total:a[a.length-1]};
-      });
+        if(a.length)cands.push({rank:ranks[k][1],total:a[a.length-1]});
+        break;
+      }
+    });
+    cands.forEach(function(c){c.votes=cands.filter(function(o){return Math.abs(o.total-c.total)<0.005}).length});
+    cands.forEach(function(c){
+      // Nakit ödemede verilen para toplamdan büyük olabilir: ödeme satırı tek başına seçilmez, toplamla eşleşirse oy verir
+      if(c.rank===4&&c.votes<2&&cands.some(function(o){return o.rank<4}))return;
+      if(!best||c.votes>best.votes||(c.votes===best.votes&&c.rank<best.rank))best=c;
     });
     if(!best){var star=0;U.forEach(function(u){if(u.indexOf('*')>=0)_amounts(u).forEach(function(n){if(n>star)star=n})});if(star)best={rank:5,total:star}}
     var merchant=_merchant(lines);
-    return{total:best?roundMoney(best.total):0,date:_date(U.join('\n')),merchant:merchant,category:guessCategory(merchant+'\n'+U.slice(0,8).join('\n')),items:[],confident:!!best&&best.rank<=3};
+    return{total:best?roundMoney(best.total):0,date:_date(U.join('\n')),merchant:merchant,category:guessCategory(merchant+'\n'+U.slice(0,8).join('\n')),items:[],confident:!!best&&(best.rank<=3||best.votes>=2)};
   }
   // e-Arşiv / e-Fatura karekodu: {"vkntckn":..,"tarih":"2026-09-28","odenecek":123.45,...}
   function parseQr(txt){
@@ -3814,12 +3829,24 @@ App.Receipt=(function(){
     var w=img.naturalWidth||img.width,h=img.naturalHeight||img.height,s=Math.min(1,maxSide/Math.max(w,h)),c=document.createElement('canvas');
     c.width=Math.max(1,Math.round(w*s));c.height=Math.max(1,Math.round(h*s));c.getContext('2d').drawImage(img,0,0,c.width,c.height);return c;
   }
-  // Yazı tanıma için gri ton + kontrast germe (termal fişlerde soluk yazıyı belirginleştirir)
-  function _ocrCanvas(src){
-    var c=document.createElement('canvas');c.width=src.width;c.height=src.height;var x=c.getContext('2d');x.drawImage(src,0,0);
-    var d=x.getImageData(0,0,c.width,c.height),p=d.data,lo=255,hi=0,i,v;
-    for(i=0;i<p.length;i+=4){v=(p[i]*.299+p[i+1]*.587+p[i+2]*.114)|0;p[i]=v;if(v<lo)lo=v;if(v>hi)hi=v}
-    var r=hi-lo>20?255/(hi-lo):1;for(i=0;i<p.length;i+=4){v=Math.max(0,Math.min(255,(p[i]-lo)*r));p[i]=p[i+1]=p[i+2]=v}
+  // Yazı tanıma ön işleme: küçük fotoğrafı büyüt (harf ~30px olsun), gri tona çevir; 'bin' kipinde gölgeye dayanıklı
+  // uyarlamalı eşikleme (Bradley: her pikseli çevresinin ortalamasıyla kıyaslar), 'gray' kipinde yalnız kontrast germe
+  function _prep(src,mode){
+    var w=src.width,h=src.height,sc=w<1400?Math.min(5,1400/w):1;if(Math.max(w,h)*sc>3200)sc=3200/Math.max(w,h);
+    var c=document.createElement('canvas');c.width=Math.round(w*sc);c.height=Math.round(h*sc);var x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(src,0,0,c.width,c.height);
+    var W=c.width,H=c.height,d=x.getImageData(0,0,W,H),p=d.data,g=new Float32Array(W*H),i,j,lo=255,hi=0;
+    for(i=0,j=0;i<p.length;i+=4,j++){var v=p[i]*.299+p[i+1]*.587+p[i+2]*.114;g[j]=v;if(v<lo)lo=v;if(v>hi)hi=v}
+    if(mode==='bin'){
+      var S=new Float64Array((W+1)*(H+1)),r=Math.max(8,Math.round(W/28)),t=0.15,y,xx;
+      for(y=1;y<=H;y++){var row=0;for(xx=1;xx<=W;xx++){row+=g[(y-1)*W+xx-1];S[y*(W+1)+xx]=S[(y-1)*(W+1)+xx]+row}}
+      for(y=0;y<H;y++)for(xx=0;xx<W;xx++){
+        var x1=Math.max(0,xx-r),x2=Math.min(W,xx+r+1),y1=Math.max(0,y-r),y2=Math.min(H,y+r+1),n=(x2-x1)*(y2-y1);
+        var sum=S[y2*(W+1)+x2]-S[y1*(W+1)+x2]-S[y2*(W+1)+x1]+S[y1*(W+1)+x1],k=(y*W+xx)*4,o=g[y*W+xx]*n<sum*(1-t)?0:255;
+        p[k]=p[k+1]=p[k+2]=o;
+      }
+    }else{
+      var rr=hi-lo>20?255/(hi-lo):1;for(i=0,j=0;i<p.length;i+=4,j++){var q=Math.max(0,Math.min(255,(g[j]-lo)*rr));p[i]=p[i+1]=p[i+2]=q}
+    }
     x.putImageData(d,0,0);return c;
   }
   function _qr(canvas){
@@ -3828,13 +3855,34 @@ App.Receipt=(function(){
       return r&&r.data?parseQr(r.data):null;
     }).catch(function(){return null});
   }
-  function _ocrText(canvas,progress){
+  function _worker(progress){
     var OCR_BASE=_base();
     return _load(OCR_BASE+'tesseract.min.js').then(function(){
       if(!_ocr)_ocr=Tesseract.createWorker('tur',1,{workerPath:OCR_BASE+'worker.min.js',corePath:OCR_BASE+'core',langPath:OCR_BASE+'lang',gzip:true,workerBlobURL:false,
-        logger:function(m){if(m&&typeof m.progress==='number')progress(m.status,m.progress)}}).catch(function(e){_ocr=null;throw e});
-      return _ocr;
-    }).then(function(w){return w.recognize(_ocrCanvas(canvas))}).then(function(r){return(r&&r.data&&r.data.text)||''});
+        logger:function(m){if(m&&typeof m.progress==='number'&&_progress)_progress(m.status,m.progress)}})
+        // Fiş düzeni: tek sütun metin bloğu (PSM 6), sütun boşlukları korunur
+        .then(function(w){return w.setParameters({tessedit_pageseg_mode:'6',preserve_interword_spaces:'1',user_defined_dpi:'300'}).then(function(){return w})})
+        .catch(function(e){_ocr=null;throw e});
+      _progress=progress;return _ocr;
+    });
+  }
+  var _progress=null;
+  function _ocrText(canvas,progress,mode){return _worker(progress).then(function(w){return w.recognize(_prep(canvas,mode||'bin'))}).then(function(r){return(r&&r.data&&r.data.text)||''})}
+  // Tuvalden sonuç: karekod, yoksa yazı tanıma (test ve kamera için ortak yol)
+  // Önce gölgeye dayanıklı siyah-beyaz ile okunur; toplam net değilse gri tonla ikinci kez okunup iyi olan seçilir
+  function _readCanvas(canvas,progress){
+    progress=progress||function(){};
+    return _qr(canvas).then(function(q){
+      if(q)return q;
+      return _ocrText(canvas,function(st,p){progress(st,p*0.5)},'bin').then(function(t1){
+        var a=parseText(t1);a.text=t1;if(a.confident&&a.date)return a;
+        return _ocrText(canvas,function(st,p){progress(st,0.5+p*0.5)},'gray').then(function(t2){
+          var b=parseText(t2);b.text=t2;
+          var pick=(b.confident&&!a.confident)||(b.confident===a.confident&&!a.total&&b.total)?b:a;
+          if(!pick.date)pick.date=a.date||b.date;return pick;
+        });
+      });
+    });
   }
   function _busy(msg,pct){
     var el=document.getElementById('rcpBusy');
@@ -3845,55 +3893,125 @@ App.Receipt=(function(){
       App.UI.mountModal(el,'[data-act="cancel"]')}
     var m=document.getElementById('rcpBusyMsg'),b=document.getElementById('rcpBusyBar');if(m)m.textContent=msg||'';if(b&&pct!=null)b.style.width=Math.round(pct*100)+'%';
   }
-  function open(){var el=document.getElementById('receiptFile');if(!el){App.UI.toast('Fiş okutma bu sayfada kullanılamıyor.','err');return}el.value='';el.click()}
+  function _pick(){var el=document.getElementById('receiptFile');if(!el){App.UI.toast('Fiş okutma bu sayfada kullanılamıyor.','err');return}el.value='';el.click()}
+  // Açılış: kamera varsa canlı tarayıcı (karekod anında okunur), yoksa fotoğraf seçimi
+  function open(){
+    if(!S.accounts().length){App.UI.toast('Önce bir hesap oluşturun.','err');App.UI.nav('hesaplar');return}
+    if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.isSecureContext)scan();else _pick();
+  }
+  function _process(canvas,url){
+    _cancel=false;_cur={url:url,canvas:canvas,text:''};
+    _busy(_ocr?'Fiş okunuyor…':'Fiş okunuyor… (ilk kullanımda okuma paketi indirilir, bir kez)',0.1);
+    _readCanvas(canvas,function(st,p){if(!_cancel)_busy(/recogniz/i.test(st)?'Yazılar okunuyor…':'Okuma paketi hazırlanıyor…',0.1+0.85*p)}).then(function(r){
+      if(r&&_cur)_cur.text=r.text||'';
+      if(_cancel||!r)return;_busy(null);review(r,r.qr?'qr':'ocr');
+    }).catch(function(e){
+      if(_cancel)return;_busy(null);
+      review({total:0,date:'',merchant:'',category:guessCategory(''),items:[],confident:false},'fail',e&&e.message);
+    });
+  }
   function onFile(input){
     var f=input&&input.files&&input.files[0];if(!f)return;
     if(!/^image\//.test(f.type||'image/')){App.UI.toast('Lütfen fişin fotoğrafını seçin.','err');return}
     if(!S.accounts().length){App.UI.toast('Önce bir hesap oluşturun.','err');App.UI.nav('hesaplar');return}
-    _cancel=false;if(_cur&&_cur.url)URL.revokeObjectURL(_cur.url);
+    _stopScan();if(_cur&&_cur.url)URL.revokeObjectURL(_cur.url);
     var url=URL.createObjectURL(f),img=new Image();
     _busy('Fotoğraf hazırlanıyor…',0.05);
-    img.onload=function(){
-      var canvas=_canvas(img,1800);_cur={url:url,canvas:canvas};
-      _busy('Karekod aranıyor…',0.1);
-      _qr(canvas).then(function(q){
-        if(_cancel)return null;if(q)return q;
-        _busy(_ocr?'Yazılar okunuyor…':'Yazılar okunuyor… (ilk kullanımda okuma paketi indirilir, bir kez)',0.15);
-        return _ocrText(canvas,function(st,p){if(!_cancel)_busy(/recogniz/i.test(st)?'Yazılar okunuyor…':'Okuma paketi hazırlanıyor…',0.15+0.8*p)}).then(parseText);
-      }).then(function(r){if(_cancel||!r)return;_busy(null);review(r,r.qr?'qr':'ocr')}).catch(function(e){
-        if(_cancel)return;_busy(null);
-        review({total:0,date:'',merchant:'',category:guessCategory(''),items:[],confident:false},'fail',e&&e.message);
-      });
-    };
+    img.onload=function(){_process(_canvas(img,1800),url)};
     img.onerror=function(){_busy(null);URL.revokeObjectURL(url);App.UI.toast('Fotoğraf açılamadı. JPEG/PNG bir fotoğraf deneyin.','err')};
     img.src=url;
+  }
+  // ---- Canlı kamera: karekodu sürekli arar; "Çek" ile kareyi yazı tanımaya gönderir ----
+  var _scan=null;
+  function _stopScan(){
+    var sc=_scan;_scan=null;
+    if(sc){clearTimeout(sc.timer);try{sc.stream.getTracks().forEach(function(t){t.stop()})}catch(e){}}
+    while(document.getElementById('rcpScan'))App.UI.closeModal('rcpScan');
+  }
+  function _frame(video,maxSide){
+    var w=video.videoWidth,h=video.videoHeight,s=Math.min(1,maxSide/Math.max(w,h)),c=document.createElement('canvas');
+    c.width=Math.round(w*s);c.height=Math.round(h*s);c.getContext('2d').drawImage(video,0,0,c.width,c.height);return c;
+  }
+  function _hint(t){var el=document.getElementById('rcpScanHint');if(el)el.textContent=t}
+  function _found(sc,raw){
+    var q=parseQr(raw);
+    if(!q){if(!sc.warned){sc.warned=true;_hint('Bu karekod fiş bilgisi içermiyor. Fişin tamamını görüntüleyip 📸 Çek\'e basın.')}return false}
+    var c=_frame(sc.video,1800);_stopScan();
+    c.toBlob(function(b){if(_cur&&_cur.url)URL.revokeObjectURL(_cur.url);_cur={url:URL.createObjectURL(b),canvas:c,text:''};review(q,'qr')},'image/jpeg',0.85);
+    return true;
+  }
+  function _tick(){
+    var sc=_scan;if(!sc)return;
+    if(!document.getElementById('rcpScan')){_stopScan();return}
+    var v=sc.video,next=function(){if(_scan===sc)sc.timer=setTimeout(_tick,350)};
+    if(!v.videoWidth||sc.busy)return next();
+    sc.busy=true;
+    var done=function(){sc.busy=false;next()};
+    if(sc.detector){
+      sc.detector.detect(v).then(function(codes){
+        var qr=(codes||[]).filter(function(c){return c.format==='qr_code'})[0];
+        if(qr&&_found(sc,qr.rawValue))return;
+        if(!qr&&(codes||[]).length&&!sc.warned1d){sc.warned1d=true;_hint('Bu bir ürün barkodu; fiyat içermez. Fişin karekodunu ya da tamamını görüntüleyin.')}
+        done();
+      }).catch(function(){sc.detector=null;done()});
+    }else if(window.jsQR){
+      var c=_frame(v,720),d=c.getContext('2d').getImageData(0,0,c.width,c.height),r=jsQR(d.data,c.width,c.height,{inversionAttempts:'dontInvert'});
+      if(r&&r.data&&_found(sc,r.data))return;done();
+    }else done();
+  }
+  function scan(){
+    _stopScan();
+    var el=document.createElement('div');el.id='rcpScan';el.className='app-dialog-holder';
+    el.innerHTML='<div class="modal-bd show"><div class="modal rcp-scan" role="dialog" aria-modal="true" aria-labelledby="rcpScanT"><div class="modal-title" id="rcpScanT">📷 Fiş Okut</div>'+
+      '<div class="rcp-cam"><video playsinline muted autoplay></video><div class="rcp-frame"></div></div>'+
+      '<div class="rcp-src" id="rcpScanHint">Kamera açılıyor…</div>'+
+      '<div class="modal-actions" style="flex-wrap:wrap"><button class="btn btn-ghost" data-act="cancel">Vazgeç</button><button class="btn btn-ghost" data-act="gallery">🖼 Galeri</button><button class="btn btn-ghost" data-act="torch" hidden>🔦</button><button class="btn btn-primary" data-act="shot">📸 Çek</button></div></div></div>';
+    el.querySelector('[data-act="cancel"]').addEventListener('click',_stopScan);
+    el.querySelector('[data-act="gallery"]').addEventListener('click',function(){_stopScan();_pick()});
+    App.UI.mountModal(el,'[data-act="shot"]');
+    var video=el.querySelector('video');
+    navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}}}).then(function(stream){
+      if(!document.getElementById('rcpScan')){stream.getTracks().forEach(function(t){t.stop()});return}
+      var sc=_scan={stream:stream,video:video,timer:null,busy:false,detector:null};
+      video.srcObject=stream;var pl=video.play();if(pl&&pl.catch)pl.catch(function(){});
+      _hint('Fişin karekodunu çerçeveye getirin; karekod yoksa fişin tamamını görüntüleyip 📸 Çek\'e basın.');
+      var track=stream.getVideoTracks()[0],caps={};try{caps=track.getCapabilities?track.getCapabilities():{}}catch(e){}
+      if(caps.torch){var tb=el.querySelector('[data-act="torch"]'),on=false;tb.hidden=false;tb.addEventListener('click',function(){on=!on;track.applyConstraints({advanced:[{torch:on}]}).catch(function(){})})}
+      el.querySelector('[data-act="shot"]').addEventListener('click',function(){
+        if(!video.videoWidth)return;var c=_frame(video,1800);_stopScan();
+        c.toBlob(function(b){if(_cur&&_cur.url)URL.revokeObjectURL(_cur.url);_process(c,URL.createObjectURL(b))},'image/jpeg',0.9);
+      });
+      var start=function(){_tick()};
+      if('BarcodeDetector' in window){
+        BarcodeDetector.getSupportedFormats().then(function(f){if(f.indexOf('qr_code')>=0)sc.detector=new BarcodeDetector({formats:f.filter(function(x){return/qr_code|ean_13|ean_8|upc_a|code_128/.test(x)})})}).catch(function(){}).then(function(){return sc.detector?null:_load('vendor/jsQR.js')}).catch(function(){}).then(start);
+      }else _load('vendor/jsQR.js').catch(function(){}).then(start);
+    }).catch(function(e){
+      _stopScan();
+      App.UI.toast(e&&e.name==='NotAllowedError'?'Kamera izni verilmedi; fotoğraf seçerek devam edin.':'Kamera açılamadı; fotoğraf seçerek devam edin.','info');
+      _pick();
+    });
   }
   function _aiReady(){
     if(!App.Sync||!App.Sync.configured())return Promise.resolve(false);
     if(_aiConf!==null)return Promise.resolve(_aiConf);
     return fetch(App.Sync.cfg().url+'/v1/config',{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){_aiConf=!!(j&&j.receiptAI);return _aiConf}).catch(function(){return false});
   }
-  function _jpeg(canvas){
-    var c=_canvas(canvas,1600),q=0.82,data=c.toDataURL('image/jpeg',q);
-    while(data.length>1300000&&q>0.4){q-=0.15;data=c.toDataURL('image/jpeg',q)}
-    return data.slice(data.indexOf(',')+1);
-  }
-  var AI_ERR={daily_limit:'Bugünkü yapay zekâ okuma sınırı doldu; yarın tekrar deneyin.',receipt_ai_disabled:'Sunucuda yapay zekâ anahtarı tanımlı değil.',ai_key:'Sunucudaki Claude API anahtarı geçersiz.',ai_billing:'Claude hesabında bakiye yok.',ai_busy:'Yapay zekâ şu an yoğun; biraz sonra deneyin.',ai_unreachable:'Yapay zekâ servisine ulaşılamadı.',bad_image:'Fotoğraf gönderilemedi (çok büyük ya da bozuk).',ai_refused:'Yapay zekâ bu fotoğrafı okumadı.'};
+  var AI_ERR={daily_limit:'Bugünkü yapay zekâ okuma sınırı doldu; yarın tekrar deneyin.',receipt_ai_disabled:'Sunucuda DeepSeek anahtarı tanımlı değil.',ai_key:'Sunucudaki DeepSeek API anahtarı geçersiz.',ai_billing:'DeepSeek hesabında bakiye yok.',ai_busy:'Yapay zekâ şu an yoğun; biraz sonra deneyin.',ai_unreachable:'Yapay zekâ servisine ulaşılamadı.',no_text:'Fişte okunabilen yazı yok; fişi düz, yakından ve aydınlık çekin.',too_large:'Okunan yazı çok uzun.'};
   function _ai(){
     if(!_cur)return;
     var go=function(){
       _cancel=false;_busy('Yapay zekâ fişi okuyor…',0.3);
       var c=App.Sync.cfg();
-      App.Sync.api(c,'POST','/receipt',{image:_jpeg(_cur.canvas),mediaType:'image/jpeg',categories:EC.slice()}).then(function(r){
+      App.Sync.api(c,'POST','/receipt',{text:String(_cur.text||'').slice(0,8000),categories:EC.slice()}).then(function(r){
         if(_cancel)return;_busy(null);
         if(r.status!==200){App.UI.toast(AI_ERR[r.body&&r.body.error]||'Yapay zekâ fişi okuyamadı.','err');return}
-        var b=r.body;if(!b.readable){App.UI.toast('Fotoğrafta fiş okunamadı; fişi düz, yakından ve aydınlık çekin.','err');return}
+        var b=r.body;if(!b.readable){App.UI.toast('Yapay zekâ da toplamı bulamadı; fişi düz, yakından ve aydınlık çekip tekrar deneyin.','err');return}
         review({total:b.total,date:b.date&&b.date<=td()?b.date:'',merchant:b.merchant,category:EC.indexOf(b.category)>=0?b.category:guessCategory(b.merchant),items:b.items||[],confident:true,used:b.used,limit:b.limit},'ai');
       }).catch(function(){if(!_cancel){_busy(null);App.UI.toast('Sunucuya ulaşılamadı.','err')}});
     };
     var ok=false;try{ok=localStorage.getItem('ft_receipt_ai_ok')==='1'}catch(e){}
     if(ok)return go();
-    App.UI.confirmModal({title:'Yapay Zekâyla Oku',text:'Fişin fotoğrafı okunmak için sunucunuz üzerinden Anthropic\'e (Claude) gönderilecek. Fotoğraf sunucuda saklanmaz; diğer verileriniz gönderilmez.\n\nDevam edilsin mi?',okLabel:'Gönder ve Oku'},function(){try{localStorage.setItem('ft_receipt_ai_ok','1')}catch(e){}go()});
+    App.UI.confirmModal({title:'Yapay Zekâyla Oku',text:'Telefonun fişten okuduğu yazı, sunucunuz üzerinden DeepSeek\'e gönderilecek. Fotoğraf ve diğer verileriniz gönderilmez, sunucuda saklanmaz.\n\nDevam edilsin mi?',okLabel:'Gönder ve Oku'},function(){try{localStorage.setItem('ft_receipt_ai_ok','1')}catch(e){}go()});
   }
   function review(r,src,err){
     var draft={type:'expense',amount:r.total,category:r.category||'Diğer',note:r.merchant||''};if(r.merchant&&App.Rules)App.Rules.apply(draft);
@@ -3921,7 +4039,7 @@ App.Receipt=(function(){
     div.querySelector('[data-act="cancel"]').addEventListener('click',function(){App.UI.closeModal('rcpReview')});
     div.querySelector('.modal-bd').addEventListener('click',function(e){if(e.target===this)App.UI.closeModal('rcpReview')});
     var aiBtn=div.querySelector('[data-act="ai"]');
-    if(src!=='ai'&&src!=='qr'&&_cur)_aiReady().then(function(ok){if(ok)aiBtn.hidden=false});
+    if(src!=='ai'&&src!=='qr'&&_cur&&String(_cur.text||'').trim().length>=10)_aiReady().then(function(ok){if(ok)aiBtn.hidden=false});
     aiBtn.addEventListener('click',function(){App.UI.closeModal('rcpReview');_ai()});
     var saving=false;
     div.querySelector('[data-act="ok"]').addEventListener('click',function(){
@@ -3938,7 +4056,7 @@ App.Receipt=(function(){
     div.querySelectorAll('[data-money]').forEach(function(el){el.addEventListener('input',function(){moneyHint(el)})});
     App.UI.mountModal(div,'[data-rk="amount"]');
   }
-  return{open:open,onFile:onFile,parseText:parseText,parseQr:parseQr,guessCategory:guessCategory,review:review};
+  return{open:open,scan:scan,pick:_pick,onFile:onFile,_readCanvas:_readCanvas,parseText:parseText,parseQr:parseQr,guessCategory:guessCategory,review:review};
 })();
 
 App.Categories=(function(){

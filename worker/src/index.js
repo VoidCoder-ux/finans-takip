@@ -154,7 +154,7 @@ async function loadVault(env, id, token) {
 async function route(request, env, url, ctx) {
   const parts = url.pathname.split('/').filter(Boolean); // ['v1', ...]
   if (parts[1] === 'config' && parts.length === 2 && request.method === 'GET') {
-    return json({ api: 1, vapidPublicKey: vapidPublicKey(env), registrationRequired: !!env.REGISTRATION_KEY, live: !!env.HUB, receiptAI: !!env.ANTHROPIC_API_KEY });
+    return json({ api: 1, vapidPublicKey: vapidPublicKey(env), registrationRequired: !!env.REGISTRATION_KEY, live: !!env.HUB, receiptAI: !!env.DEEPSEEK_API_KEY });
   }
   // Herkese açık piyasa verisi (kişisel veri yok). Eskimişse arka planda yenilenir; ?refresh=1 yenilemeyi bekler.
   if (parts[1] === 'market' && parts.length === 2 && request.method === 'GET') {
@@ -220,10 +220,10 @@ async function route(request, env, url, ctx) {
     throw new HttpError(405, 'method_not_allowed');
   }
 
-  // /v1/vault/:id/receipt: fiş fotoğrafını yapay zekâyla oku (isteğe bağlı; ANTHROPIC_API_KEY gerekir)
+  // /v1/vault/:id/receipt: fişten okunan yazıyı yapay zekâyla çözümle (isteğe bağlı; DEEPSEEK_API_KEY gerekir)
   if (parts.length === 4 && parts[3] === 'receipt') {
     if (request.method !== 'POST') throw new HttpError(405, 'method_not_allowed');
-    if (!env.ANTHROPIC_API_KEY) throw new HttpError(501, 'receipt_ai_disabled');
+    if (!env.DEEPSEEK_API_KEY) throw new HttpError(501, 'receipt_ai_disabled');
     const row = await loadVault(env, id, token);
     if (!row) throw new HttpError(404, 'no_vault');
     const r = await readReceipt(env, id, await readJson(request), istanbulDay());
