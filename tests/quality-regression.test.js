@@ -139,7 +139,7 @@ ok('goal account binding and portfolio targets exist', /id="gAccount"/.test(inde
 
 var sw = fs.readFileSync('sw.js', 'utf8');
 ok('service worker only caches ok HTML responses', /if \(resp && resp\.ok\)/.test(sw));
-ok('service worker keeps external APIs no-store', /cache: 'no-store'/.test(sw) && /API_HOSTS/.test(sw));
+ok('service worker never caches cross-origin or sync API', /url\.origin !== self\.location\.origin \|\| url\.pathname\.indexOf\('\/v1\/'\) !== -1\) return;/.test(sw));
 
 // FT-009: Recurring duplicate prevention
 ok('recurring log uses recurringId for duplicate check', /t\.recurringId===rec\.id/.test(indexHtml));
@@ -263,6 +263,16 @@ ok('portfolio P&L uses costed assets only', /pnl=cost\?roundMoney\(costedValue-c
 
 function roundQty(n) { n = Number(n); return Number.isFinite(n) ? Math.round(n * 1e6) / 1e6 : 0; }
 eq('fund units keep 6 decimals', roundQty(1000.1234564), 1000.123456);
+
+// Cloudflare eşitleme + push
+ok('sync encrypts with AES-GCM bound to vault id', /name:'AES-GCM',iv:iv,additionalData:new TextEncoder\(\)\.encode\(c\.vault\)/.test(indexHtml));
+ok('only shared settings are synced', /SHARED_SETTINGS=\['users','customCats','portfolioTargets','rates','cpiUserEdited','cpiVersion'\]/.test(indexHtml));
+ok('balances recomputed after merge', /App\.Accounts\.reconcileAccountBalances\(true\)/.test(indexHtml));
+ok('service worker handles push and notification click', /addEventListener\('push'/.test(sw) && /addEventListener\('notificationclick'/.test(sw));
+var workerSrc = fs.readFileSync('worker/src/index.js', 'utf8');
+ok('worker uses optimistic concurrency', /WHERE id = \? AND version = \?/.test(workerSrc));
+ok('worker stores only token hash', /token_hash/.test(workerSrc) && /sha256Hex\(token\)/.test(workerSrc));
+ok('assets exclude worker, tests and docs', /^worker$/m.test(fs.readFileSync('.assetsignore', 'utf8')) && /^tests$/m.test(fs.readFileSync('.assetsignore', 'utf8')));
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

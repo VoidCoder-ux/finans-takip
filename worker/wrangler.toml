@@ -1,0 +1,27 @@
+# Finans Takip: uygulama + eşitleme API'si + günlük bildirim, tek Cloudflare Worker
+# Kurulum adımları: worker/README.md
+name = "finans-takip"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+# Uygulama dosyaları deponun kökünden sunulur (hariç tutulanlar: ../.assetsignore)
+[assets]
+directory = ".."
+binding = "ASSETS"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "finans-takip"
+# `npx wrangler d1 create finans-takip` çıktısındaki database_id'yi buraya yazın
+database_id = "00000000-0000-0000-0000-000000000000"
+
+# Her gün 06:00 UTC = 09:00 İstanbul: o gün bildirimi olan cihazlara push
+[triggers]
+crons = ["0 6 * * *"]
+
+[vars]
+# `npm run vapid` çıktısındaki genel anahtar (gizli anahtar `wrangler secret put VAPID_PRIVATE_JWK` ile)
+VAPID_PUBLIC_KEY = ""
+VAPID_SUBJECT = "mailto:admin@example.com"
+# İsteğe bağlı: virgülle ayrılmış izinli kökenler (boş = hepsi; kimlik doğrulama Bearer belirteciyle)
+ALLOWED_ORIGINS = ""

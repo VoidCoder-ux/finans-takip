@@ -1,0 +1,16 @@
+{
+  "name": "finans-takip-sync",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --test-scheduled --persist-to ../../.finans-takip-dev",
+    "db:local": "wrangler d1 execute finans-takip --local --persist-to ../../.finans-takip-dev --file=schema.sql",
+    "db:init": "wrangler d1 execute finans-takip --remote --file=schema.sql",
+    "vapid": "node scripts/gen-vapid.mjs",
+    "deploy": "wrangler deploy",
+    "test": "node ../tests/worker-api.test.js && node ../tests/sync-e2e.test.js"
+  },
+  "devDependencies": {
+    "wrangler": "^4.42.0"
+  }
+}

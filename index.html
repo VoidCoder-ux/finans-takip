@@ -806,10 +806,11 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
   <div class="set-grid">
     <div class="card set-card"><div class="sh-title">🎨 Görünüm</div><div class="set-sub">Açık / koyu tema</div><button class="btn btn-sm btn-ghost" onclick="App.UI.toggleTheme()" id="setThemeBtn">Temayı Değiştir</button></div>
     <div class="card set-card"><div class="sh-title">💾 Yedek</div><div class="set-sub" id="setBackupInfo">Tüm yerel veriyi JSON olarak indirip başka cihaza taşıyın.</div><div class="set-actions"><button class="btn btn-sm btn-ghost" onclick="App.Backup.open()">Yedek / Geri Yükle</button><button class="btn btn-sm btn-ghost" onclick="App.Onboarding.open()">Kurulum Kontrolü</button></div></div>
-    <div class="card set-card"><div class="sh-title">🔔 Hatırlatmalar</div><div class="set-sub">Uygulama açıkken 3 gün içindeki ödemeler için bildirim.</div><button class="notif-btn" id="notifBtn" onclick="App.Notifications.toggle()">🔔 Hatırlat</button></div>
+    <div class="card set-card"><div class="sh-title">🔔 Hatırlatmalar</div><div class="set-sub">Uygulama açıkken 3 gün içindeki ödemeler için bildirim.</div><button class="notif-btn" id="notifBtn" onclick="App.Notifications.toggle()">🔔 Hatırlat</button><div id="pushArea"></div></div>
     <div class="card set-card"><div class="sh-title">📊 Enflasyon (TÜFE)</div><div class="set-sub" id="setCpiInfo"></div><button class="btn btn-sm btn-ghost" onclick="App.Inflation.editCpi()">TÜFE Güncelle</button></div>
     <div class="card set-card"><div class="sh-title">🧠 AI Asistan</div><div class="set-sub" id="setAiInfo"></div><div class="set-actions"><button class="btn btn-sm btn-ghost" onclick="App.UI.nav('asistan')">Asistan</button><button class="btn btn-sm btn-ghost" onclick="App.Portfolio.openApiSettings()">Proxy Ayarları</button></div></div>
     <div class="card set-card" id="setLockCard"></div>
+    <div class="card set-card" id="setSyncCard"></div>
   </div>
   <div class="card">
     <div class="sh-title" style="margin-bottom:6px">🏷️ Kategoriler</div>
@@ -944,7 +945,7 @@ function gid(p){return(p||'x')+Date.now()+'_'+Math.random().toString(36).slice(2
 var S=(function(){
   var DEFAULT_RATES={USD:0,EUR:0,GBP:0,GOLD_GRAM:0,GOLD_QUARTER:0,GOLD_FULL:0,FUND:1,updated:null};
   function g(k,fb){try{var v=localStorage.getItem(k);return v?JSON.parse(v):fb}catch(e){return fb}}
-  function s(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){window.__pfStorageError=true;if(window.App&&App.UI&&App.UI.toast)App.UI.toast('Veri kaydedilemedi. Tarayıcı depolama alanı dolu veya erişilemiyor olabilir.','err');return false}}
+  function s(k,v){try{localStorage.setItem(k,JSON.stringify(v));if(window.App&&App.Sync)App.Sync.touch(k);return true}catch(e){window.__pfStorageError=true;if(window.App&&App.UI&&App.UI.toast)App.UI.toast('Veri kaydedilemedi. Tarayıcı depolama alanı dolu veya erişilemiyor olabilir.','err');return false}}
   var _t,_b,_g,_a,_r,_d,_s,_f,_p;
   var _nw,_ru,_bm,_cpi;
   var _txCache=null,_txVer=0,_txCacheVer=-1;
@@ -1051,7 +1052,9 @@ App.Backup=(function(){
           Object.keys(prev).forEach(function(k){try{if(prev[k]===null)localStorage.removeItem(k);else localStorage.setItem(k,prev[k])}catch(e2){}});
           App.UI.toast('Geri yükleme başarısız (depolama yetersiz). Mevcut veriler korundu.','err');return;
         }
-        App.UI.toast('Yedek geri yüklendi. Uygulama yenileniyor.','info');setTimeout(function(){location.reload()},500);
+        App.UI.toast('Yedek geri yüklendi. Uygulama yenileniyor.','info');
+        // Eşitleme açıksa geri yüklenen veri diğer cihazlardakini silmesin: taban sıfırlanır, birleştirme birleşim olur
+        (App.Sync&&App.Sync.configured()?App.Sync.resetBase():Promise.resolve()).then(function(){setTimeout(function(){location.reload()},500)});
       });
     };
     reader.readAsText(file,'utf-8');
@@ -1382,10 +1385,10 @@ App.Accounts=(function(){
     else App.UI.toast('Hesap silindi.');
   }
   function adjustBalance(id,delta){delta=roundMoney(delta);if(!Number.isFinite(delta))return;var a=S.accounts();var x=a.find(function(x){return x.id===id});if(x)x.balance=roundMoney((x.balance||0)+delta);S.saveAccounts(a);renderAll();renderSummary()}
-  function reconcileAccountBalances(){
+  function reconcileAccountBalances(silent){
     var accs=S.accounts(),txns=S.txns(),drifting=[],today=td();
     accs.forEach(function(a){var computed=a.openingBalance||0;txns.forEach(function(t){if(t.accountId!==a.id||!isBalanceApplied(t,today))return;computed+=t.type==='income'?t.amount:-t.amount});var diff=roundMoney((a.balance||0)-computed);if(Math.abs(diff)>0.005){a.balance=roundMoney(computed);drifting.push(a.name+' ('+fmt(diff)+')')}});
-    if(drifting.length){S.saveAccounts(accs);App.UI.toast(drifting.length+' hesap bakiyesi düzeltildi: '+drifting.join(', '),'info');return true}
+    if(drifting.length){S.saveAccounts(accs);if(!silent)App.UI.toast(drifting.length+' hesap bakiyesi düzeltildi: '+drifting.join(', '),'info');return true}
     return false
   }
   function edit(id){
@@ -2924,8 +2927,9 @@ App.NetWorth=(function(){
   function snapshot(){
     var hist=S.netWorthHistory()||[],m=tm(),nw=compute();
     var idx=hist.findIndex(function(h){return h.month===m});
-    var rec={month:m,total:nw.total,accounts:nw.accounts,portfolio:nw.portfolio,lent:nw.lent,borrowed:nw.borrowed,ts:Date.now()};
-    if(idx>=0)hist[idx]=rec;else hist.push(rec);
+    var rec={month:m,total:roundMoney(nw.total),accounts:roundMoney(nw.accounts),portfolio:roundMoney(nw.portfolio),lent:roundMoney(nw.lent),borrowed:roundMoney(nw.borrowed),ts:Date.now()};
+    // Değer değişmediyse yazma: her çizimde kayıt güncellenip eşitlemeyi gereksiz tetiklemesin
+    if(idx>=0){var o=hist[idx];if(o.total===rec.total&&o.accounts===rec.accounts&&o.portfolio===rec.portfolio&&o.lent===rec.lent&&o.borrowed===rec.borrowed)return hist;hist[idx]=rec}else hist.push(rec);
     hist.sort(function(a,b){return a.month.localeCompare(b.month)});
     if(hist.length>24)hist=hist.slice(-24);
     S.saveNetWorthHistory(hist);return hist;
@@ -3169,6 +3173,295 @@ App.Lock=(function(){
   return{available,enabled,verify,show,hide,set,change,disable,renderCard,init}
 })();
 
+// Küçük IndexedDB anahtar-değer deposu (eşitleme tabanı ve service worker'ın okuyacağı hatırlatmalar)
+var IDB=(function(){
+  var dbp=null;
+  function db(){if(dbp)return dbp;dbp=new Promise(function(res,rej){var r=indexedDB.open('finanstakip',1);r.onupgradeneeded=function(){r.result.createObjectStore('kv')};r.onsuccess=function(){res(r.result)};r.onerror=function(){dbp=null;rej(r.error)}});return dbp}
+  function req(mode,fn){return db().then(function(d){return new Promise(function(res,rej){var t=d.transaction('kv',mode),q=fn(t.objectStore('kv'));t.oncomplete=function(){res(q&&q.result)};t.onerror=function(){rej(t.error)}})})}
+  return{get:function(k){return req('readonly',function(st){return st.get(k)})},set:function(k,v){return req('readwrite',function(st){return st.put(v,k)})},del:function(k){return req('readwrite',function(st){return st.delete(k)})}};
+})();
+
+// ---- Üç yollu birleştirme (taban = son eşitlenen durum) ----
+// Kayıt listeleri kimliğe göre, kayıtlar alan düzeyinde birleştirilir. Aynı alan iki tarafta farklı değiştiyse bu cihaz kazanır.
+// Silme: bir tarafta silinip diğerinde değiştirilmemişse silinir; diğerinde düzenlendiyse düzenleme korunur.
+function stableStr(v){if(v===undefined)return'u';if(v===null||typeof v!=='object')return JSON.stringify(v);if(Array.isArray(v))return'['+v.map(stableStr).join(',')+']';return'{'+Object.keys(v).sort().filter(function(k){return v[k]!==undefined}).map(function(k){return JSON.stringify(k)+':'+stableStr(v[k])}).join(',')+'}'}
+function _same(a,b){return stableStr(a)===stableStr(b)}
+function _listKey(arrs){var all=[].concat.apply([],arrs.filter(Array.isArray));if(!all.length)return null;var keys=['id','month','name'];for(var i=0;i<keys.length;i++){var k=keys[i];if(all.every(function(x){return x&&typeof x==='object'&&!Array.isArray(x)&&x[k]!=null}))return k}return null}
+// Anlık görüntülerde diziler kimliğe göre sıralı tutulur: karşılaştırma sıradan bağımsız olur
+function sortByKey(a,key){key=key||_listKey([a]);if(!key)return a;return a.slice().sort(function(x,y){var p=String(x[key]),q=String(y[key]);return p<q?-1:p>q?1:0})}
+function mergeList(base,local,remote,key){
+  base=base||[];local=local||[];remote=remote||[];key=key||_listKey([base,local,remote])||'id';
+  function idx(a){var m={};a.forEach(function(x){if(x&&x[key]!=null)m[String(x[key])]=x});return m}
+  var B=idx(base),L=idx(local),R=idx(remote),out=[],seen={};
+  function visit(id){
+    if(seen[id])return;seen[id]=1;var b=B[id],l=L[id],r=R[id];
+    if(l&&r)out.push(mergeRecord(b,l,r));
+    else if(l){if(!b||!_same(l,b))out.push(l)}
+    else if(r){if(!b||!_same(r,b))out.push(r)}
+  }
+  local.forEach(function(x){if(x&&x[key]!=null)visit(String(x[key]))});remote.forEach(function(x){if(x&&x[key]!=null)visit(String(x[key]))});
+  return sortByKey(out,key);
+}
+function mergeValue(b,l,r){
+  if(_same(l,r))return l;if(_same(l,b))return r;if(_same(r,b))return l;
+  if(Array.isArray(l)&&Array.isArray(r)&&_listKey([b,l,r]))return mergeList(Array.isArray(b)?b:[],l,r);
+  if(l&&r&&typeof l==='object'&&typeof r==='object'&&!Array.isArray(l)&&!Array.isArray(r))return mergeRecord(b&&typeof b==='object'?b:{},l,r);
+  return l;
+}
+function mergeRecord(b,l,r){
+  b=b||{};if(_same(l,r))return l;if(_same(l,b))return r;if(_same(r,b))return l;
+  var o={},keys={};[b,l,r].forEach(function(x){Object.keys(x).forEach(function(k){keys[k]=1})});
+  Object.keys(keys).forEach(function(k){var inL=Object.prototype.hasOwnProperty.call(l,k),inR=Object.prototype.hasOwnProperty.call(r,k),inB=Object.prototype.hasOwnProperty.call(b,k);
+    if(!inL&&!inR)return;
+    if(!inL){if(!inB||!_same(r[k],b[k]))o[k]=r[k];return}   // bu cihazda silinmiş alan
+    if(!inR){if(!inB||!_same(l[k],b[k]))o[k]=l[k];return}
+    o[k]=mergeValue(b[k],l[k],r[k]);
+  });
+  return o;
+}
+function mergeSnapshot(base,local,remote){
+  base=base||{stores:{},s:{}};var out={stores:{},s:mergeRecord(base.s||{},local.s||{},remote.s||{})};
+  var keys={};[base,local,remote].forEach(function(x){Object.keys((x&&x.stores)||{}).forEach(function(k){keys[k]=1})});
+  Object.keys(keys).forEach(function(k){var b=base.stores[k],l=local.stores[k],r=remote.stores[k];
+    if(Array.isArray(l)||Array.isArray(r))out.stores[k]=mergeList(Array.isArray(b)?b:[],Array.isArray(l)?l:[],Array.isArray(r)?r:[]);
+    else out.stores[k]=mergeRecord(b||{},l||{},r||{});
+  });
+  return out;
+}
+
+// ---- Cihazlar arası eşitleme (uçtan uca şifreli) ----
+App.Sync=(function(){
+  var CFG_KEY='ft_sync',BASE_KEY='sync_base',ARRAY_STORES=['pf_t','pf_g','pf_a','pf_r','pf_d','pf_f','pf_p','pf_ru','pf_nw'],MAP_STORES=['pf_b','pf_bm','pf_cpi'];
+  // Ayarların yalnız ortak kısmı eşitlenir; tema, aktif profil, kilit, AI modu cihaza özeldir
+  var SHARED_SETTINGS=['users','customCats','portfolioTargets','rates','cpiUserEdited','cpiVersion'];
+  var _busy=null,_again=false,_timer=null,_applying=false,_key=null;
+  function cfg(){try{return JSON.parse(localStorage.getItem(CFG_KEY)||'null')}catch(e){return null}}
+  function saveCfg(c){try{if(c)localStorage.setItem(CFG_KEY,JSON.stringify(c));else localStorage.removeItem(CFG_KEY)}catch(e){}}
+  function configured(){var c=cfg();return!!(c&&c.url&&c.vault&&c.key)}
+  function available(){return!!(window.crypto&&crypto.subtle&&window.isSecureContext&&window.indexedDB&&window.fetch)}
+  function b64u(buf){var a=new Uint8Array(buf),s='';for(var i=0;i<a.length;i++)s+=String.fromCharCode(a[i]);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+  function unb64u(str){str=String(str).replace(/-/g,'+').replace(/_/g,'/');while(str.length%4)str+='=';var b=atob(str),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a}
+  function validUrl(u){try{var x=new URL(u);return(x.protocol==='https:'||((x.hostname==='127.0.0.1'||x.hostname==='localhost')&&x.protocol==='http:'))&&!x.search&&!x.hash}catch(e){return false}}
+  function cleanUrl(u){return String(u||'').trim().replace(/\/+$/,'')}
+  function token(c){return crypto.subtle.digest('SHA-256',new TextEncoder().encode('ft-auth|'+c.key)).then(b64u)}
+  function aesKey(c){if(_key&&_key.k===c.key)return Promise.resolve(_key.v);return crypto.subtle.importKey('raw',unb64u(c.key),'AES-GCM',false,['encrypt','decrypt']).then(function(v){_key={k:c.key,v:v};return v})}
+  function _stream(bytes,T){return new Response(new Blob([bytes]).stream().pipeThrough(new T('gzip'))).arrayBuffer().then(function(b){return new Uint8Array(b)})}
+  // Zarf: {v,z(sıkıştırma),iv,ct}; AES-256-GCM, ek doğrulanan veri = kasa kimliği (başka kasaya kopyalanamaz)
+  function encrypt(c,obj){
+    var raw=new TextEncoder().encode(JSON.stringify(obj)),z=!!window.CompressionStream,iv=crypto.getRandomValues(new Uint8Array(12));
+    return(z?_stream(raw,CompressionStream):Promise.resolve(raw)).then(function(data){return aesKey(c).then(function(k){return crypto.subtle.encrypt({name:'AES-GCM',iv:iv,additionalData:new TextEncoder().encode(c.vault)},k,data)})})
+      .then(function(ct){return b64u(new TextEncoder().encode(JSON.stringify({v:1,z:z?1:0,iv:b64u(iv),ct:b64u(ct)})))});
+  }
+  function decrypt(c,data){
+    var env=JSON.parse(new TextDecoder().decode(unb64u(data)));
+    if(env.z&&!window.DecompressionStream)return Promise.reject(new Error('Bu tarayıcı sıkıştırılmış veriyi açamıyor.'));
+    return aesKey(c).then(function(k){return crypto.subtle.decrypt({name:'AES-GCM',iv:unb64u(env.iv),additionalData:new TextEncoder().encode(c.vault)},k,unb64u(env.ct))})
+      .then(function(pt){pt=new Uint8Array(pt);return env.z?_stream(pt,DecompressionStream):pt}).then(function(pt){return JSON.parse(new TextDecoder().decode(pt))})
+      .catch(function(e){throw new Error(e&&/Bu tarayıcı/.test(e.message)?e.message:'Veri çözülemedi: eşitleme kodu bu kasaya ait değil.')});
+  }
+  function api(c,method,path,body,extra){
+    return token(c).then(function(t){return fetch(c.url+'/v1/vault/'+c.vault+(path||''),{method:method,cache:'no-store',headers:Object.assign({'Content-Type':'application/json',Authorization:'Bearer '+t},extra||{}),body:body?JSON.stringify(body):undefined})})
+      .then(function(r){return r.json().catch(function(){return{}}).then(function(j){return{status:r.status,body:j}})});
+  }
+  function collect(){
+    var out={stores:{},s:{}},getters={pf_t:S.txns,pf_g:S.goals,pf_a:S.accounts,pf_r:S.recurring,pf_d:S.debts,pf_f:S.fund,pf_p:S.portfolio,pf_ru:S.rules,pf_nw:S.netWorthHistory,pf_b:S.budgets,pf_bm:S.budgetMeta,pf_cpi:S.cpi};
+    Object.keys(getters).forEach(function(k){var v=getters[k]();v=JSON.parse(JSON.stringify(v==null?(ARRAY_STORES.indexOf(k)>=0?[]:{}):v));out.stores[k]=Array.isArray(v)?sortByKey(v):v});
+    var st=S.settings();SHARED_SETTINGS.forEach(function(k){if(st[k]!==undefined)out.s[k]=JSON.parse(JSON.stringify(st[k]))});
+    return out;
+  }
+  function apply(snap){
+    _applying=true;
+    try{
+      Object.keys(snap.stores||{}).forEach(function(k){if(ARRAY_STORES.indexOf(k)>=0||MAP_STORES.indexOf(k)>=0)localStorage.setItem(k,JSON.stringify(snap.stores[k]))});
+      var st=JSON.parse(localStorage.getItem('pf_s')||'{}');SHARED_SETTINGS.forEach(function(k){if(Object.prototype.hasOwnProperty.call(snap.s||{},k))st[k]=snap.s[k];else delete st[k]});
+      localStorage.setItem('pf_s',JSON.stringify(st));
+      S.load();App.Categories.apply();App.UI.initSelects();
+      // Bakiye açılış bakiyesi + işlenmiş hareketlerden yeniden hesaplanır: iki cihazın ayrı güncellediği bakiye alanı birbirini ezmez
+      App.Transactions.reconcileInstallments();App.Accounts.reconcileAccountBalances(true);
+    }finally{_applying=false}
+    renderAllViews();
+  }
+  function _mark(ok,msg){var c=cfg();if(!c)return;c.lastError=ok?'':msg;if(ok)c.lastSync=Date.now();saveCfg(c);renderCard()}
+  function touch(k){
+    if(_applying||!configured())return;
+    if(k!=='pf_s'&&ARRAY_STORES.indexOf(k)<0&&MAP_STORES.indexOf(k)<0)return;
+    clearTimeout(_timer);_timer=setTimeout(function(){syncNow({quiet:true})},2500);
+  }
+  function _round(tries){
+    var c=cfg(),local=collect();
+    return IDB.get(BASE_KEY).then(function(stored){
+      var base=stored&&stored.vault===c.vault&&stored.version===c.version?stored.snap:null;
+      return api(c,'GET',base?'?known='+c.version:'').then(function(res){
+        if(res.status===404)throw new Error('Sunucuda eşitleme kasası bulunamadı (silinmiş olabilir).');
+        if(res.status===401||res.status===403)throw new Error('Eşitleme kodu geçersiz.');
+        if(res.status!==200)throw new Error('Sunucu yanıtı: '+res.status);
+        var ver=res.body.version;
+        return(res.body.unchanged?Promise.resolve(base):decrypt(c,res.body.data)).then(function(remote){
+          var merged=mergeSnapshot(base,local,remote);
+          if(!_same(merged,local))apply(merged);
+          var after=collect();
+          if(_same(after,remote)){c=cfg();c.version=ver;saveCfg(c);return IDB.set(BASE_KEY,{vault:c.vault,version:ver,snap:remote}).then(function(){return false})}
+          return encrypt(c,after).then(function(data){return api(c,'PUT','',{baseVersion:ver,data:data})}).then(function(put){
+            if(put.status===409){if(tries<4)return _round(tries+1);throw new Error('Eşitleme çakışması çözülemedi, tekrar deneyin.')}
+            if(put.status===413)throw new Error('Veri eşitleme için çok büyük.');
+            if(put.status!==200)throw new Error('Sunucu yanıtı: '+put.status);
+            c=cfg();c.version=put.body.version;saveCfg(c);
+            return IDB.set(BASE_KEY,{vault:c.vault,version:c.version,snap:after}).then(function(){return true});
+          });
+        });
+      });
+    });
+  }
+  // Bir eşitleme turu: uzak durumu al, üç yollu birleştir, yerelde uygula, fark varsa gönder (409'da en fazla 4 kez yeniden)
+  function syncNow(opts){
+    opts=opts||{};if(!configured()||!available())return Promise.resolve(false);
+    if(_busy){_again=true;return _busy}
+    _busy=_round(0).then(function(){_mark(true);if(App.Push)App.Push.refresh();if(opts.manual)App.UI.toast('Eşitlendi.','ok');return true},function(e){
+      var msg=e&&e.message?e.message:'Bağlantı kurulamadı.';if(e instanceof TypeError)msg='Sunucuya ulaşılamadı (çevrimdışı olabilirsiniz).';
+      _mark(false,msg);if(!opts.quiet)App.UI.toast('Eşitleme: '+msg,'err');return false;
+    }).then(function(ok){_busy=null;if(_again){_again=false;return syncNow({quiet:true})}return ok});
+    return _busy;
+  }
+  function resetBase(){return IDB.del(BASE_KEY).catch(function(){})}
+  function _serverOk(url){return fetch(url+'/v1/config',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){if(!j||j.api!==1)throw 0;return j}).catch(function(){throw new Error('Bu adreste Finans Takip eşitleme sunucusu bulunamadı.')})}
+  function _newIds(){return{vault:b64u(crypto.getRandomValues(new Uint8Array(16))),key:b64u(crypto.getRandomValues(new Uint8Array(32))),deviceId:b64u(crypto.getRandomValues(new Uint8Array(12)))}}
+  function start(url,regKey){
+    url=cleanUrl(url);if(!validUrl(url)){App.UI.toast('Geçerli bir https:// sunucu adresi girin.','err');return Promise.resolve(false)}
+    return _serverOk(url).then(function(conf){
+      var ids=_newIds(),c={url:url,vault:ids.vault,key:ids.key,deviceId:ids.deviceId,version:0};
+      return encrypt(c,collect()).then(function(data){return api(c,'PUT','',{baseVersion:0,data:data},regKey?{'X-Register-Key':regKey}:null)}).then(function(r){
+        if(r.status===403&&conf.registrationRequired)throw new Error('Sunucu kayıt anahtarı istiyor ya da anahtar hatalı.');
+        if(r.status!==201)throw new Error('Kasa oluşturulamadı ('+r.status+').');
+        c.version=r.body.version;c.lastSync=Date.now();saveCfg(c);
+        return IDB.set(BASE_KEY,{vault:c.vault,version:c.version,snap:collect()});
+      }).then(function(){renderCard();App.UI.toast('Eşitleme başladı. Diğer cihazı "Cihaz Ekle" koduyla bağlayın.','ok');showCode();return true});
+    }).catch(function(e){App.UI.toast(e.message||'Eşitleme başlatılamadı.','err');return false});
+  }
+  function codeOf(c){return'FT1.'+b64u(new TextEncoder().encode(JSON.stringify({u:c.url,v:c.vault,k:c.key})))}
+  function parseCode(code){
+    code=String(code||'').trim();var m=code.match(/#sync=([^\s]+)/);if(m)code=decodeURIComponent(m[1]);
+    if(code.indexOf('FT1.')!==0)return null;
+    try{var o=JSON.parse(new TextDecoder().decode(unb64u(code.slice(4))));if(!validUrl(o.u)||!/^[A-Za-z0-9_-]{22,64}$/.test(o.v)||unb64u(o.k).length!==32)return null;return{url:cleanUrl(o.u),vault:o.v,key:o.k}}catch(e){return null}
+  }
+  function join(code){
+    var p=parseCode(code);if(!p){App.UI.toast('Eşitleme kodu geçersiz.','err');return Promise.resolve(false)}
+    var c={url:p.url,vault:p.vault,key:p.key,deviceId:_newIds().deviceId,version:0};
+    return api(c,'GET','').then(function(r){
+      if(r.status===404)throw new Error('Bu koda ait kasa sunucuda yok.');
+      if(r.status!==200)throw new Error('Eşitleme kodu geçersiz.');
+      return decrypt(c,r.body.data);
+    }).then(function(){saveCfg(c);return resetBase()}).then(function(){return syncNow({quiet:false})}).then(function(ok){
+      renderCard();if(ok)App.UI.toast('Bu cihaz eşitlemeye katıldı; veriler birleştirildi.','ok');return ok;
+    }).catch(function(e){App.UI.toast(e instanceof TypeError?'Sunucuya ulaşılamadı.':e.message,'err');return false});
+  }
+  function joinPrompt(prefill){
+    if(!available()){App.UI.toast('Bu tarayıcıda eşitleme kullanılamıyor (güvenli bağlantı gerekir).','err');return}
+    if(configured()){App.UI.toast('Bu cihaz zaten eşitlemede. Önce eşitlemeyi kapatın.','info');return}
+    App.UI.promptModal({title:'Eşitlemeye Katıl',text:'Diğer cihazda Ayarlar > Eşitleme > "Cihaz Ekle" ile gösterilen kodu yapıştırın. Bu cihazdaki veriler ortak veriyle birleştirilir (hiçbir kayıt silinmez).',fields:[{key:'code',label:'Eşitleme kodu',value:prefill||'',placeholder:'FT1.…'}],okLabel:'Katıl'},function(v){join(v.code)});
+  }
+  function startPrompt(){
+    if(!available()){App.UI.toast('Bu tarayıcıda eşitleme kullanılamıyor (güvenli bağlantı gerekir).','err');return}
+    var guess=/^https?:$/.test(location.protocol)?location.origin:'';
+    _serverOk(guess).then(function(j){return j},function(){return null}).then(function(conf){
+      var fields=[{key:'url',label:'Sunucu adresi',value:conf?guess:'',placeholder:'https://finans-takip.<hesap>.workers.dev'}];
+      if(!conf||conf.registrationRequired)fields.push({key:'reg',label:'Kayıt anahtarı (sunucu istiyorsa)',type:'password'});
+      App.UI.promptModal({title:'Eşitlemeyi Başlat',text:'Veriler bu cihazda AES-256 ile şifrelenip gönderilir; sunucu içeriği göremez. Oluşan kodu yalnız aile üyelerinizle paylaşın.',fields:fields,okLabel:'Başlat'},function(v){start(v.url,String(v.reg||'').trim())});
+    });
+  }
+  function showCode(){
+    var c=cfg();if(!c)return;var code=codeOf(c),link=c.url+'/#sync='+encodeURIComponent(code);
+    var div=document.createElement('div');div.id='syncCodeHolder';
+    div.innerHTML='<div class="modal-bd show" onclick="if(event.target===this)App.UI.closeModal(\'syncCodeHolder\')"><div class="modal"><div class="modal-title">📲 Cihaz Ekle</div><div class="set-sub" style="margin-bottom:10px">Diğer cihazda Ayarlar > Cihazlar Arası Eşitleme > "Kodla Katıl" ile bu kodu yapıştırın'+(navigator.share?' ya da "Paylaş" ile bağlantı olarak gönderin':'')+'. <b>Kod verilerinize tam erişim verir</b>; yalnız aile üyeleriyle paylaşın.</div><div class="f"><label for="syncCodeTxt">Eşitleme kodu</label><textarea id="syncCodeTxt" readonly rows="4" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:10px;color:var(--txt);font-size:.72rem;word-break:break-all;resize:none">'+esc(code)+'</textarea></div><div class="modal-actions"><button class="btn btn-ghost" id="syncCopyBtn">Kopyala</button>'+(navigator.share?'<button class="btn btn-ghost" id="syncShareBtn">Paylaş</button>':'')+'<button class="btn btn-primary" onclick="App.UI.closeModal(\'syncCodeHolder\')">Tamam</button></div></div></div>';
+    App.UI.mountModal(div,'#syncCopyBtn');
+    div.querySelector('#syncCopyBtn').addEventListener('click',function(){var t=div.querySelector('#syncCodeTxt');(navigator.clipboard?navigator.clipboard.writeText(code):Promise.reject()).then(function(){App.UI.toast('Kod kopyalandı.','ok')},function(){t.select();try{document.execCommand('copy');App.UI.toast('Kod kopyalandı.','ok')}catch(e){App.UI.toast('Kodu seçip kopyalayın.','info')}})});
+    var sh=div.querySelector('#syncShareBtn');if(sh)sh.addEventListener('click',function(){navigator.share({title:'Finans Takip eşitleme',text:'Finans Takip ortak verilerine katılmak için bu bağlantıyı aç:',url:link}).catch(function(){})});
+  }
+  function disable(){
+    App.UI.confirmModal({title:'Bu Cihazda Eşitlemeyi Kapat',text:'Bu cihaz eşitlemeden çıkar; buradaki veriler olduğu gibi kalır. Diğer cihazlar eşitlemeye devam eder.',okLabel:'Kapat'},function(){
+      var p=App.Push?App.Push.unregister():Promise.resolve();
+      p.then(function(){saveCfg(null);return resetBase()}).then(function(){renderCard();App.UI.toast('Bu cihazda eşitleme kapatıldı.','info')});
+    });
+  }
+  function destroy(){
+    App.UI.promptModal({title:'Sunucudaki Veriyi Sil',text:'Şifreli kasa ve bildirim kayıtları sunucudan kalıcı olarak silinir; tüm cihazlarda eşitleme durur. Cihazlardaki veriler kalır. Onay için SİL yazın.',fields:[{key:'c',label:'Onay',placeholder:'SİL'}],okLabel:'Sunucudan Sil'},function(v){
+      if(String(v.c||'').trim().toLocaleUpperCase('tr-TR')!=='SİL'){App.UI.toast('Onay metni eşleşmedi.','info');return}
+      var c=cfg();if(!c)return;
+      api(c,'DELETE','').then(function(r){if(r.status!==200)throw new Error();saveCfg(null);return resetBase()}).then(function(){renderCard();App.UI.toast('Sunucudaki veri silindi; eşitleme kapatıldı.','info')},function(){App.UI.toast('Silinemedi; bağlantıyı kontrol edin.','err')});
+    });
+  }
+  function renderCard(){
+    var el=document.getElementById('setSyncCard');if(!el)return;var c=cfg();
+    var head='<div class="sh-title">☁️ Cihazlar Arası Eşitleme</div>';
+    if(!available()){el.innerHTML=head+'<div class="set-sub">Bu tarayıcıda kullanılamıyor (güvenli bağlantı gerekir).</div>';return}
+    if(!configured()){el.innerHTML=head+'<div class="set-sub">Aile üyelerinin telefonları aynı verileri görsün. Veri cihazda uçtan uca şifrelenir; Cloudflare sunucusu içeriği okuyamaz.</div><div class="set-actions"><button class="btn btn-sm btn-ghost" onclick="App.Sync.startPrompt()">Eşitlemeyi Başlat</button><button class="btn btn-sm btn-ghost" onclick="App.Sync.joinPrompt()">Kodla Katıl</button></div>';return}
+    var when=c.lastSync?new Date(c.lastSync).toLocaleString('tr-TR'):'henüz yok',host='';try{host=new URL(c.url).host}catch(e){}
+    el.innerHTML=head+'<div class="set-sub">'+(c.lastError?'<span style="color:var(--red)">⚠ '+esc(c.lastError)+'</span><br/>':'✓ Açık · ')+'Son eşitleme: '+esc(when)+' · '+esc(host)+'</div><div class="set-actions"><button class="btn btn-sm btn-ghost" onclick="App.Sync.syncNow({manual:true})">Şimdi Eşitle</button><button class="btn btn-sm btn-ghost" onclick="App.Sync.showCode()">Cihaz Ekle</button><button class="btn btn-sm btn-ghost" onclick="App.Sync.disable()">Bu Cihazda Kapat</button><button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Sync.destroy()">Sunucudan Sil</button></div>';
+  }
+  function init(){
+    if(!configured())return;
+    syncNow({quiet:true});
+    document.addEventListener('visibilitychange',function(){if(!document.hidden)syncNow({quiet:true})});
+    window.addEventListener('online',function(){syncNow({quiet:true})});
+    setInterval(function(){if(!document.hidden)syncNow({quiet:true})},120000);
+  }
+  return{configured:configured,available:available,cfg:cfg,syncNow:syncNow,touch:touch,resetBase:resetBase,start:start,startPrompt:startPrompt,join:join,joinPrompt:joinPrompt,parseCode:parseCode,codeOf:codeOf,showCode:showCode,disable:disable,destroy:destroy,renderCard:renderCard,init:init,api:api,encrypt:encrypt,decrypt:decrypt,collect:collect};
+})();
+
+// ---- Uygulama kapalıyken bildirim (Web Push) ----
+// Sunucuya yalnız bildirim günleri gider; ödeme metni cihazda IndexedDB'de kalır ve service worker oradan okur.
+App.Push=(function(){
+  var _lastSent='';
+  function supported(){return'serviceWorker'in navigator&&'PushManager'in window&&'Notification'in window}
+  function enabled(){var c=App.Sync.cfg();return!!(c&&c.push)}
+  function _vapid(c){return fetch(c.url+'/v1/config',{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){if(!j.vapidPublicKey)throw new Error('Sunucuda bildirim anahtarı (VAPID) ayarlı değil.');return j.vapidPublicKey})}
+  function _key(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';var b=atob(s),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a}
+  function _day(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+  // Önümüzdeki 60 günün ödemeleri; her birine vadeden 2 gün önce, 1 gün önce ve vade günü bildirim
+  function plan(){
+    var items=App.Cashflow.items(60).map(function(x){return{date:x.date,text:(x.type==='income'?'+':'−')+fmt(x.amount)+' '+x.label+' ('+x.src+')'}});
+    var today=td(),days={};
+    items.forEach(function(x){var p=x.date.split('-');for(var k=0;k<=2;k++){var d=_day(new Date(+p[0],+p[1]-1,+p[2]-k));if(d>=today)days[d]=1}});
+    return{items:items,days:Object.keys(days).sort()};
+  }
+  function _sub(){return navigator.serviceWorker.ready.then(function(reg){return reg.pushManager.getSubscription()})}
+  function refresh(force){
+    if(!enabled()||!supported())return Promise.resolve(false);
+    var c=App.Sync.cfg(),p=plan();
+    return IDB.set('reminders',{updated:Date.now(),items:p.items}).then(_sub).then(function(sub){
+      if(!sub)return false;
+      var sig=sub.endpoint+'|'+p.days.join(',')+'|'+td();
+      if(!force&&sig===_lastSent)return true;
+      return App.Sync.api(c,'PUT','/push/'+c.deviceId,{endpoint:sub.endpoint,pingDays:p.days}).then(function(r){if(r.status!==200)throw new Error('Bildirim kaydı başarısız ('+r.status+').');_lastSent=sig;return true});
+    }).catch(function(e){console.warn('push refresh',e);return false});
+  }
+  function enable(){
+    if(!supported()){App.UI.toast('Bu tarayıcı kapalıyken bildirimi desteklemiyor. iPhone\'da uygulamayı ana ekrana ekleyip oradan açın (iOS 16.4+).','err');return}
+    if(!App.Sync.configured()){App.UI.toast('Kapalıyken bildirim için önce eşitlemeyi açın.','info');return}
+    var c=App.Sync.cfg();
+    Notification.requestPermission().then(function(perm){
+      if(perm!=='granted')throw new Error('Bildirim izni verilmedi.');
+      return Promise.all([navigator.serviceWorker.ready,_vapid(c)]);
+    }).then(function(r){return r[0].pushManager.getSubscription().then(function(s){return s||r[0].pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_key(r[1])})})})
+      .then(function(){c=App.Sync.cfg();c.push=true;localStorage.setItem('ft_sync',JSON.stringify(c));return refresh(true)})
+      .then(function(ok){render();App.Notifications.syncBtn();App.UI.toast(ok?'Uygulama kapalıyken de ödeme günlerinde bildirim gelecek.':'Bildirim kaydı sunucuya iletilemedi.',ok?'ok':'err')})
+      .catch(function(e){App.UI.toast(e.message||'Bildirim açılamadı.','err');render()});
+  }
+  function unregister(){
+    var c=App.Sync.cfg();if(!c||!c.push)return Promise.resolve();
+    return App.Sync.api(c,'DELETE','/push/'+c.deviceId).catch(function(){}).then(function(){return supported()?_sub().then(function(s){return s&&s.unsubscribe()}).catch(function(){}):null})
+      .then(function(){var x=App.Sync.cfg();if(x){x.push=false;localStorage.setItem('ft_sync',JSON.stringify(x))}_lastSent=''});
+  }
+  function disable(){unregister().then(function(){render();App.UI.toast('Kapalıyken bildirim kapatıldı.','info')})}
+  function render(){
+    var el=document.getElementById('pushArea');if(!el)return;
+    if(!App.Sync.configured()){el.innerHTML='<div class="set-sub" style="margin-top:6px">Uygulama kapalıyken de bildirim için önce aşağıdan eşitlemeyi açın.</div>';return}
+    if(!supported()){el.innerHTML='<div class="set-sub" style="margin-top:6px">Bu tarayıcı kapalıyken bildirimi desteklemiyor (iPhone: ana ekrana ekleyin, iOS 16.4+).</div>';return}
+    el.innerHTML=enabled()?'<div class="set-sub" style="margin:6px 0">📲 Kapalıyken bildirim açık. Sunucu yalnız bildirim günlerini bilir; ödeme ayrıntısı bu cihazda kalır.</div><button class="btn btn-sm btn-ghost" onclick="App.Push.disable()">Kapalıyken bildirimi kapat</button>'
+      :'<button class="btn btn-sm btn-ghost" style="margin-top:8px" onclick="App.Push.enable()">📲 Uygulama kapalıyken de bildir</button>';
+  }
+  return{supported:supported,enabled:enabled,plan:plan,refresh:refresh,enable:enable,disable:disable,unregister:unregister,render:render};
+})();
+
 App.Categories=(function(){
   var COLORS=['cc-teal','cc-blue','cc-purple','cc-pink','cc-orange','cc-yellow','cc-green','cc-red'];
   // Özel kategorileri global EC/IC listelerine ve ikon haritasına işler
@@ -3208,12 +3501,12 @@ App.Settings=(function(){
     var c=document.getElementById('setCpiInfo');if(c){var lm=App.Inflation.latestMonth().split('-');c.textContent='Son endeks: '+MF[+lm[1]-1]+' '+lm[0]+(App.Inflation.isStale()?' · güncelleme gerekiyor':'')}
     var a=document.getElementById('setAiInfo');if(a){var m=st.aiMode||'local';a.textContent=m==='local'?'Yerel analiz: veri cihazdan çıkmaz.':m==='proxy'?'Proxy modu'+(st.aiProxyUrl?'':' (URL eksik)'):'Geçici API key modu'}
     var t=document.getElementById('setThemeBtn');if(t)t.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀️ Açık temaya geç':'🌙 Koyu temaya geç';
-    App.Notifications.syncBtn();App.Categories.render();if(App.Lock)App.Lock.renderCard();
+    App.Notifications.syncBtn();App.Categories.render();if(App.Lock)App.Lock.renderCard();if(App.Sync)App.Sync.renderCard();if(App.Push)App.Push.render();
   }
   function wipe(){
     App.UI.promptModal({title:'Tüm Verileri Sil',text:'Bu işlem geri alınamaz. Onaylamak için SİL yazın.',fields:[{key:'confirm',label:'Onay',placeholder:'SİL'}],okLabel:'Kalıcı Olarak Sil'},function(v){
       if(String(v.confirm||'').trim().toLocaleUpperCase('tr-TR')!=='SİL'){App.UI.toast('Onay metni eşleşmedi; hiçbir şey silinmedi.','info');return}
-      try{Object.keys(localStorage).filter(function(k){return k.indexOf('pf_')===0||k.indexOf('ft_')===0}).forEach(function(k){localStorage.removeItem(k)});sessionStorage.clear()}catch(e){}
+      try{Object.keys(localStorage).filter(function(k){return k.indexOf('pf_')===0||k.indexOf('ft_')===0}).forEach(function(k){localStorage.removeItem(k)});sessionStorage.clear();indexedDB.deleteDatabase('finanstakip')}catch(e){}
       App.UI.toast('Tüm veriler silindi. Uygulama yenileniyor.','info');setTimeout(function(){location.reload()},600);
     });
   }
@@ -3288,6 +3581,7 @@ document.addEventListener('DOMContentLoaded',function(){
   App.UI.nav('ozet');
   App.Onboarding.maybe();
   App.Backup.requestPersist();App.Backup.maybeRemind();
+  App.Sync.init();
   handleShortcut();
   setTimeout(function(){App.Notifications.checkDueBills(false)},1500);
 });
@@ -3298,6 +3592,7 @@ function handleShortcut(){
   else if(h==='quick-income')App.UI.quickAdd('income');
   else if(h==='report')setTimeout(function(){App.Report.open()},200);
   else if(h==='dashboard')App.UI.nav('ozet');
+  else if(h.indexOf('sync=')===0)setTimeout(function(){App.Sync.joinPrompt(decodeURIComponent(h.slice(5)))},300);
   history.replaceState(null,'',location.pathname+location.search);
 }
 window.addEventListener('hashchange',handleShortcut);

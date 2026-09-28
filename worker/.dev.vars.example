@@ -1,0 +1,6 @@
+# Yerel geliştirme değişkenleri: `cp .dev.vars.example .dev.vars` ve `npm run vapid` çıktısıyla doldurun
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_JWK='{"kty":"EC","crv":"P-256","x":"...","y":"...","d":"..."}'
+VAPID_SUBJECT=mailto:admin@example.com
+# Yerel sahte push servisi (http://127.0.0.1) için; üretimde KULLANMAYIN
+ALLOW_INSECURE_PUSH=1
