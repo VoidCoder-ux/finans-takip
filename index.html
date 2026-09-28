@@ -873,7 +873,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.09.28.6</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.09.28.7</div>
 </section>
 
 </main>
@@ -3750,7 +3750,7 @@ App.Receipt=(function(){
     [W('LC ?WA[İI]K[İI]K[İI]|WA[İI]K[İI]K[İI]|DEFACTO|KOTON|MAV[İI]|ZARA|H&M|BOYNER|FLO|TEKST[İI]L|G[İI]Y[İI]M|AYAKKABI'),'Giyim'],
     [W('D&R|K[İI]TAP|K[İI]TABEV[İI]|KIRTAS[İI]YE'),'Eğitim'],
     [W('S[İI]NEMA|C[İI]NEMAX|T[İI]YATRO|KONSER|OYUNCAK'),'Eğlence'],
-    [W('TURKCELL|VODAFONE|TÜRK TELEKOM|DOĞALGAZ|FATURA'),'Faturalar']
+    [W('TURKCELL|VODAFONE|TÜRK TELEKOM|DOĞALGAZ'),'Faturalar']
   ];
   var LEGAL=/^(T[İI]CARET|T[İI]C\.?|SANAY[İI]|SAN\.?|A\.?[ŞS]\.?|AŞ|LTD\.?|ŞT[İI]\.?|VE|PAZARLAMA|GIDA|MA[ĞG]AZACILIK|ANON[İI]M|Ş[İI]RKET[İI])$/;
   function _load(src){
@@ -3760,63 +3760,128 @@ App.Receipt=(function(){
   }
   function _upper(s){return String(s||'').toLocaleUpperCase('tr-TR')}
   function guessCategory(text){var u=_upper(text);for(var i=0;i<CAT_HINTS.length;i++)if(CAT_HINTS[i][0].test(u)&&EC.indexOf(CAT_HINTS[i][1])>=0)return CAT_HINTS[i][1];return EC.indexOf('Market')>=0?'Market':'Diğer'}
-  // "1.234,56" / "1 234,56" / "123.45" / "*45,50" → sayı (kuruşlu tutarlar)
-  function _amounts(line){
-    var out=[],re=/(\d{1,3}(?:[.\s]\d{3})+|\d+)\s?[,.]\s?(\d{2})(?!\d)/g,m;
-    while((m=re.exec(line))){var n=Number(m[1].replace(/[.\s]/g,'')+'.'+m[2]);if(n>0&&n<1e7)out.push(n)}
+  // Bilinen zincirler: yazı tanıma harfleri bozsa da (BİM → "BIN BİRLESİK YALAZALAR", A101 → "ALO1 YENİ MAGAZALCILIK")
+  // imza ifadeleri benzerlikle aranır. [görünen ad, kategori, imzalar...]
+  var BRANDS=[
+    ['BİM','Market','BIRLESIK MAGAZALAR'],['A101','Market','YENI MAGAZACILIK','A101 COM','A101 HEDIYE'],['ŞOK','Market','SOK MARKETLER','SOK MARKET'],
+    ['Migros','Market','MIGROS'],['CarrefourSA','Market','CARREFOURSA','CARREFOUR'],['Macrocenter','Market','MACROCENTER'],['Metro','Market','METRO GROSMARKET'],
+    ['Hakmar','Market','HAKMAR'],['File','Market','FILE MARKET'],['Tarım Kredi','Market','TARIM KREDI'],['Bizim Toptan','Market','BIZIM TOPTAN'],['Özdilek','Market','OZDILEK'],
+    ['Happy Center','Market','HAPPY CENTER'],['Kiler','Market','KILER ALISVERIS'],['Onur Market','Market','ONUR MARKET'],['Mopaş','Market','MOPAS'],['Gürmar','Market','GURMAR'],
+    ['Gratis','Market','GRATIS'],['Watsons','Market','WATSONS'],['Rossmann','Market','ROSSMANN'],['Eve','Market','EVE SHOP'],
+    ['Opet','Ulaşım','OPET'],['Shell','Ulaşım','SHELL'],['Petrol Ofisi','Ulaşım','PETROL OFISI'],['BP','Ulaşım','BP PETROLLERI'],['TotalEnergies','Ulaşım','TOTALENERGIES','TOTAL OIL'],
+    ['Aytemiz','Ulaşım','AYTEMIZ'],['Lukoil','Ulaşım','LUKOIL'],['Kadoil','Ulaşım','KADOIL'],['Alpet','Ulaşım','ALPET'],['İspark','Ulaşım','ISPARK'],
+    ['LC Waikiki','Giyim','WAIKIKI'],['DeFacto','Giyim','DEFACTO'],['Koton','Giyim','KOTON'],['Mavi','Giyim','MAVI GIYIM'],['Boyner','Giyim','BOYNER'],['FLO','Giyim','FLO MAGAZACILIK'],
+    ['Zara','Giyim','ZARA'],['H&M','Giyim','H M HENNES','HENNES'],['Teknosa','Diğer','TEKNOSA'],['MediaMarkt','Diğer','MEDIAMARKT','MEDIA MARKT'],['Vatan','Diğer','VATAN BILGISAYAR'],
+    ['IKEA','Diğer','IKEA'],['Koçtaş','Diğer','KOCTAS'],['Bauhaus','Diğer','BAUHAUS'],['English Home','Diğer','ENGLISH HOME'],['Madame Coco','Diğer','MADAME COCO'],
+    ['Starbucks','Yiyecek','STARBUCKS'],['Burger King','Yiyecek','BURGER KING'],["McDonald's",'Yiyecek','MCDONALD'],['Simit Sarayı','Yiyecek','SIMIT SARAYI'],['Tavuk Dünyası','Yiyecek','TAVUK DUNYASI'],
+    ["Domino's",'Yiyecek','DOMINOS PIZZA'],['D&R','Eğitim','D R KULTUR','D&R'],['Kitapyurdu','Eğitim','KITAPYURDU']
+  ];
+  // Karşılaştırma için sadeleştir: Türkçe harf → ASCII, OCR'ın karıştırdığı rakamlar → harf, yalnız harf/rakam/boşluk
+  function _fold(t){return String(t||'').toLocaleUpperCase('tr-TR').replace(/[İIı]/g,'I').replace(/Ş/g,'S').replace(/Ğ/g,'G').replace(/Ü/g,'U').replace(/Ö/g,'O').replace(/Ç/g,'C')
+    .replace(/0/g,'O').replace(/[1|!]/g,'I').replace(/&/g,' ').replace(/[^A-Z0-9\n ]+/g,' ').replace(/[ \t]+/g,' ')}
+  // Metinde imzanın en fazla k hatayla geçip geçmediği (yaklaşık alt dizgi, Sellers)
+  function _near(text,pat,k){
+    var m=pat.length,prev=new Array(m+1),cur=new Array(m+1),j,i;for(j=0;j<=m;j++)prev[j]=j;
+    for(i=1;i<=text.length;i++){cur[0]=0;var c=text.charCodeAt(i-1);for(j=1;j<=m;j++){cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(pat.charCodeAt(j-1)===c?0:1))}if(cur[m]<=k)return true;var t=prev;prev=cur;cur=t}
+    return false;
+  }
+  function _brand(text){
+    var f=_fold(text);
+    for(var b=0;b<BRANDS.length;b++)for(var s=2;s<BRANDS[b].length;s++){
+      var sig=_fold(BRANDS[b][s]).trim(),k=sig.length>=10?Math.floor(sig.length*0.2):sig.length>=6?1:0;
+      // Kısa imzalar (ör. "OPET", "IKEA") kelime olarak geçmeli
+      if(k===0?new RegExp('(^|[^A-Z])'+sig.replace(/ /g,' ?')+'([^A-Z]|$)').test(f):_near(f,sig,k))return{name:BRANDS[b][0],category:EC.indexOf(BRANDS[b][1])>=0?BRANDS[b][1]:'Diğer'};
+    }
+    return null;
+  }
+  // "1.234,56" / "1 234,56" / "123.45" / "*45,50" → tutarlar; star: önünde fişlerdeki "*" (ya da OCR'daki karşılıkları) var mı
+  function _amounts(line,withStar){
+    var out=[],re=/([*"“”#×xX]?)\s?(\d{1,3}(?:[.\s]\d{3})+|\d+)\s?[,.]\s?(\d{2})(?!\d)/g,m;
+    while((m=re.exec(line))){var n=Number(m[2].replace(/[.\s]/g,'')+'.'+m[3]);if(n>0&&n<1e7)out.push(withStar?{v:n,star:!!m[1]}:n)}
     return out;
   }
   // Rakam içindeki harf karışıklıkları: "*29O,4O" → "*290,40", "27.O9.2026" → "27.09.2026"
   function _fixNum(u){return u.replace(/[\d*][\dOo.,]*[\dOo]/g,function(m){return m.replace(/[Oo]/g,'0')})}
-  function _date(text){
-    var today=td(),re=/(\d{1,2})\s?[.\/-]\s?(\d{1,2})\s?[.\/-]\s?(\d{4}|\d{2})(?!\d)/g,m;
-    while((m=re.exec(text))){
-      var d=+m[1],mo=+m[2],y=m[3].length===2?2000+(+m[3]):+m[3];
+  // Tarih: 21.09.2026 / 21/09/26 / 21-09-2026; siyah-beyaz taramada noktalar boşluk okunabilir ("21 09 2026", yalnız 4 haneli yılla).
+  // Önce "TARİH" geçen satırlara bakılır
+  function _dates(text){
+    var today=td(),out=[],lines=String(text).split('\n'),ordered=lines.filter(function(l){return/TAR[İI1]H|TAR[İI1]|TARTI/.test(l)}).concat(lines);
+    var re=/(\d{1,2})\s?([.\/-]|\s)\s?(\d{1,2})\s?([.\/-]|\s)\s?(\d{4}|\d{2})(?!\d)/g;
+    ordered.forEach(function(l){var m;re.lastIndex=0;while((m=re.exec(l))){
+      var sp=/\s/.test(m[2])||/\s/.test(m[4]);if(sp&&m[5].length!==4)continue;
+      var d=+m[1],mo=+m[3],y=m[5].length===2?2000+(+m[5]):+m[5];
       if(d<1||d>31||mo<1||mo>12||y<2000||y>2099)continue;
       var iso=y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-      if(validDate(iso)&&iso<=today)return iso;
-    }
-    return '';
+      if(validDate(iso)&&iso<=today&&out.indexOf(iso)<0)out.push(iso);
+    }});
+    return out;
+  }
+  function _date(text){return _dates(text)[0]||''}
+  // Mağaza adı yoksa: başlıktaki belge türü/adres/tarih satırları atlanır; unvan eki (A.Ş., LTD…) olan satır tercih edilir
+  var SKIP=/^(E\s*-?\s*AR[ŞS][İI]V|FATURA|B[İI]LG[İI]\s*F[İI][ŞS]|TÜR\s*:|TUR\s*:|M[GĞ9]Z|MA[ĞG]AZA\s*(ADI|KODU)|TAR[İI]H|SAAT|F[İI][ŞS]|VKN|TCKN|V\.?D|VERG[İI]|TEL|ADRES|MERS[İI]S|MAH|CAD|SOK|NO\s*:|BÜYÜK|ETTN|BELGE)/;
+  function _cleanName(l){
+    l=_upper(l).split(' ').filter(function(w){return w&&!LEGAL.test(w)}).join(' ');
+    var loc=/[İŞĞÜÖÇ]/.test(l)?'tr-TR':'en-US';
+    return l.toLocaleLowerCase(loc).replace(/(^|\s)(\S)/g,function(a,s,c){return s+c.toLocaleUpperCase(loc)}).slice(0,40);
   }
   function _merchant(lines){
-    for(var i=0;i<Math.min(lines.length,6);i++){
-      var l=lines[i].replace(/[^A-Za-zÇĞİÖŞÜçğıöşü0-9&.' -]/g,' ').replace(/\s+/g,' ').trim();
-      if((l.match(/[A-Za-zÇĞİÖŞÜçğıöşü]/g)||[]).length<3)continue;
-      if(/^(TAR[İI]H|SAAT|F[İI]Ş|VKN|V\.?D|TEL|ADRES|MERS[İI]S)/.test(_upper(l)))continue;
-      l=_upper(l).split(' ').filter(function(w){return w&&!LEGAL.test(w)}).join(' ');
-      if(l.length<2)continue;
-      // Türkçe harf yoksa (ör. "MIGROS") I → ı olmasın: İngilizce kuralla küçült
-      var loc=/[İŞĞÜÖÇ]/.test(l)?'tr-TR':'en-US';
-      return l.toLocaleLowerCase(loc).replace(/(^|\s)(\S)/g,function(a,s,c){return s+c.toLocaleUpperCase(loc)}).slice(0,40);
+    var cand=[];
+    for(var i=0;i<Math.min(lines.length,12);i++){
+      var l=lines[i].replace(/[^A-Za-zÇĞİÖŞÜçğıöşü0-9&.' -]/g,' ').replace(/\s+/g,' ').trim(),u=_upper(l);
+      var letters=(l.match(/[A-Za-zÇĞİÖŞÜçğıöşü]/g)||[]).length,vowels=(u.match(/[AEIİOÖUÜ]/g)||[]).length;
+      if(letters<4||vowels<1||letters<l.length*0.5||SKIP.test(u))continue;
+      var legal=/(^|\s)(A\.?\s?[ŞS]\.?|LTD|ŞT[İI]|T[İI]C|SAN|MA[ĞG]AZA|MARKET)/.test(u);
+      cand.push({i:i,l:l,score:(legal?10:0)-i});
     }
+    cand.sort(function(a,b){return b.score-a.score});
+    for(var c=0;c<cand.length;c++){var n=_cleanName(cand[c].l);if(n.replace(/[^A-Za-zÇĞİÖŞÜçğıöşü]/g,'').length>=3)return n}
     return '';
   }
   // Fiş metninden toplam/tarih/mağaza. Öncelik: GENEL TOPLAM > ÖDENECEK > TOPLAM (ara toplam ve KDV hariç) > ödeme satırı > en büyük "*" tutar
-  function parseText(text){
-    var lines=String(text||'').split(/\r?\n/).map(function(l){return l.trim()}).filter(Boolean),U=lines.map(function(l){return _fixNum(_upper(l))});
-    // OCR'ın sık karıştırdıkları: TOPLAM → T0PLAM / TOP1AM / TOPLAN, GENEL → GENE1
+  function _cands(U){
+    // OCR'ın sık karıştırdıkları: TOPLAM → T0PLAM / TOP1AM / TOPLAN, GENEL → GENE1, ÖDENECEK → DENECEK
     var TOP='T[O0Ö]P\\s?[LIİ1|]\\s?[AÄ4]\\s?[MN]';
-    var ranks=[[new RegExp('GENE[LI1]\\s*'+TOP),1],[/[ÖO0]DENECEK/,2],[new RegExp('(^|[^A-ZÇĞİÖŞÜ])TOP(\\.|\\s|$)|'+TOP),3],[/NAK[İI1]T|KRED[İI1]\s*KART|K\.?\s?KART|BANKA\s*KART|KART\s*[İI]LE|TUTAR/,4]],best=null;
-    // Aday tutarlar: her anahtar satırın son tutarı. Aynı tutar birden çok satırda geçiyorsa (TOPLAM ve KART/NAKİT) o seçilir
-    var cands=[];
+    var ranks=[[new RegExp('GENE[LI1]\\s*'+TOP),1],[/[ÖO0]?DENECEK|KDV\s*DAH[İI1]L\s*TUTAR/,2],[new RegExp('(^|[^A-ZÇĞİÖŞÜ])TOP(\\.|\\s|$)|'+TOP),3],[/NAK[İI1]T|KRED[İI1]\s*KART|K\.?\s?KART|BANKA\s*KART|KART\s*[İI]LE|TUTAR|D[İI1][ĞG]ER\s/,4]],cands=[];
     U.forEach(function(u,i){
-      if(/KDV|K[DO0]V\s*%|ARA\s*T[O0]P|PARA\s*ÜST|ÜSTÜ|İNDİRİM|INDIRIM|MATRAH|PUAN/.test(u))return;
+      var payable=ranks[0][0].test(u)||ranks[1][0].test(u);
+      // Vergi, ara toplam, para üstü satırları toplam değildir ("KDV Dahil Ödenecek" hariç)
+      if(!payable&&/K[DO0][VY]|TOPK|ARA\s*T[O0]P|PARA\s*ÜST|ÜSTÜ|İNDİRİM|INDIRIM|MATRAH|PUAN/.test(u))return;
       for(var k=0;k<ranks.length;k++){
         if(!ranks[k][0].test(u))continue;
-        var a=_amounts(u);if(!a.length&&U[i+1]&&!/KDV/.test(U[i+1]))a=_amounts(U[i+1]);
-        if(a.length)cands.push({rank:ranks[k][1],total:a[a.length-1]});
+        var a=_amounts(u,true);if(!a.length&&U[i+1]&&!/K[DO0]V/.test(U[i+1]))a=_amounts(U[i+1],true);
+        if(a.length){var last=a[a.length-1];cands.push({rank:ranks[k][1],total:last.v,star:last.star})}
         break;
       }
     });
-    cands.forEach(function(c){c.votes=cands.filter(function(o){return Math.abs(o.total-c.total)<0.005}).length});
+    return cands;
+  }
+  function _bestCand(cands){
+    var best=null;
+    cands.forEach(function(c){var same=cands.filter(function(o){return Math.abs(o.total-c.total)<0.005});c.votes=same.length;c.stars=same.filter(function(o){return o.star}).length});
     cands.forEach(function(c){
       // Nakit ödemede verilen para toplamdan büyük olabilir: ödeme satırı tek başına seçilmez, toplamla eşleşirse oy verir
       if(c.rank===4&&c.votes<2&&cands.some(function(o){return o.rank<4}))return;
-      if(!best||c.votes>best.votes||(c.votes===best.votes&&c.rank<best.rank))best=c;
+      // Oy > "*" işaretli okuma ("*411,33" ile "4411,33" arasında yıldızlı olan) > satır önceliği
+      if(!best||c.votes>best.votes||(c.votes===best.votes&&(c.stars>best.stars||(c.stars===best.stars&&c.rank<best.rank))))best=c;
     });
-    if(!best){var star=0;U.forEach(function(u){if(u.indexOf('*')>=0)_amounts(u).forEach(function(n){if(n>star)star=n})});if(star)best={rank:5,total:star}}
-    var merchant=_merchant(lines);
-    return{total:best?roundMoney(best.total):0,date:_date(U.join('\n')),merchant:merchant,category:guessCategory(merchant+'\n'+U.slice(0,8).join('\n')),items:[],confident:!!best&&(best.rank<=3||best.votes>=2)};
+    return best;
+  }
+  function parseText(text){
+    var lines=String(text||'').split(/\r?\n/).map(function(l){return l.trim()}).filter(Boolean),U=lines.map(function(l){return _fixNum(_upper(l))});
+    var cands=_cands(U),best=_bestCand(cands);
+    if(!best){var star=0;U.forEach(function(u){if(u.indexOf('*')>=0)_amounts(u).forEach(function(n){if(n>star)star=n})});if(star)best={rank:5,total:star,votes:1}}
+    var brand=_brand(lines.slice(0,Math.max(15,Math.ceil(lines.length*0.4))).join('\n'))||_brand(lines.join('\n'));
+    var merchant=brand?brand.name:_merchant(lines);
+    return{total:best?roundMoney(best.total):0,date:_date(U.join('\n')),dates:_dates(U.join('\n')),merchant:merchant,brand:!!brand,category:brand?brand.category:guessCategory(merchant+'\n'+U.slice(0,8).join('\n')),items:[],cands:cands,confident:!!best&&(best.rank<=3||best.votes>=2)};
+  }
+  // İki okumanın (siyah-beyaz ve gri) adaylarını birleştirir: iki okumada da aynı çıkan tutar/tarih daha güvenilir
+  function _merge(a,b){
+    var best=_bestCand((a.cands||[]).concat(b.cands||[])),r=Object.assign({},a);
+    if(best){r.total=roundMoney(best.total);r.confident=best.rank<=3||best.votes>=2}else if(!r.total&&b.total){r.total=b.total;r.confident=b.confident}
+    var both=(a.dates||[]).filter(function(d){return(b.dates||[]).indexOf(d)>=0});r.date=both[0]||a.date||b.date;
+    if(!a.brand&&b.brand){r.merchant=b.merchant;r.brand=true;r.category=b.category}else if(!r.merchant)r.merchant=b.merchant;
+    r.text=[a.text,b.text].filter(Boolean).join('\n----\n');
+    return r;
   }
   // e-Arşiv / e-Fatura karekodu: {"vkntckn":..,"tarih":"2026-09-28","odenecek":123.45,...}
   function parseQr(txt){
@@ -3877,12 +3942,11 @@ App.Receipt=(function(){
     return _qr(canvas).then(function(q){
       if(q)return q;
       return _ocrText(canvas,function(st,p){progress(st,p*0.5)},'bin').then(function(t1){
-        var a=parseText(t1);a.text=t1;if(a.confident&&a.date)return a;
-        return _ocrText(canvas,function(st,p){progress(st,0.5+p*0.5)},'gray').then(function(t2){
-          var b=parseText(t2);b.text=t2;
-          var pick=(b.confident&&!a.confident)||(b.confident===a.confident&&!a.total&&b.total)?b:a;
-          if(!pick.date)pick.date=a.date||b.date;return pick;
-        });
+        var a=parseText(t1);a.text=t1;
+        // Çok emin değilse (iki satırda aynı yıldızlı toplam + tarih + tanınan mağaza) gri tonla bir kez daha okunur
+        var sure=a.cands&&a.cands.some(function(c){return Math.abs(c.total-a.total)<0.005&&c.star})&&(_bestCand(a.cands)||{}).votes>=2&&a.date&&a.brand;
+        if(sure)return a;
+        return _ocrText(canvas,function(st,p){progress(st,0.5+p*0.5)},'gray').then(function(t2){var b=parseText(t2);b.text=t2;return _merge(a,b)});
       });
     });
   }
@@ -4101,7 +4165,7 @@ App.Receipt=(function(){
     div.querySelectorAll('[data-money]').forEach(function(el){el.addEventListener('input',function(){moneyHint(el)})});
     App.UI.mountModal(div,'[data-rk="amount"]');
   }
-  return{open:open,scan:scan,pick:_pick,onFile:onFile,_readCanvas:_readCanvas,parseText:parseText,parseQr:parseQr,guessCategory:guessCategory,review:review};
+  return{open:open,scan:scan,pick:_pick,onFile:onFile,_readCanvas:_readCanvas,_debug:{merge:function(a,b){return _merge(a,b)},prep:function(c,m){return _prep(c,m)},ocr:function(c,m){return _ocrText(c,function(){},m)},pdfLib:_pdfLib},parseText:parseText,parseQr:parseQr,guessCategory:guessCategory,review:review};
 })();
 
 App.Categories=(function(){

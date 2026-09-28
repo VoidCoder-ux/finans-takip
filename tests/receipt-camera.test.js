@@ -51,7 +51,7 @@ srv.listen(0,'127.0.0.1',async()=>{
   let pass=0,fail=0;const eq=(l,a,e)=>{const ok=JSON.stringify(a)===JSON.stringify(e);ok?pass++:fail++;console.log((ok?'✓':'✗')+' '+l+' => '+JSON.stringify(a)+(ok?'':' (expected '+JSON.stringify(e)+')'))};
   eq('live camera reads e-Arşiv QR automatically',out.qr,['523,40','2026-09-20','✓ Fişin karekodundan okundu.',false]);
   eq('camera stopped after QR',out.streamStopped,true);
-  eq('shot without QR goes through text recognition',out.shot,['331,50','2026-09-26','Bim Birleşik Mağazalar','Market']);
+  eq('shot without QR goes through text recognition',out.shot,['331,50','2026-09-26','BİM','Market']);
   eq('camera denied falls back to photo picker',out.denyFallback,[1,false]);
   eq('Escape closes the scanner',out.escClosed,true);
   eq('no page errors',errs,[]);
