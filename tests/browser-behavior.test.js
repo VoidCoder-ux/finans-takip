@@ -617,16 +617,25 @@ async function runReceipt() {
     var e = P(['A101 YENİ MAĞAZACILIK', '12.O9.2026', 'SU *15,OO', 'T0PLAM *29O,4O', 'KREDİ KARTI *290,40'].join('\n'));
     var f = P(['BAKKAL', 'EKMEK *12,50', 'NAKİT *200,00', 'TOPLAM *112,50', 'PARA ÜSTÜ *87,50'].join('\n'));
     window.__qcExtra = [[e.total, e.date, e.confident], [f.total]];
+    // Gerçek taranmış fişlerden (iPhone Dosyalar > Belgeleri Tara) yazı tanıma çıktıları: mağaza adı bozuk, "*" → "4", KDV'li ödenecek satırı
+    var bimBin = P(['AYSA;', 'E-Arsiv atura', 'BIN BİRLESİK YALAZALAR A.S.', 'DUTLU ÇE WH. KARACAOCLAN CD. ANA APT.', '12.08.2026 17:56            Sira No : 58', 'GAZOZ 2.5 L ULUDAĞ — $10        4145.00', 'TOPLAN KDV               116,13', 'denecek KOY Dahil Tutar        4411.33', 'Banka Kredi Kartı (1)          4411,33'].join('\n'));
+    var bimGray = P(['E-Ârsiv atura', 'BIN BİRLESİK MALAZALAR A.S,', '12.08.2026 17:56            Sira No : 58', 'TOPLAN KOV |               “16,13', 'Ödenecek KDV Dahil Tutar        *411,33', 'Banka Kredi Kartı (1)          *411,33'].join('\n'));
+    var bim = App.Receipt._debug.merge(bimBin, bimGray);
+    var a101 = P(['Maz Adi :Dutlubahce Antol / Maz Kodu:3305', 'ALO1 YENİ MAGAZALCILIK R.S.', 'Dutlubahçe Mah.Fatih -ed.', 'TARIH 21 09 2026', 'SAAT     15:14', 'TÜR : E-ARSIV FATURA', 'TOPKOV            OT 83.06', 'TOPLAM                :    :     X1005,80', 'DİĞER                          *1005,80', 'A101 Hediye Ceki'].join('\n'));
+    window.__real = [[bimBin.merchant, bimBin.category], [bim.total, bim.date, bim.merchant, bim.category], [a101.total, a101.date, a101.merchant, a101.category]];
     var q = App.Receipt.parseQr('{"vkntckn":"1234567890","tarih":"2026-09-20","odenecek":"523.40","parabirimi":"TRY"}');
     return [[a.total, a.date, a.merchant, a.category, a.confident], [b.total, b.date, b.merchant, b.category], [c.total, c.date, c.category], [d.total, d.confident], [q && q.total, q && q.date], App.Receipt.parseQr('https://example.com')];
   });
   eq('receipt text: total, date, merchant, category', res[0], [296.4, '2026-09-27', 'Migros', 'Market', true]);
-  eq('receipt text: GENEL TOPLAM with thousands, not KDV/ARA TOPLAM', res[1], [1234.56, '2026-09-14', 'Opet Petrolcülük', 'Ulaşım']);
+  eq('receipt text: GENEL TOPLAM with thousands, not KDV/ARA TOPLAM', res[1], [1234.56, '2026-09-14', 'Opet', 'Ulaşım']);
   eq('receipt text: amount on the line after TOPLAM, 2-digit year', res[2], [45.5, '2026-09-05', 'Sağlık']);
   eq('receipt text: nothing readable', res[3], [0, false]);
   eq('e-Arşiv QR read, other QR ignored', [res[4], res[5]], [[523.4, '2026-09-20'], null]);
   eq('OCR letter/digit mix-ups and card line agree (T0PLAM *29O,4O)', await p.evaluate(function() { return window.__qcExtra[0]; }), [290.4, '2026-09-12', true]);
   eq('cash handed over is not taken as the total', await p.evaluate(function() { return window.__qcExtra[1]; }), [112.5]);
+  eq('garbled chain name recognised (BİM), e-Arşiv "Fatura" header is not Faturalar', await p.evaluate(function() { return window.__real[0]; }), ['BİM', 'Market']);
+  eq('two OCR passes merged: starred *411,33 beats misread 4411,33', await p.evaluate(function() { return window.__real[1]; }), [411.33, '2026-08-12', 'BİM', 'Market']);
+  eq('A101: garbled name, space-separated date, TOPKDV skipped', await p.evaluate(function() { return window.__real[2]; }), [1005.8, '2026-09-21', 'A101', 'Market']);
   // Kontrol penceresi → gider kaydı (hesap bakiyesi, kişi, kategori)
   await p.evaluate(function() { App.Receipt.review({ total: 296.4, date: td(), merchant: 'Migros', category: 'Market', items: [{ name: 'Süt', amount: 34.9 }], confident: true }, 'ai'); });
   eq('review modal pre-filled', await p.evaluate(function() { var h = document.getElementById('rcpReview'); return [h.querySelector('[data-rk="amount"]').value, h.querySelector('[data-rk="category"]').value, h.querySelector('[data-rk="userId"]').value, h.querySelectorAll('.rcp-items div').length]; }), ['296,40', 'Market', 'u_self', 1]);

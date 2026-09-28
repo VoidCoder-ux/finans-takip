@@ -58,7 +58,7 @@ srv.listen(0, '127.0.0.1', async () => {
       const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9)); const buf = new Uint8Array(await blob.arrayBuffer()); let s = ''; for (let i = 0; i < buf.length; i++) s += String.fromCharCode(buf[i]); return { b64: btoa(s), w: c.width, h: c.height };
     }).then(r => { jpegSize = r; return r.b64; }), 'base64');
     const i = await open(imagePdf(jpeg, jpegSize.w, jpegSize.h));
-    eq('scanned image-only PDF read by text recognition', i, ['332,45', '2026-09-05', 'Şok Marketler', '📱', true]);
+    eq('scanned image-only PDF read by text recognition', i, ['332,45', '2026-09-05', 'ŞOK', '📱', true]);
     // 3) Bozuk dosya
     await p.evaluate(() => { App.UI.closeModal('rcpReview'); window.__t = []; const o = App.UI.toast; App.UI.toast = (m, k) => { window.__t.push(k); o(m, k); }; App.Receipt.onFile({ files: [new File([new Uint8Array([1, 2, 3])], 'bozuk.pdf', { type: 'application/pdf' })] }); });
     await p.waitForFunction(() => window.__t.includes('err'), null, { timeout: 30000 }).catch(() => {});
