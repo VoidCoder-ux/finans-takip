@@ -486,6 +486,37 @@ async function runMergeCases() {
   await r.ctx.close();
 }
 
+// Tekrarlayan işlemde "Kimin?": eşin maaşı eşe yazılır; yanlış kişiyle eklenmişse geçmiş kayıtlarla birlikte düzeltilir
+async function runRecurringOwner() {
+  var A = 'a1700000000000_rrrr';
+  var r = await openApp({ pf_a: [acc(A, 'Banka', 'bank', 0)] });
+  var p = r.page;
+  await p.evaluate(function() { App.UI.nav('tekrarlayan'); });
+  eq('recurring form lists family members', await p.evaluate(function() { return Array.prototype.map.call(document.querySelectorAll('#recUser option'), function(o) { return o.value; }); }), ['u_self', 'u_partner']);
+  await p.selectOption('#recType', 'income');
+  await p.fill('#recAmt', '50000');
+  await p.selectOption('#recCat', 'Maaş');
+  await p.fill('#recDay', '1');
+  await p.fill('#recNote', 'Eşimin maaşı');
+  await p.selectOption('#recUser', 'u_partner');
+  await p.evaluate(function() { App.Recurring.add(); });
+  var rid = await p.evaluate(function() { return S.recurring()[0].id; });
+  eq('recurring saved for chosen member', await p.evaluate(function() { return S.recurring()[0].userId; }), 'u_partner');
+  eq('member name visible on recurring card', (await p.textContent('#recList')).indexOf('Eş') >= 0, true);
+  await p.evaluate(function(id) { App.Recurring.log(id); }, rid);
+  var stats = await p.evaluate(function() { return [App.Users.stats('u_self').income, App.Users.stats('u_partner').income, S.txns()[0].userId]; });
+  eq('logged salary counts for spouse, not for me', stats, [0, 50000, 'u_partner']);
+  // Yanlışlıkla bana yazılmış eski maaş: düzenle → Eş, geçmiş kayıtlar da düzelsin
+  await p.evaluate(function(a) {
+    var rec = S.recurring(); rec.push({ id: 'r1700000000000_wrng', type: 'income', amount: 30000, category: 'Maaş', day: 5, note: 'Eski kayıt', accountId: a, userId: 'u_self', isSubscription: false, active: true, ts: 1 }); S.saveRecurring(rec);
+    var t = S.txns(); t.push({ id: 't1700000000000_wrg1', type: 'income', amount: 30000, category: 'Maaş', date: '2026-01-05', note: 'Eski kayıt', accountId: a, userId: 'u_self', recurringId: 'r1700000000000_wrng', ts: 1, balanceApplied: true }); S.saveTxns(t);
+    App.Recurring.edit('r1700000000000_wrng');
+  }, A);
+  await submitPrompt(p, { userId: 'u_partner', pastUser: '1' });
+  eq('editing owner fixes past logged transactions', await p.evaluate(function() { return [S.recurring().find(function(x) { return x.id === 'r1700000000000_wrng'; }).userId, S.txns().find(function(t) { return t.id === 't1700000000000_wrg1'; }).userId]; }), ['u_partner', 'u_partner']);
+  await r.ctx.close();
+}
+
 server.listen(0, '127.0.0.1', async function() {
   base = 'http://127.0.0.1:' + server.address().port;
   try {
@@ -494,6 +525,7 @@ server.listen(0, '127.0.0.1', async function() {
     await runAudit3b();
     await runAudit4();
     await runMergeCases();
+    await runRecurringOwner();
   } catch (e) {
     fail++;
     console.log('✗ test run crashed: ' + (e && e.stack || e));

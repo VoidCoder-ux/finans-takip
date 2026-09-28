@@ -582,9 +582,10 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
       <div class="f"><label>Kategori</label><select id="recCat"></select></div>
       <div class="f"><label>Her Ayın Kaçında</label><input type="number" id="recDay" placeholder="1-31" min="1" max="31"/></div>
     </div>
-    <div class="fg c2" style="margin-bottom:11px">
+    <div class="fg c3" style="margin-bottom:11px">
+      <div class="f"><label>Kimin?</label><select id="recUser"></select></div>
       <div class="f"><label>Hesap</label><select id="recAccount"></select></div>
-      <div class="f"><label>Açıklama</label><input type="text" id="recNote" placeholder="Örn: Elektrik faturası"/></div>
+      <div class="f"><label>Açıklama</label><input type="text" id="recNote" placeholder="Örn: Maaş, Elektrik faturası"/></div>
     </div>
     <label class="sub-check"><input type="checkbox" id="recIsSub"/> <span>📺 Abonelik (Netflix, Spotify vb.) — kolay iptal takibi için işaretleyin</span></label>
     <label class="sub-check"><input type="checkbox" id="recAuto"/> <span>⚡ Vadesinde otomatik kaydet — uygulama açıldığında, günü gelmiş ödemeyi kendiliğinden işler</span></label>
@@ -1194,7 +1195,7 @@ App.UI=(function(){
   function refreshUserSelects(){
     var users=S.settings().users||[],active=S.settings().activeUser;
     var uopts=users.map(function(u){return'<option value="'+u.id+'"'+(u.id===active?' selected':'')+'>'+esc(u.emoji||'🙋')+' '+esc(u.name)+'</option>'}).join('');
-    ['txnUser','accUser'].forEach(function(id){var el=document.getElementById(id);if(el){var prev=el.value;el.innerHTML=uopts;if(prev)el.value=prev}});
+    ['txnUser','accUser','recUser'].forEach(function(id){var el=document.getElementById(id);if(el){var prev=el.value;el.innerHTML=uopts;if(prev)el.value=prev}});
     var fu=document.getElementById('fUser');
     if(fu)fu.innerHTML='<option value="">Tüm Üyeler</option>'+users.map(function(u){return'<option value="'+u.id+'">'+esc(u.emoji||'🙋')+' '+esc(u.name)+'</option>'}).join('')+'<option value="__shared__">👨‍👩‍👧 Sadece Ortak</option>';
   }
@@ -1772,7 +1773,7 @@ App.Recurring=(function(){
     var isSub=!!document.getElementById('recIsSub').checked,auto=!!(document.getElementById('recAuto')||{}).checked,sel=(document.getElementById('recAccount')||{}).value||'';
     if(amt===null){App.UI.toast('Geçerli tutar girin.','err');return}if(!day||day<1||day>31){App.UI.toast('Geçerli gün girin (1-31).','err');return}
     var acc=sel?App.Accounts.get(sel):App.Accounts.sharedAccount();if(!acc){App.UI.toast('Önce hesap oluşturun.','err');return}
-    var arr=S.recurring();arr.push({id:gid('r'),type,amount:amt,category:cat,day,note,accountId:acc.id,userId:S.settings().activeUser,isSubscription:isSub,active:true,autoLog:auto,autoFrom:auto?tm():'',ts:Date.now()});S.saveRecurring(arr);
+    var arr=S.recurring();arr.push({id:gid('r'),type,amount:amt,category:cat,day,note,accountId:acc.id,userId:(document.getElementById('recUser')||{}).value||S.settings().activeUser,isSubscription:isSub,active:true,autoLog:auto,autoFrom:auto?tm():'',ts:Date.now()});S.saveRecurring(arr);
     document.getElementById('recAmt').value='';document.getElementById('recNote').value='';document.getElementById('recDay').value='';document.getElementById('recIsSub').checked=false;if(document.getElementById('recAuto'))document.getElementById('recAuto').checked=false;
     _rerender();App.UI.toast(isSub?'Abonelik eklendi. 📺':'Tekrarlayan işlem eklendi.');
   }
@@ -1795,6 +1796,8 @@ App.Recurring=(function(){
       {key:'amount',label:'Tutar (₺)',type:'number',value:r.amount},
       {key:'category',label:'Kategori',type:'select',value:r.category,options:cats.map(function(c){return{value:c,label:ci(c).i+' '+c}})},
       {key:'day',label:'Her ayın kaçında (1-31)',type:'number',step:'1',value:r.day},
+      {key:'userId',label:'Kimin?',type:'select',value:r.userId||'',options:App.Users.list().map(function(u){return{value:u.id,label:(u.emoji||'🙋')+' '+u.name}}).concat(r.userId&&App.Users.get(r.userId)?[]:[{value:'',label:'— Belirtilmemiş —'}])},
+      {key:'pastUser',label:'Daha önce kaydedilenler',type:'select',value:'1',options:[{value:'1',label:'Kişi değiştiyse onları da düzelt'},{value:'0',label:'Dokunma, sadece bundan sonrası'}]},
       {key:'accountId',label:'Hesap',type:'select',value:_account(r)?_account(r).id:'',options:accs.length?accs:[{value:'',label:'— Hesap yok —'}]},
       {key:'note',label:'Açıklama',value:r.note||''},
       {key:'autoLog',label:'Otomatik kaydet',type:'select',value:r.autoLog?'1':'0',options:[{value:'0',label:'Kapalı — "Kaydet" ile elle'},{value:'1',label:'Açık — günü gelince kendiliğinden'}]}]},function(v){
@@ -1805,7 +1808,12 @@ App.Recurring=(function(){
       var arr=S.recurring(),x=arr.find(function(y){return y.id===id});if(!x)return;
       x.type=v.type==='income'?'income':'expense';x.amount=amt;x.category=String(v.category||'Diğer').slice(0,80);x.day=day;x.accountId=v.accountId;x.note=String(v.note||'').trim().slice(0,300);
       var auto=v.autoLog==='1';if(auto&&!x.autoLog)x.autoFrom=tm();x.autoLog=auto;
-      S.saveRecurring(arr);_rerender();App.UI.toast('Tekrarlayan güncellendi.');
+      var newUser=v.userId&&App.Users.get(v.userId)?v.userId:'',fixed=0;
+      if(newUser!==(x.userId||'')&&v.pastUser==='1'){var txns=S.txns();txns.forEach(function(t){if(t.recurringId===id&&t.userId!==newUser){t.userId=newUser;fixed++}});if(fixed)S.saveTxns(txns)}
+      x.userId=newUser;
+      S.saveRecurring(arr);_rerender();
+      if(fixed){App.Transactions.renderList();App.Transactions.renderRecent();App.Users.renderAll();App.Users.renderFamilyPanel()}
+      App.UI.toast('Tekrarlayan güncellendi.'+(fixed?' '+fixed+' geçmiş kayıt da düzeltildi.':''));
     });
   }
   function _logFor(rec,month,silent){
@@ -1847,9 +1855,9 @@ App.Recurring=(function(){
     var info=ci(r.category),sign=r.type==='income'?'+':'-',paused=r.active===false,logged=!paused&&_loggedIn(r,tm());
     var sb=r.isSubscription?'<span class="sub-badge">📺 Abonelik</span>':'';
     var subBtn=lb?'<button class="btn btn-sm btn-ghost" style="padding:4px 10px;font-size:.7rem" onclick="App.Recurring.toggleSub(\''+r.id+'\')" title="Abonelik olarak işaretle">'+(r.isSubscription?'📺✓':'📺')+'</button>':'';
-    var u=r.userId?App.Users.get(r.userId):null,userMeta=u?' · '+esc(u.emoji||'🙋')+' '+esc(u.name):'';
+    var u=r.userId?App.Users.get(r.userId):null,userMeta='',userTag=u?'<span class="user-tag" style="margin-left:0;margin-right:5px;background:'+safeColor(u.color)+'22;color:'+inkColor(u.color)+'"><span class="ue">'+esc(u.emoji||'🙋')+'</span>'+esc(u.name)+'</span>':'<span class="user-tag" style="margin-left:0;margin-right:5px">Kişi seçilmemiş</span>';
     var acc=_account(r),accMeta=acc?' · '+esc(acc.name):'';
-    var status=(paused?'<span class="rec-status">⏸ Duraklatıldı</span>':logged?'<span class="rec-status" style="color:var(--green)">✓ Bu ay kaydedildi</span>':'')+(r.autoLog&&!paused?' <span class="rec-status" style="color:var(--teal)">⚡ Otomatik</span>':'');
+    var status=userTag+(paused?'<span class="rec-status">⏸ Duraklatıldı</span>':logged?'<span class="rec-status" style="color:var(--green)">✓ Bu ay kaydedildi</span>':'')+(r.autoLog&&!paused?' <span class="rec-status" style="color:var(--teal)">⚡ Otomatik</span>':'');
     var logBtn=lb&&!paused?'<button class="btn-log" onclick="App.Recurring.log(\''+r.id+'\')">Kaydet</button>':'';
     var btns=lb?'<div class="rec-actions">'+subBtn+'<button class="btn-del" title="'+(paused?'Devam ettir':'Duraklat')+'" aria-label="'+(paused?'Devam ettir':'Duraklat')+'" onclick="App.Recurring.togglePause(\''+r.id+'\')">'+(paused?'▶':'⏸')+'</button><button class="btn-del" title="Düzenle" aria-label="Düzenle" onclick="App.Recurring.edit(\''+r.id+'\')">✎</button><button class="btn-del" title="Sil" aria-label="Sil" onclick="App.Recurring.remove(\''+r.id+'\')">✕</button></div>':'';
     return'<div class="rec-item'+(paused?' paused':'')+'"><div class="rec-day"><span style="font-size:.6rem;color:var(--txt2)">Her</span><span class="rec-day-num">'+r.day+'</span></div><div class="cat-ico '+info.c+'" style="width:38px;height:38px;border-radius:11px;font-size:1.1rem;flex-shrink:0">'+info.i+'</div><div class="rec-body"><div class="rec-name">'+esc(r.note||r.category)+sb+'</div><div class="rec-meta">'+esc(r.category)+' · Her ayın '+r.day+'. günü'+accMeta+userMeta+'</div>'+status+'</div><div class="rec-right"><div class="rec-amt '+r.type+'">'+sign+fmt(r.amount)+'</div>'+logBtn+'</div>'+btns+'</div>'
