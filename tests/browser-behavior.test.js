@@ -603,6 +603,35 @@ async function runDeviceProfile() {
   await r.ctx.close();
 }
 
+// Fiş okutma: telefonda okunan metinden toplam/tarih/mağaza/kategori, karekod, kontrol penceresinden gider kaydı
+async function runReceipt() {
+  var A = 'a1700000000000_rcpt';
+  var r = await openApp({ pf_a: [acc(A, 'Banka', 'bank', 1000)] });
+  var p = r.page;
+  var res = await p.evaluate(function() {
+    var P = App.Receipt.parseText;
+    var a = P(['MİGROS TİCARET A.Ş.', 'ATAŞEHİR MAĞAZASI', 'TARİH : 27.09.2026 SAAT : 18:42', 'FİŞ NO : 0042', 'SÜT 1L *34,90', 'EKMEK *12,50', 'DETERJAN 3KG *249,00', 'TOPKDV *25,76', 'TOPLAM *296,40', 'NAKİT *300,00', 'PARA ÜSTÜ *3,60'].join('\n'));
+    var b = P(['OPET PETROLCÜLÜK A.Ş.', 'TARİH 14/09/2026', 'KURŞUNSUZ 95 40,12 LT', 'ARA TOPLAM 1.100,00', 'KDV 134,56', 'GENEL TOPLAM 1.234,56', 'KREDİ KARTI 1.234,56'].join('\n'));
+    var c = P(['ECZANE ŞİFA', '05.09.26 10:12', 'İLAÇ *45,50', 'TOPLAM', '*45,50'].join('\n'));
+    var d = P('bulanık yazı\nhiç tutar yok');
+    var q = App.Receipt.parseQr('{"vkntckn":"1234567890","tarih":"2026-09-20","odenecek":"523.40","parabirimi":"TRY"}');
+    return [[a.total, a.date, a.merchant, a.category, a.confident], [b.total, b.date, b.merchant, b.category], [c.total, c.date, c.category], [d.total, d.confident], [q && q.total, q && q.date], App.Receipt.parseQr('https://example.com')];
+  });
+  eq('receipt text: total, date, merchant, category', res[0], [296.4, '2026-09-27', 'Migros', 'Market', true]);
+  eq('receipt text: GENEL TOPLAM with thousands, not KDV/ARA TOPLAM', res[1], [1234.56, '2026-09-14', 'Opet Petrolcülük', 'Ulaşım']);
+  eq('receipt text: amount on the line after TOPLAM, 2-digit year', res[2], [45.5, '2026-09-05', 'Sağlık']);
+  eq('receipt text: nothing readable', res[3], [0, false]);
+  eq('e-Arşiv QR read, other QR ignored', [res[4], res[5]], [[523.4, '2026-09-20'], null]);
+  // Kontrol penceresi → gider kaydı (hesap bakiyesi, kişi, kategori)
+  await p.evaluate(function() { App.Receipt.review({ total: 296.4, date: td(), merchant: 'Migros', category: 'Market', items: [{ name: 'Süt', amount: 34.9 }], confident: true }, 'ai'); });
+  eq('review modal pre-filled', await p.evaluate(function() { var h = document.getElementById('rcpReview'); return [h.querySelector('[data-rk="amount"]').value, h.querySelector('[data-rk="category"]').value, h.querySelector('[data-rk="userId"]').value, h.querySelectorAll('.rcp-items div').length]; }), ['296,40', 'Market', 'u_self', 1]);
+  await p.evaluate(function() { var h = document.getElementById('rcpReview'); h.querySelector('[data-rk="amount"]').value = 'abc'; h.querySelector('[data-act="ok"]').click(); });
+  eq('invalid amount keeps review open', await p.evaluate(function() { return !!document.getElementById('rcpReview'); }), true);
+  await p.evaluate(function() { var h = document.getElementById('rcpReview'); h.querySelector('[data-rk="amount"]').value = '296,40'; h.querySelector('[data-act="ok"]').click(); });
+  eq('receipt saved as expense and balance updated', await p.evaluate(function(a) { var t = S.txns()[0]; return [!!document.getElementById('rcpReview'), t.type, t.amount, t.category, t.note, t.accountId === a, t.userId, S.accounts()[0].balance]; }, A), [false, 'expense', 296.4, 'Market', 'Migros — Süt', true, 'u_self', 703.6]);
+  await r.ctx.close();
+}
+
 server.listen(0, '127.0.0.1', async function() {
   base = 'http://127.0.0.1:' + server.address().port;
   try {
@@ -614,6 +643,7 @@ server.listen(0, '127.0.0.1', async function() {
     await runRecurringOwner();
     await runQC();
     await runDeviceProfile();
+    await runReceipt();
   } catch (e) {
     fail++;
     console.log('✗ test run crashed: ' + (e && e.stack || e));

@@ -23,6 +23,14 @@ CREATE TABLE IF NOT EXISTS push_subs (
 
 CREATE INDEX IF NOT EXISTS push_subs_vault ON push_subs(vault_id);
 
+-- Fiş okuma (yapay zekâ) günlük kullanım sayacı: kasa başına sınır; fotoğraf saklanmaz
+CREATE TABLE IF NOT EXISTS receipt_usage (
+  vault_id    TEXT NOT NULL,
+  day         TEXT NOT NULL,             -- YYYY-MM-DD (İstanbul)
+  n           INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (vault_id, day)
+);
+
 -- Herkese açık piyasa verileri (kur, altın, fon fiyatları, TÜFE); kişisel veri yok
 CREATE TABLE IF NOT EXISTS market (
   key         TEXT PRIMARY KEY,          -- 'rates' | 'funds' | 'cpi'

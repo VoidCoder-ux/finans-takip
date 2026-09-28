@@ -103,6 +103,7 @@ srv.listen(0, async () => {
     const page = await ctx.newPage();
     page.on('pageerror', e => report.errors.push(vname + '/' + theme + ' pageerror: ' + e.message));
     page.on('console', m => { if (m.type() === 'error') report.errors.push(vname + '/' + theme + ' console: ' + m.text()); });
+    page.on('response', r => { if (r.status() >= 400) report.errors.push(vname + '/' + theme + ' http ' + r.status() + ': ' + r.url()); });
     page.on('requestfailed', r => { if (!/truncgil|frankfurter|deepseek/.test(r.url())) report.errors.push(vname + '/' + theme + ' requestfailed: ' + r.url()); });
     await page.goto(base);
     const sd = seed(); sd.pf_s.theme = theme;
