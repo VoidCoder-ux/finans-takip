@@ -137,6 +137,44 @@ srv.listen(0, async () => {
     }
     await ctx.close();
   }
+  // Dokunma engeli: görünen her düğme/alan ekranın ortasına kaydırılır ve ortasına dokunulunca gerçekten kendisi mi yakalıyor bakılır.
+  // Yüksek çözünürlüklü telefon (dpr 3) + yeni kullanıcı verisi (grafik yerine mesaj çizilir) + sayfalar arası birkaç gidiş-dönüş.
+  report.blocked = [];
+  {
+    const fresh = () => { const sd = seed(); sd.pf_t = []; sd.pf_nw = []; sd.pf_p = []; sd.pf_d = []; sd.pf_g = [];
+      sd.pf_r = [{ id: 'r1700000000000_s001', type: 'income', amount: 60000, category: 'Maaş', day: 15, note: 'Maaşım', accountId: 'a1700000000000_bank', userId: 'u_self', active: true, ts: 1 },
+        { id: 'r1700000000000_s002', type: 'income', amount: 45000, category: 'Maaş', day: 20, note: 'Eşimin maaşı', accountId: 'a1700000000000_bank', userId: 'u_partner', active: true, ts: 2 }]; return sd; };
+    for (const [dname, dev] of [['iphone', { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true }], ['desktop2x', { viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 }]])
+      for (const [sname, sd] of [['dolu', seed()], ['yeni', fresh()]]) {
+        const ctx = await browser.newContext(Object.assign({ serviceWorkers: 'block' }, dev)); const page = await ctx.newPage();
+        page.on('pageerror', e => report.errors.push(dname + '/' + sname + ' pageerror: ' + e.message));
+        await page.route(/truncgil|frankfurter/, r => r.abort());
+        await page.goto(base); await page.evaluate(sd => { localStorage.clear(); Object.keys(sd).forEach(k => localStorage.setItem(k, JSON.stringify(sd[k]))); }, sd);
+        await page.reload(); await page.waitForTimeout(500);
+        for (let round = 0; round < 2; round++) for (const pg of pages) {
+          await page.evaluate(pg => { document.querySelectorAll('.toast').forEach(t => t.remove()); App.UI.nav(pg); if (pg === 'ozet') App.Inflation.setMode(App.Inflation.getMode()); }, pg);
+          await page.waitForTimeout(pg === 'istatistikler' ? 500 : 120);
+          if (round === 0) continue;
+          const bad = await page.evaluate(() => {
+            const out = [], root = document.querySelector('.page.active');
+            const desc = el => el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (typeof el.className === 'string' && el.className ? '.' + el.className.trim().split(/\s+/)[0] : '') + ' "' + (el.innerText || el.value || el.getAttribute('aria-label') || '').trim().slice(0, 24).replace(/\s+/g, ' ') + '"';
+            root.querySelectorAll('button,a,[onclick],select,input:not([type=hidden]),textarea').forEach(el => {
+              if (el.closest('[hidden],.sec-collapsed') || el.disabled) return;
+              const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || cs.pointerEvents === 'none') return;
+              el.scrollIntoView({ block: 'center', inline: 'center' }); const r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return;
+              const x = Math.min(innerWidth - 1, Math.max(0, r.left + r.width / 2)), y = Math.min(innerHeight - 1, Math.max(0, r.top + r.height / 2));
+              const hit = document.elementFromPoint(x, y);
+              if (!hit || hit === el || el.contains(hit) || hit.contains(el) && hit.tagName === 'LABEL' || (el.labels && [...el.labels].some(l => l.contains(hit)))) return;
+              if (hit.closest('.bottom-nav,.fab,.mob-header,.topbar')) return; // sabit gezinme çubukları (kaydırılabilir alanın kenarı)
+              out.push(desc(el) + ' ⟵ ' + desc(hit));
+            });
+            window.scrollTo(0, 0); return out;
+          });
+          bad.forEach(b => report.blocked.push(dname + '/' + sname + '/' + pg + ': ' + b));
+        }
+        await ctx.close();
+      }
+  }
   // İşlevsel: ICS, rapor HTML, CSV gidiş-dönüş, çevrimdışı açılış
   {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -178,8 +216,9 @@ srv.listen(0, async () => {
   const sm = agg('small'); console.log('SMALL (mobile)', Object.keys(sm).length); Object.entries(sm).slice(0, 40).forEach(([x, ks]) => console.log('  ', x, '×' + ks.length, ks[0]));
   const ct = agg('contrast'); console.log('CONTRAST', Object.keys(ct).length); Object.entries(ct).sort((a, b) => b[1].length - a[1].length).slice(0, 40).forEach(([x, ks]) => console.log('  ', x, '×' + ks.length, ks[0]));
   console.log('MODALS'); Object.entries(report.modals).forEach(([k, v]) => { const b = v.box; const bad = b.missing || b.top < -1 || b.bottom > b.vh + 1 || b.left < -1 || b.right > b.vw + 1; if (bad || v.noName.length || v.noLabel.length || v.wide.length) console.log('  ', k, JSON.stringify(b), v.noName.slice(0, 3), v.noLabel.slice(0, 3), v.wide.slice(0, 3)); });
+  console.log('BLOCKED (dokunulamayan)', report.blocked.length); report.blocked.slice(0, 40).forEach(x => console.log('  ', x));
   console.log('FUNCTIONAL'); report.functional.forEach(x => console.log('  ', x));
-  const issues = report.errors.length + Object.values(report.pages).reduce((n, v) => n + (v.overflowX > 1 ? 1 : 0) + v.wide.length + v.small.length + v.contrast.length + v.noName.length + v.noLabel.length + v.dupIds.length, 0)
+  const issues = report.errors.length + report.blocked.length + Object.values(report.pages).reduce((n, v) => n + (v.overflowX > 1 ? 1 : 0) + v.wide.length + v.small.length + v.contrast.length + v.noName.length + v.noLabel.length + v.dupIds.length, 0)
     + Object.values(report.modals).filter(v => { const b = v.box; return b.missing || b.top < -1 || b.bottom > b.vh + 1 || b.left < -1 || b.right > b.vw + 1 || v.noName.length || v.noLabel.length || v.wide.length; }).length;
   console.log('\n' + (issues ? issues + ' sorun bulundu' : 'Sorun bulunmadı'));
   process.exit(issues ? 1 : 0);
