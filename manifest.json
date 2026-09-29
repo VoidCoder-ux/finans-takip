@@ -1,7 +1,7 @@
 {
-  "name": "Finans Takip",
-  "short_name": "Finans",
-  "description": "Kişisel finans takip uygulaması",
+  "name": "Aile Kasası",
+  "short_name": "Aile Kasası",
+  "description": "Aile bütçesi: gelir, gider, borç ve birikim takibi",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#080d1a",
@@ -19,6 +19,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [

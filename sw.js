@@ -1,11 +1,13 @@
-const CACHE = 'finanstakip-v11';
+const CACHE = 'finanstakip-v12';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './vendor/chart.umd.min.js',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './icons/apple-touch-icon.png',
+  './icons/favicon-32.png'
 ];
 
 self.addEventListener('install', function(e) {
