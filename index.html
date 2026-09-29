@@ -4,13 +4,15 @@
 <meta charset="UTF-8"/>
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https: wss:; worker-src 'self'; object-src 'none'; base-uri 'self'"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
-<title>Finans Takip</title>
+<title>Aile Kasası</title>
 <link rel="manifest" href="manifest.json"/>
-<link rel="apple-touch-icon" href="icons/icon-192.png"/>
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png"/>
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png"/>
 <meta name="theme-color" content="#14b8a6"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="Finans"/>
+<meta name="apple-mobile-web-app-title" content="Aile Kasası"/>
+<meta name="application-name" content="Aile Kasası"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <style>
 :root{
@@ -40,6 +42,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .sidebar{width:220px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:20px 0;position:sticky;top:0;height:100vh;height:100dvh;overflow-y:auto}
 .logo{display:flex;align-items:center;gap:10px;padding:0 18px 20px;border-bottom:1px solid var(--border);margin-bottom:12px}
 .logo-icon{width:36px;height:36px;border-radius:10px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.logo-icon img{width:100%;height:100%;border-radius:inherit;display:block}
 .logo-text{font-size:.95rem;font-weight:700}.logo-text span{color:var(--teal)}
 .nav-section{font-size:.65rem;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;padding:12px 18px 4px}
 .nav-item{display:flex;align-items:center;gap:10px;padding:10px 18px;font-size:.85rem;font-weight:500;color:var(--txt2);transition:all var(--tr);border-left:3px solid transparent;cursor:pointer}
@@ -463,8 +466,8 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
 <body>
 <div id="lockScreen" class="lock-screen" hidden role="dialog" aria-modal="true" aria-labelledby="lockTitle">
   <div class="lock-box">
-    <div class="logo-icon" style="margin:0 auto 12px;width:52px;height:52px;font-size:1.5rem">💰</div>
-    <div class="lock-title" id="lockTitle">Finans Takip kilitli</div>
+    <div class="logo-icon" style="margin:0 auto 12px;width:52px;height:52px;border-radius:14px"><img src="icons/icon-192.png" alt=""/></div>
+    <div class="lock-title" id="lockTitle">Aile Kasası kilitli</div>
     <input type="password" inputmode="numeric" id="lockPin" autocomplete="off" maxlength="12" placeholder="PIN" aria-label="PIN"/>
     <button class="btn btn-primary" id="lockBtn">Kilidi Aç</button>
     <div class="lock-msg" id="lockMsg" role="alert"></div>
@@ -475,7 +478,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
 <script>try{if((JSON.parse(localStorage.getItem('pf_s')||'{}')||{}).lockHash)document.getElementById('lockScreen').hidden=false}catch(e){}</script>
 <div class="shell">
 <aside class="sidebar">
-  <div class="logo"><div class="logo-icon">💰</div><div class="logo-text">Finans<span>Takip</span></div></div>
+  <div class="logo"><div class="logo-icon"><img src="icons/icon-192.png" alt=""/></div><div class="logo-text">Aile<span> Kasası</span></div></div>
   <div class="nav-section">Ana</div>
   <div class="nav-item active" data-nav="ozet"><span class="nav-icon">📊</span>Özet</div>
   <div class="nav-item" data-nav="hesaplar"><span class="nav-icon">💳</span>Hesaplar</div>
@@ -873,7 +876,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.09.28.8</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.09.29.1</div>
 </section>
 
 </main>
@@ -3204,7 +3207,7 @@ App.Report=(function(){
     });
 
     var h='<div class="pr-doc">';
-    h+='<div class="pr-head"><div class="pr-title">💰 Finans Takip — Aylık Rapor</div><div class="pr-sub">'+esc(title)+' &middot; Kapsam: tüm üyeler ve hesaplar' +' &middot; Oluşturuldu: '+esc(today)+'</div></div>';
+    h+='<div class="pr-head"><div class="pr-title">Aile Kasası — Aylık Rapor</div><div class="pr-sub">'+esc(title)+' &middot; Kapsam: tüm üyeler ve hesaplar' +' &middot; Oluşturuldu: '+esc(today)+'</div></div>';
 
     h+='<div class="pr-h2">Özet</div><table class="pr-sum">';
     h+='<tr><td>Toplam Gelir</td><td class="pr-r pr-g">+'+fmt(inc)+'</td></tr>';
@@ -3253,7 +3256,7 @@ App.Report=(function(){
       h+='</table>';
     }
 
-    h+='<div class="pr-foot">FinansTakip PWA &middot; '+esc(title)+' raporu &middot; Veriler yereldir (KVKK uyumlu)</div>';
+    h+='<div class="pr-foot">Aile Kasası &middot; '+esc(title)+' raporu &middot; Veriler yereldir (KVKK uyumlu)</div>';
     h+='</div>';
     return h;
   }
@@ -3288,7 +3291,7 @@ App.ICS=(function(){
     S.txns().forEach(function(t){if(t.installment&&t.date>=td()){var sum='📅 Taksit '+t.installment.index+'/'+t.installment.total+' — '+(t.installment.name||t.category)+' ₺'+t.amount.toLocaleString('tr-TR');events.push(_event('ins-'+t.id,t.date,sum,t.category))}});
     S.fund().forEach(function(f){if(f.dueMonth){var nd=App.YearlyFund.nextDue(f);events.push(_event('fund-'+f.id+'-'+nd.year,nd.date,'💰 Yıllık Ödeme: '+f.name+' — ₺'+f.amount.toLocaleString('tr-TR'),'Yıllık fon'))}});
     S.debts().forEach(function(d){var due=d.dueDate;if(!d.settled&&due&&due>=td()){var rem=Math.max(d.amount-d.payments.reduce(function(s,p){return s+p.amount},0),0);var sum='🤝 Borç Vade: '+d.person+' — ₺'+rem.toLocaleString('tr-TR');events.push(_event('debt-'+d.id,due,sum,d.note||(d.direction==='lent'?'Alacak':'Borç')))}});
-    var cal=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//FinansTakip//TR','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:Finans Takip','X-WR-TIMEZONE:Europe/Istanbul'].concat(events).concat(['END:VCALENDAR']).join('\r\n');
+    var cal=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//FinansTakip//TR','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:Aile Kasası','X-WR-TIMEZONE:Europe/Istanbul'].concat(events).concat(['END:VCALENDAR']).join('\r\n');
     return{ics:cal,count:events.length};
   }
   function exportAll(){
@@ -3529,7 +3532,7 @@ App.Sync=(function(){
     return _busy;
   }
   function resetBase(){return IDB.del(BASE_KEY).catch(function(){})}
-  function _serverOk(url){return fetch(url+'/v1/config',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){if(!j||j.api!==1)throw 0;return j}).catch(function(){throw new Error('Bu adreste Finans Takip eşitleme sunucusu bulunamadı.')})}
+  function _serverOk(url){return fetch(url+'/v1/config',{cache:'no-store'}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){if(!j||j.api!==1)throw 0;return j}).catch(function(){throw new Error('Bu adreste Aile Kasası eşitleme sunucusu bulunamadı.')})}
   function _newIds(){return{vault:b64u(crypto.getRandomValues(new Uint8Array(16))),key:b64u(crypto.getRandomValues(new Uint8Array(32))),deviceId:b64u(crypto.getRandomValues(new Uint8Array(12)))}}
   function start(url,regKey){
     url=cleanUrl(url);if(!validUrl(url)){App.UI.toast('Geçerli bir https:// sunucu adresi girin.','err');return Promise.resolve(false)}
@@ -3583,7 +3586,7 @@ App.Sync=(function(){
     div.innerHTML='<div class="modal-bd show" onclick="if(event.target===this)App.UI.closeModal(\'syncCodeHolder\')"><div class="modal"><div class="modal-title">📲 Cihaz Ekle</div><div class="set-sub" style="margin-bottom:10px">Diğer cihazda Ayarlar > Cihazlar Arası Eşitleme > "Kodla Katıl" ile bu kodu yapıştırın'+(navigator.share?' ya da "Paylaş" ile bağlantı olarak gönderin':'')+'. <b>Kod verilerinize tam erişim verir</b>; yalnız aile üyeleriyle paylaşın.</div><div class="f"><label for="syncCodeTxt">Eşitleme kodu</label><textarea id="syncCodeTxt" readonly rows="4" style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:10px;color:var(--txt);font-size:.72rem;word-break:break-all;resize:none">'+esc(code)+'</textarea></div><div class="modal-actions"><button class="btn btn-ghost" id="syncCopyBtn">Kopyala</button>'+(navigator.share?'<button class="btn btn-ghost" id="syncShareBtn">Paylaş</button>':'')+'<button class="btn btn-primary" onclick="App.UI.closeModal(\'syncCodeHolder\')">Tamam</button></div></div></div>';
     App.UI.mountModal(div,'#syncCopyBtn');
     div.querySelector('#syncCopyBtn').addEventListener('click',function(){var t=div.querySelector('#syncCodeTxt');(navigator.clipboard?navigator.clipboard.writeText(code):Promise.reject()).then(function(){App.UI.toast('Kod kopyalandı.','ok')},function(){t.select();try{document.execCommand('copy');App.UI.toast('Kod kopyalandı.','ok')}catch(e){App.UI.toast('Kodu seçip kopyalayın.','info')}})});
-    var sh=div.querySelector('#syncShareBtn');if(sh)sh.addEventListener('click',function(){navigator.share({title:'Finans Takip eşitleme',text:'Finans Takip ortak verilerine katılmak için bu bağlantıyı aç:',url:link}).catch(function(){})});
+    var sh=div.querySelector('#syncShareBtn');if(sh)sh.addEventListener('click',function(){navigator.share({title:'Aile Kasası eşitleme',text:'Aile Kasası ortak verilerine katılmak için bu bağlantıyı aç:',url:link}).catch(function(){})});
   }
   function disable(){
     App.UI.confirmModal({title:'Bu Cihazda Eşitlemeyi Kapat',text:'Bu cihaz eşitlemeden çıkar; buradaki veriler olduğu gibi kalır. Diğer cihazlar eşitlemeye devam eder.',okLabel:'Kapat'},function(){
