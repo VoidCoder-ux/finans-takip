@@ -142,6 +142,24 @@ srv.listen(0, async () => {
   const r6 = await load('bos.csv', Buffer.from('a;b\r\n1;2\r\n'), 'text/csv');
   eq('file without transactions → clear message', r6.toasts.some(t => /işlem satırı bulunamadı/.test(t)), true);
 
+  // 6) Şifreli PDF (bankaların e-posta ekstreleri): şifre sorulur; yanlışsa yeniden sorulur
+  const enc = fs.readFileSync(path.join(__dirname, 'fixtures', 'sifreli-ekstre.pdf'));
+  await page.evaluate(() => { document.querySelectorAll('.modal-bd.show').forEach(m => (m.closest('[id]') || m).remove()); document.querySelectorAll('.toast').forEach(x => x.remove()); });
+  await page.setInputFiles('#stmtFile', { name: 'sifreli.pdf', mimeType: 'application/pdf', buffer: enc });
+  const pwBox = async () => { await page.waitForSelector('.modal-bd.show [data-pkey="pw"]', { timeout: 15000 }); return page.evaluate(() => [...document.querySelectorAll('.modal-bd.show')].pop().textContent.includes('Şifre yanlış')); };
+  eq('encrypted PDF asks for the password', await pwBox(), false);
+  await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="pw"]').value = '000000'; m.querySelector('[data-act="ok"]').click(); });
+  await page.waitForTimeout(500);
+  eq('wrong password → asked again', await pwBox(), true);
+  await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="pw"]').value = '123456'; m.querySelector('[data-act="ok"]').click(); });
+  await page.waitForSelector('#stmtList', { timeout: 15000 }).catch(() => {});
+  eq('right password → statement rows', await page.evaluate(() => [...document.querySelectorAll('#stmtList .stmt-desc')].map(x => x.textContent.replace(/ (zaten kayıtlı|kart ödemesi)$/, '').trim())), ['MIGROS KADIKOY', 'STARBUCKS BAGDAT CAD']);
+  await page.evaluate(() => { document.querySelectorAll('.modal-bd.show').forEach(m => (m.closest('[id]') || m).remove()); document.querySelectorAll('.toast').forEach(x => x.remove()); });
+  await page.setInputFiles('#stmtFile', { name: 'sifreli.pdf', mimeType: 'application/pdf', buffer: enc });
+  await pwBox();
+  await page.evaluate(() => [...document.querySelectorAll('.modal-bd.show')].pop().querySelector('[data-act="cancel"]').click());
+  await page.waitForTimeout(300);
+  eq('cancel → clear message, nothing imported', await page.evaluate(() => [...document.querySelectorAll('.toast')].some(x => /şifresi girilmedi/.test(x.textContent))), true);
   eq('balances consistent after imports', await page.evaluate(() => App.Accounts.reconcileAccountBalances(true)), false);
   eq('no page errors', errors, []);
   await browser.close(); srv.close();

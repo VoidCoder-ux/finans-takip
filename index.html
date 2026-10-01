@@ -882,7 +882,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.01.5</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.01.6</div>
 </section>
 
 </main>
@@ -4128,8 +4128,22 @@ App.Statement=(function(){
     Array.prototype.forEach.call(doc.querySelectorAll('tr'),function(tr){rows.push(Array.prototype.map.call(tr.querySelectorAll('th,td'),function(td){return td.textContent.replace(/\s+/g,' ').trim()}))});
     return rows;
   }
+  // Bankaların e-posta ekstreleri çoğu zaman şifreli PDF'tir: şifre sorulur (yalnız bu cihazda kullanılır, saklanmaz)
+  function _askPdfPassword(again){
+    return new Promise(function(res,rej){
+      App.UI.promptModal({title:'Şifreli PDF',text:(again?'Şifre yanlış. ':'')+'Bu ekstre şifreli. Bankanın e-postasında yazan şifreyi girin (çoğu zaman T.C. kimlik numaranızın bir kısmı ya da doğum tarihiniz). Şifre saklanmaz.',fields:[{key:'pw',label:'PDF şifresi',type:'password'}],okLabel:'Aç'},function(v){var pw=String(v.pw||'');if(!pw){App.UI.toast('Şifre girin.','err');return false}res(pw)});
+      setTimeout(function(){var h=[].slice.call(document.querySelectorAll('.app-dialog-holder')).pop();if(!h)return;var c=h.querySelector('[data-act="cancel"]'),bd=h.querySelector('.modal-bd');var no=function(){rej(new Error('PDF şifresi girilmedi.'))};if(c)c.addEventListener('click',no);if(bd)bd.addEventListener('click',function(e){if(e.target===bd)no()})},0);
+    });
+  }
+  function _openPdf(lib,u8,pw,tries){
+    return lib.getDocument({data:u8.slice(),isEvalSupported:false,password:pw||undefined}).promise.catch(function(e){
+      if(e&&e.name==='PasswordException'&&(tries||0)<3)return _askPdfPassword(!!pw).then(function(np){return _openPdf(lib,u8,np,(tries||0)+1)});
+      if(e&&e.name==='PasswordException')throw new Error('PDF şifresi açılamadı.');
+      throw e;
+    });
+  }
   function _readPdf(u8){
-    return App.Receipt._debug.pdfLib().then(function(lib){return lib.getDocument({data:u8,isEvalSupported:false}).promise}).then(function(doc){
+    return App.Receipt._debug.pdfLib().then(function(lib){return _openPdf(lib,u8,'',0)}).then(function(doc){
       var pages=[];for(var i=1;i<=Math.min(doc.numPages,40);i++)pages.push(i);
       return pages.reduce(function(pr,i){return pr.then(function(acc){return doc.getPage(i).then(function(pg){return pg.getTextContent()}).then(function(tc){
         // Aynı yükseklikteki parçalar bir satır; aralarındaki boşluk büyükse sütun ayracı (" | ")
