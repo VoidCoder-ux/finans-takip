@@ -131,6 +131,24 @@ npx wrangler secret put DEEPSEEK_API_KEY     # anahtarı yapıştırın
 
 Model sunucunun listesinden kendiliğinden seçilir; belirli bir model için `wrangler.toml` `[vars]` altına `DEEPSEEK_MODEL = "..."` ekleyin. Günlük sınır: `RECEIPT_DAILY_LIMIT = "100"`. Kapatmak için `npx wrangler secret delete DEEPSEEK_API_KEY`.
 
+## Banka SMS'leriyle otomatik kayıt (iPhone Kestirmeler)
+
+Bankalar uygulama dışına veri vermediği için (açık bankacılık yalnız lisanslı kurumlara açık) hareketler bankanın SMS'inden alınır:
+
+1. Eşitleme açık olmalı. Her telefonda **Ayarlar > 🏦 Banka SMS'leriyle Otomatik Kayıt > Bu Telefonda Kur** deyin; o telefona (ve kişiye) özel bir bağlantı oluşur.
+2. Kestirmeler > Otomasyon > + > **Mesaj** (Mesaj İçeriği: `TL`) > **Hemen Çalıştır** > **URL İçeriğini Al**: bağlantı, Yöntem **POST**, İstek Gövdesi **JSON**, alan `text` = **Kestirme Girdisi**. Adımlar uygulamada da gösterilir.
+3. SMS gelince metin `POST /v1/sms/<anahtar>` ile gelen kutusuna düşer; açık uygulamalar anında, kapalı olanlar açılınca kutuyu çeker, metni **telefonda** çözümler ve kutudan siler.
+
+- Şifre/doğrulama kodu SMS'leri, tutar içermeyen ve banka hareketine benzemeyen mesajlar sunucuda **hiç saklanmaz**. Diğerleri uygulama alana kadar (en çok 14 gün) bekler. Kestirmeler şifreleme yapamadığından bu kısa süre boyunca metin sunucuda açık durur.
+- Bağlantı yalnız ekleme yapabilir; kasa verisini okuyamaz. Kapatınca/yeniden kurunca eskisi geçersiz olur.
+- Kart/hesap eşleşmesi: hesabı düzenleyip **son 4 hane** girin; ya da ilk SMS'i Özet'teki onay listesinden bir kez hesap seçerek ekleyin (son 4 hane öğrenilir). Banka adı hesap adında geçiyorsa (ör. "Akbank Axess") o da kullanılır.
+- Elle/fişle girilmiş aynı hareket tekrar eklenmez; maaş SMS'i tekrarlayan maaş kaydını gerçek tutar ve tarihle günceller. Kart borcu ödemesi, ATM, yabancı para ve aile içi aktarımlar onaya düşer.
+- Android'de SMS'i bir adrese ileten otomasyon uygulamalarıyla (ör. MacroDroid) aynı bağlantı kullanılabilir.
+
+## Ekstre içe aktarma
+
+**İşlemler > 🏦 Ekstre Yükle**: bankanın internet şubesinden/uygulamasından indirilen hesap hareketleri ya da kredi kartı ekstresi (**PDF, Excel .xlsx, Excel görünümlü .xls, CSV**). Dosya telefonda okunur, hiçbir yere gönderilmez. Önizlemede hesap seçilir, satırlar işaretlenir, tutara dokunarak gelir/gider değiştirilir, kategori düzeltilir. Daha önce kayıtlı (elle, SMS, fiş) hareketler ve kart borcu ödemesi satırları baştan işaretsiz gelir; özet satırları (dönem borcu, asgari ödeme, devreden…) alınmaz. Eski ikili `.xls` biçimi okunamaz; PDF ya da `.xlsx` indirin.
+
 ## Güncelleme
 
 Depoda yeni sürüm olduğunda kodu indirin, `wrangler.toml` içine `database_id` ve `VAPID_SUBJECT` değerlerinizi yeniden yazın (gizli anahtarlar Cloudflare'de kalır, tekrar girilmez) ve:

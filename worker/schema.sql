@@ -39,3 +39,22 @@ CREATE TABLE IF NOT EXISTS market (
   error       TEXT,                      -- son denemenin hatası (başarılıysa boş)
   checked_at  INTEGER NOT NULL DEFAULT 0 -- son deneme
 );
+
+-- Banka SMS gelen kutusu (iPhone Kestirmeler). Anahtar yalnız ekleme yapar; metin uygulama alınca silinir, en geç 14 günde temizlenir.
+CREATE TABLE IF NOT EXISTS sms_keys (
+  key_hash    TEXT PRIMARY KEY,          -- SHA-256('ft-sms|' + anahtar); anahtarın kendisi saklanmaz
+  vault_id    TEXT NOT NULL,
+  label       TEXT NOT NULL,             -- SMS'in kime ait olduğu (uygulamadaki profil kimliği)
+  created_at  INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS sms_keys_vault ON sms_keys(vault_id);
+
+CREATE TABLE IF NOT EXISTS sms_inbox (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  vault_id    TEXT NOT NULL,
+  label       TEXT NOT NULL,
+  text        TEXT NOT NULL,
+  text_hash   TEXT NOT NULL,
+  received_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS sms_inbox_vault ON sms_inbox(vault_id, received_at);

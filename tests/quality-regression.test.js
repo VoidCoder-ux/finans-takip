@@ -266,7 +266,7 @@ eq('fund units keep 6 decimals', roundQty(1000.1234564), 1000.123456);
 
 // Cloudflare eşitleme + push
 ok('sync encrypts with AES-GCM bound to vault id', /name:'AES-GCM',iv:iv,additionalData:new TextEncoder\(\)\.encode\(c\.vault\)/.test(indexHtml));
-ok('only shared settings are synced', /SHARED_SETTINGS=\['users','customCats','portfolioTargets','rates','cpiUserEdited','cpiVersion'\]/.test(indexHtml));
+ok('only shared settings are synced', /SHARED_SETTINGS=\['users','customCats','portfolioTargets','rates','cpiUserEdited','cpiVersion','smsDefaults'\]/.test(indexHtml));
 ok('balances recomputed after merge', /App\.Accounts\.reconcileAccountBalances\(true\)/.test(indexHtml));
 ok('service worker handles push and notification click', /addEventListener\('push'/.test(sw) && /addEventListener\('notificationclick'/.test(sw));
 var workerSrc = fs.readFileSync('worker/src/index.js', 'utf8');

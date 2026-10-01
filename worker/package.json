@@ -8,7 +8,7 @@
     "db:init": "wrangler d1 execute finans-takip --remote --file=schema.sql",
     "vapid": "node scripts/gen-vapid.mjs",
     "deploy": "wrangler deploy",
-    "test": "node ../tests/market-parsers.test.js && node ../tests/worker-api.test.js && node ../tests/sync-e2e.test.js && node ../tests/market-e2e.test.js && node ../tests/receipt-e2e.test.js"
+    "test": "node ../tests/market-parsers.test.js && node ../tests/worker-api.test.js && node ../tests/sync-e2e.test.js && node ../tests/market-e2e.test.js && node ../tests/receipt-e2e.test.js && node ../tests/sms-e2e.test.js"
   },
   "devDependencies": {
     "wrangler": "^4.42.0"
