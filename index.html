@@ -571,6 +571,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
       <div class="f"><label>Sahip</label><select id="accOwner" onchange="App.Accounts.onOwnerChange()"><option value="shared">👨‍👩‍👧 Ortak</option><option value="personal">🙋 Kişisel</option></select></div>
       <div class="f" id="accUserWrap" style="display:none"><label>Kişisel Sahibi</label><select id="accUser"></select></div>
       <div class="f" id="accStmtWrap" style="display:none"><label>Ekstre Kesim Günü</label><input type="number" id="accStmtDay" placeholder="1-31" min="1" max="31"/></div>
+      <div class="f"><label for="accLast4">Son 4 Hane (isteğe bağlı)</label><input type="text" inputmode="numeric" id="accLast4" placeholder="Banka SMS'i için, ör. 1234" autocomplete="off"/></div>
     </div>
     <button class="btn btn-primary" onclick="App.Accounts.add()">Hesap Ekle</button>
   </div>
@@ -881,7 +882,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.01.2</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.01.3</div>
 </section>
 
 </main>
@@ -1486,8 +1487,13 @@ App.Accounts=(function(){
     var stmtDay=(type==='card'&&stmtRaw>=1&&stmtRaw<=31)?stmtRaw:null;
     if(!name){App.UI.toast('Hesap adı girin.','err');return}
     if(bal===null){App.UI.toast('Geçerli başlangıç bakiyesi girin.','err');return}
-    var a=S.accounts();a.push({id:gid('a'),name,type,owner,userId,statementDay:stmtDay,balance:bal,openingBalance:bal,ts:Date.now()});S.saveAccounts(a);
-    document.getElementById('accName').value='';document.getElementById('accBal').value='';document.getElementById('accStmtDay').value='';
+    var l4el=document.getElementById('accLast4'),l4=(String(l4el&&l4el.value||'').match(/\d+/g)||[]);
+    if(l4.some(function(x){return x.length!==4})){App.UI.toast('Son 4 hane 4 rakam olmalı (ör. 1234).','err');return}
+    var a=S.accounts(),clash=l4.length&&a.find(function(o){return o.last4&&o.last4.split(',').some(function(x){return l4.indexOf(x)>=0})});
+    if(clash){App.UI.toast('Bu son 4 hane "'+clash.name+'" hesabında kayıtlı.','err');return}
+    var na={id:gid('a'),name,type,owner,userId,statementDay:stmtDay,balance:bal,openingBalance:bal,ts:Date.now()};if(l4.length)na.last4=l4.filter(function(x,i){return l4.indexOf(x)===i}).slice(0,6).join(',');
+    a.push(na);S.saveAccounts(a);
+    document.getElementById('accName').value='';document.getElementById('accBal').value='';document.getElementById('accStmtDay').value='';if(l4el)l4el.value='';
     App.UI.refreshAccSelects();renderAll();renderSummary();App.UI.toast('Hesap eklendi.');
   }
   function remove(id){
@@ -1519,7 +1525,8 @@ App.Accounts=(function(){
     var acc=S.accounts().find(function(a){return a.id===id});if(!acc)return;
     var fields=[{key:'name',label:'Hesap adı',value:acc.name},{key:'balance',label:'Güncel bakiye (₺) — borç için ± ile eksi yapın',type:'number',value:acc.balance,signed:true}];
     if(acc.type==='card')fields.push({key:'stmt',label:'Ekstre kesim günü (1-31)',type:'number',step:'1',value:acc.statementDay||''});
-    if(acc.type!=='cash')fields.push({key:'last4',label:(acc.type==='card'?'Kartın':'Hesabın/kartın')+' son 4 hanesi (banka SMS\'i eşleştirmek için; birden fazlaysa virgülle)',type:'text',inputmode:'numeric',value:(acc.last4||'').replace(/,/g,', ')});
+    fields.splice(1,0,{key:'type',label:'Tür',type:'select',value:acc.type,options:Object.keys(AM).map(function(k){return{value:k,label:AM[k].i+' '+AM[k].l}})});
+    fields.push({key:'last4',label:'Kart / hesap numarasının son 4 hanesi (banka SMS\'ini bu hesaba bağlar; birden fazlaysa virgülle)',type:'text',inputmode:'numeric',placeholder:'ör. 1234',value:(acc.last4||'').replace(/,/g,', ')});
     App.UI.promptModal({title:'Hesabı Düzenle',text:'Bakiyeyi banka/kart uygulamanızdaki güncel değere eşitleyebilirsiniz. Fark başlangıç bakiyesine yansıtılır; işlem geçmişi değişmez.',fields:fields},function(v){
       var name=String(v.name||'').trim().slice(0,120),bal=parseMoney(v.balance,{allowZero:true,min:-MAX_MONEY});
       if(!name){App.UI.toast('Hesap adı girin.','err');return false}
@@ -1530,7 +1537,8 @@ App.Accounts=(function(){
       if(Object.prototype.hasOwnProperty.call(v,'last4')){var l4=(String(v.last4).match(/\d+/g)||[]);if(l4.some(function(x){return x.length!==4})){App.UI.toast('Son 4 hane 4 rakam olmalı (ör. 1234).','err');return false}
         l4=l4.filter(function(x,i){return l4.indexOf(x)===i});var clash=l4.length&&accs.find(function(o){return o.id!==id&&o.last4&&o.last4.split(',').some(function(x){return l4.indexOf(x)>=0})});
         if(clash){App.UI.toast('Bu son 4 hane "'+clash.name+'" hesabında kayıtlı.','err');return false}if(l4.length)a.last4=l4.slice(0,6).join(',');else delete a.last4}
-      a.name=name;a.balance=bal;a.openingBalance=roundMoney((a.openingBalance||0)+delta);if(a.type==='card')a.statementDay=stmt;
+      var newType=AM[v.type]?v.type:a.type;if(newType!==a.type){a.type=newType;if(newType!=='card')a.statementDay=null}
+      a.name=name;a.balance=bal;a.openingBalance=roundMoney((a.openingBalance||0)+delta);if(a.type==='card'&&acc.type==='card')a.statementDay=stmt;
       S.saveAccounts(accs);App.UI.refreshAccSelects();renderAll();renderSummary();App.Transactions.renderList();App.Transactions.renderRecent();
       App.UI.toast(delta?'Hesap güncellendi. Bakiye farkı: '+(delta>0?'+':'')+fmt(delta):'Hesap güncellendi.');
     });
@@ -1549,7 +1557,7 @@ App.Accounts=(function(){
       var u=a.owner==='personal'&&a.userId?App.Users.get(a.userId):null;
       var ow=a.owner==='personal'?'<span class="owner-tag personal">'+(u?esc(u.emoji||'🙋')+' '+esc(u.name):'Kişisel')+'</span>':'<span class="owner-tag shared">Ortak</span>';
       var st=a.statementDay?'<span class="stmt-tag">Kesim: '+a.statementDay+'</span>':'';
-      return'<div class="acc-card" style="border-color:'+acBorder+'"><div class="acc-del"><button class="btn-del" title="Düzenle" aria-label="Hesabı düzenle" onclick="App.Accounts.edit(\''+a.id+'\')">✎</button><button class="btn-del" title="Sil" aria-label="Hesabı sil" onclick="App.Accounts.remove(\''+a.id+'\')">✕</button></div><span class="acc-ico">'+m.i+'</span><div class="acc-name">'+esc(a.name)+ow+'</div><div class="acc-type">'+m.l+st+'</div><div class="acc-bal '+bc+'">'+fmt(a.balance)+'</div></div>'
+      return'<div class="acc-card" style="border-color:'+acBorder+'"><div class="acc-del"><button class="btn-del" title="Düzenle" aria-label="Hesabı düzenle" onclick="App.Accounts.edit(\''+a.id+'\')">✎</button><button class="btn-del" title="Sil" aria-label="Hesabı sil" onclick="App.Accounts.remove(\''+a.id+'\')">✕</button></div><span class="acc-ico">'+m.i+'</span><div class="acc-name">'+esc(a.name)+ow+'</div><div class="acc-type">'+m.l+st+(a.last4?' · …'+esc(a.last4.split(',').join(', …')):'')+'</div><div class="acc-bal '+bc+'">'+fmt(a.balance)+'</div></div>'
     }).join('');
   }
   function renderSummary(){
@@ -3809,7 +3817,7 @@ App.BankSms=(function(){
   function _userOf(label){var u=String(label||'').replace(/^[A-Za-z0-9]{8}_/,'');return App.Users.get(u)?u:S.settings().activeUser}
   // Hesap: son 4 hane → banka adı + tür → kişinin varsayılan SMS hesabı
   function resolveAccount(p,userId){
-    var accs=S.accounts().filter(function(a){return a.type!=='cash'});
+    var accs=S.accounts();
     if(p.last4){var hit=accs.filter(function(a){return a.last4&&a.last4.split(',').indexOf(p.last4)>=0});if(hit.length===1)return hit[0].id;if(hit.length>1)return''}
     var b=byBank(p,userId);if(b)return b;
     var d=(S.settings().smsDefaults||{})[userId];return d&&App.Accounts.get(d)?d:'';
@@ -3817,7 +3825,7 @@ App.BankSms=(function(){
   // Banka adı (+ kart/hesap türü) ile tek bir hesap bulunursa o
   function byBank(p,userId){
     if(!p.bank||!BANK_WORDS[p.bank])return'';
-    var c=S.accounts().filter(function(a){return a.type!=='cash'&&BANK_WORDS[p.bank].test(fold(a.name))});
+    var c=S.accounts().filter(function(a){return BANK_WORDS[p.bank].test(fold(a.name))});
     if(p.accHint==='card'){var cc=c.filter(function(a){return a.type==='card'});if(cc.length)c=cc}else if(p.accHint==='bank'){var bb=c.filter(function(a){return a.type!=='card'});if(bb.length)c=bb}
     if(c.length>1){var mine=c.filter(function(a){return a.owner==='personal'&&a.userId===userId});if(mine.length)c=mine;else{var sh=c.filter(function(a){return a.owner!=='personal'});if(sh.length)c=sh}}
     return c.length===1?c[0].id:'';
@@ -3961,7 +3969,7 @@ App.BankSms=(function(){
   }
   function setDefault(){
     var uid=S.settings().activeUser,cur=(S.settings().smsDefaults||{})[uid]||'';
-    var opts=[{value:'',label:'— Sorsun (onaya düşsün) —'}].concat(S.accounts().filter(function(a){return a.type!=='cash'}).map(function(a){return{value:a.id,label:(AM[a.type]||{i:''}).i+' '+a.name}}));
+    var opts=[{value:'',label:'— Sorsun (onaya düşsün) —'}].concat(S.accounts().map(function(a){return{value:a.id,label:(AM[a.type]||{i:''}).i+' '+a.name}}));
     App.UI.promptModal({title:'Eşleşmeyen SMS\'ler',text:'Kart/hesap anlaşılamayan SMS hareketleri '+((App.Users.get(uid)||{}).name||'bu kişi')+' için hangi hesaba işlensin?',fields:[{key:'acc',label:'Hesap',type:'select',options:opts,value:cur}]},function(v){
       var d=Object.assign({},S.settings().smsDefaults||{});if(v.acc)d[uid]=v.acc;else delete d[uid];S.saveSetting('smsDefaults',d);renderCard();App.UI.toast('Kaydedildi.');
     });
@@ -4006,7 +4014,7 @@ App.BankSms=(function(){
       _add(tid,{type:type,amount:amt,date:v.date},v.acc,userId,cat,String(v.note||'').trim().slice(0,500)||'Banka SMS',type==='income'?(_salaryRec({type:'income',salary:cat==='Maaş',amount:amt,date:v.date},userId)||{}).id:'');
       var learned='';
       if(p.last4){var all=S.accounts(),a=all.find(function(y){return y.id===v.acc}),taken=all.some(function(y){return y.last4&&y.last4.split(',').indexOf(p.last4)>=0});
-        if(a&&!taken&&a.type!=='cash'){a.last4=(a.last4?a.last4+',':'')+p.last4;S.saveAccounts(all);learned=' …'+p.last4+' bundan sonra "'+a.name+'" hesabına otomatik işlenecek.'}}
+        if(a&&!taken){a.last4=(a.last4?a.last4+',':'')+p.last4;S.saveAccounts(all);learned=' …'+p.last4+' bundan sonra "'+a.name+'" hesabına otomatik işlenecek.'}}
       S.saveSmsQueue(S.smsQueue().filter(function(y){return y.id!==id}));
       renderAllViews();App.UI.toast('Eklendi.'+learned,'ok');
     });
@@ -4183,7 +4191,7 @@ App.Statement=(function(){
   }
   function _note(desc){var b=App.Receipt.brand(desc),d=String(desc||'').replace(/\s+/g,' ').trim();return(b&&d.length>40?b.name+' · '+d:d||'Ekstre').slice(0,200)}
   function _guessAccount(text,isCardDoc){
-    var bank=App.BankSms.parse('kart '+text.slice(0,3000)+' 1 TL',Date.now()).bank,accs=S.accounts().filter(function(a){return a.type!=='cash'});
+    var bank=App.BankSms.parse('kart '+text.slice(0,3000)+' 1 TL',Date.now()).bank,accs=S.accounts();
     var m=/(\d{4})\s*ile biten|\*{2,}\s?(\d{4})\b|x{3,}(\d{4})\b/i.exec(text.slice(0,4000)),l4=m?(m[1]||m[2]||m[3]):'';
     if(l4){var h=accs.filter(function(a){return a.last4&&a.last4.split(',').indexOf(l4)>=0});if(h.length===1)return h[0].id}
     return bank?App.BankSms.byBank({bank:bank,accHint:isCardDoc?'card':'bank'},S.settings().activeUser):'';
