@@ -51,6 +51,7 @@ function seed() {
     pf_f: [{ id: 'yf1700000000000_f001', name: 'Kasko', amount: 24000, dueMonth: ((now.getMonth() + 3) % 12) + 1, contributed: 8000, ts: 1 }, { id: 'yf1700000000000_f002', name: 'MTV', amount: 6800, dueMonth: 7, contributed: 0, ts: 2 }],
     pf_p: [{ id: 'pa1700000000000_p001', type: 'USD', qty: 1500, cost: 33.5, currentPrice: 0, label: '', ts: 1 }, { id: 'pa1700000000000_p002', type: 'GOLD_GRAM', qty: 42.5, cost: 2900, currentPrice: 0, label: 'Düğün', ts: 2 }, { id: 'pa1700000000000_p003', type: 'FUND', qty: 25431.123456, cost: 0.9, currentPrice: 1.184523, label: 'TTE Fon', ts: 3 }],
     pf_ru: [{ id: 'ru1700000000000_r001', field: 'note', value: 'migros', category: 'Market', active: true, ts: 1 }],
+    pf_sq: [{ id: 'sqsms1_a', text: 'Hesabinizdan AYSE YILMAZ adina 2.000,00 TL FAST ile gonderilmistir. Yapi Kredi', label: 'abcd1234_u_self', receivedAt: Date.now(), reason: 'Aile içi ya da kendi hesaplarınız arası aktarım olabilir; aktarımsa Yoksay deyin', p: { type: 'expense', amount: 2000, date: iso(now), note: 'Giden para: Ayse Yılmaz', category: 'Diğer', accountId: '', last4: '' }, ts: 1 }],
     pf_nw: [{ month: iso(new Date(now.getFullYear(), now.getMonth() - 2, 1)).slice(0, 7), total: 210000 }, { month: iso(new Date(now.getFullYear(), now.getMonth() - 1, 1)).slice(0, 7), total: 225000 }]
   };
 }
@@ -124,7 +125,9 @@ srv.listen(0, async () => {
       more: 'App.UI.moreMenu()', backup: 'App.Backup.open()', setup: 'App.Onboarding.open()', cash: 'App.Cashflow.open()', report: 'App.Report.open()',
       editTxn: 'App.Transactions.edit(S.txns().find(t=>!t.transferId&&!t.installment).id)', editInst: 'App.Transactions.edit(S.txns().find(t=>t.installment).id)',
       editTrf: 'App.Transactions.edit(S.txns().find(t=>t.transferId).id)', sell: "App.Portfolio.sell('pa1700000000000_p001')", targets: 'App.Portfolio.editTargets()',
-      fundPaid: "App.YearlyFund.markPaid('yf1700000000000_f001')", recEdit: "App.Recurring.edit('r1700000000000_r001')", debtEdit: "App.Debts.edit('d1700000000000_d001')", api: 'App.Portfolio.openApiSettings()'
+      fundPaid: "App.YearlyFund.markPaid('yf1700000000000_f001')", recEdit: "App.Recurring.edit('r1700000000000_r001')", debtEdit: "App.Debts.edit('d1700000000000_d001')", api: 'App.Portfolio.openApiSettings()',
+      smsAccept: "App.BankSms.accept('sqsms1_a')",
+      statement: "App.Statement._load('ekstre.pdf',{lines:['Akbank Kredi Kartı Hesap Özeti','28.09.2026 MIGROS KADIKOY 245,50','29.09.2026 ÖDEME - TEŞEKKÜR EDERİZ -5.000,00','30.09.2026 ÇOK UZUN BİR İŞYERİ ADI OLAN MAĞAZA TİCARET ANONİM ŞİRKETİ İSTANBUL 1.234,56']});App.Statement.open()"
     };
     for (const [name, code] of Object.entries(modals)) {
       await page.evaluate(code => { document.querySelectorAll('.modal-bd.show').forEach(m => (m.closest('[id]') || m).remove()); eval(code); }, code);
