@@ -72,6 +72,8 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .hero::after{content:'';position:absolute;bottom:-30px;right:60px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.04)}
 .hero-lbl{font-size:.75rem;font-weight:600;opacity:.75;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
 .hero-bal{font-size:clamp(1.5rem,5.5vw,2.4rem);font-weight:800;letter-spacing:-.04em;line-height:1;margin-bottom:18px;word-break:break-all}
+.wr-right{text-align:right;flex-shrink:0}.wr-cap{font-size:.66rem;color:var(--txt2);margin-top:2px}
+.hero-sub{font-size:.74rem;opacity:.92;margin:-2px 0 12px}
 .hero-chips{display:flex;gap:10px;flex-wrap:wrap}
 .chip{background:rgba(0,0,0,.2);border-radius:99px;padding:6px 14px;display:flex;align-items:center;gap:7px;font-size:.78rem;font-weight:600;backdrop-filter:blur(8px)}
 .dot{width:6px;height:6px;border-radius:50%}.dot.g{background:#86efac}.dot.r{background:#fca5a5}.dot.b{background:#93c5fd}
@@ -510,11 +512,12 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
   <div class="ph"><div><div class="ph-title">Merhaba 👋</div><div class="ph-sub" id="todayDate"></div></div></div>
   <div id="ozet-sms"></div>
   <div class="hero">
-    <div class="hero-lbl">Net Bakiye (Tüm Zamanlar)</div>
+    <div class="hero-lbl">Hesaplarımdaki Para</div>
     <div class="hero-bal" id="heroNet">₺0,00</div>
+    <div class="hero-sub" id="heroSub">Banka, nakit ve birikim hesaplarınızın toplamı</div>
     <div class="hero-chips">
-      <div class="chip"><span class="dot g"></span><span id="heroInc">₺0 Gelir</span></div>
-      <div class="chip"><span class="dot r"></span><span id="heroExp">₺0 Gider</span></div>
+      <div class="chip"><span class="dot r"></span><span id="heroCard">Kart borcu yok</span></div>
+      <div class="chip" title="Hesaplardaki para − kredi kartı borçları"><span class="dot g"></span><span id="heroAfter">Kart borcu düşünce ₺0</span></div>
       <div class="chip"><span class="dot b"></span><span id="heroAcc">0 Hesap</span></div>
     </div>
   </div>
@@ -882,7 +885,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.01.6</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.01.7</div>
 </section>
 
 </main>
@@ -1005,6 +1008,9 @@ function csvText(v){v=String(v==null?'':v).trim();return /^'[\t\r=+\-@]/.test(v)
 // Başlık/tür karşılaştırması: büyük-küçük harf ve Türkçe harf farkı (I/İ/ı, ş/s…) önemsiz
 function csvFold(v){return String(v==null?'':v).trim().toLocaleLowerCase('tr-TR').replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ö/g,'o').replace(/ç/g,'c').replace(/i̇/g,'i')}
 function fmt(n){var v=Math.round(Number(n||0)*100)/100;if(!isFinite(v)||v===0)v=0;if(v<0)return'-₺'+Math.abs(v).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});return'₺'+v.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+// Hesaplardaki para (banka, nakit, birikim, yatırım hesapları) ile kredi kartı borcu ayrı: kartla yapılan harcama bankadaki paradan düşmüş görünmesin
+function dateMonth(ts){var d=new Date(ts);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+function moneySplit(accs){var o={cash:0,cardDebt:0,cardCredit:0};(accs||[]).forEach(function(a){var b=a.balance||0;if(a.type==='card'){if(b<0)o.cardDebt+=-b;else o.cardCredit+=b}else o.cash+=b});o.cash=roundMoney(o.cash);o.cardDebt=roundMoney(o.cardDebt);o.cardCredit=roundMoney(o.cardCredit);o.net=roundMoney(o.cash+o.cardCredit-o.cardDebt);return o}
 // Seçim listelerinde hesap adı: aynı adlı hesaplar (ör. birkaç Yapıkredi kartı) son 4 haneyle ayırt edilir
 function accLabel(a){return String(a&&a.name||'')+(a&&a.last4?' …'+a.last4.split(',')[0]:'')}
 function fd(iso){if(!validDate(iso))return '-';var p=iso.split('-');return p[2]+' '+MF[+p[1]-1]+' '+p[0]}
@@ -1564,10 +1570,10 @@ App.Accounts=(function(){
     }).join('');
   }
   function renderSummary(){
-    var all=App.Transactions.allTimeTotals();var accs=S.accounts();
-    var accountNet=accs.reduce(function(s,a){return s+(a.balance||0)},0);
-    document.getElementById('heroNet').textContent=fmt(accountNet);document.getElementById('heroNet').style.color='#fff';
-    document.getElementById('heroInc').textContent=fmt(all.income)+' Gelir';document.getElementById('heroExp').textContent=fmt(all.expense)+' Gider';
+    var accs=S.accounts(),ms=moneySplit(accs),hasCard=accs.some(function(a){return a.type==='card'});
+    document.getElementById('heroNet').textContent=fmt(ms.cash);document.getElementById('heroNet').style.color='#fff';
+    document.getElementById('heroCard').textContent=ms.cardDebt?'💳 Kart borcu '+fmt(ms.cardDebt):hasCard?'💳 Kart borcu yok':'Kredi kartı eklenmedi';
+    document.getElementById('heroAfter').textContent='Kart borcu düşünce '+fmt(ms.net);
     document.getElementById('heroAcc').textContent=accs.length+' Hesap';
   }
   return{add,edit,remove,adjustBalance,reconcileAccountBalances,getName,get,sharedAccount,renderAll,renderSummary,onTypeChange,onOwnerChange}
@@ -2418,10 +2424,10 @@ App.Users=(function(){
   }
   function sharedStats(){
     var accs=S.accounts().filter(function(a){return a.owner!=='personal'});
-    var bal=accs.reduce(function(s,a){return s+(a.balance||0)},0);
+    var bal=accs.reduce(function(s,a){return s+(a.balance||0)},0),ms=moneySplit(accs);
     var today=td(),m=tm();var inc=0,exp=0,cnt=0;
     S.txns().forEach(function(t){if(isTransfer(t))return;var acc=t.accountId?App.Accounts.get(t.accountId):null;if(acc&&acc.owner==='personal')return;if(t.date>today)return;if(t.date.substring(0,7)!==m)return;cnt++;if(t.type==='income')inc+=t.amount;else exp+=t.amount});
-    return{balance:bal,income:inc,expense:exp,count:cnt,accounts:accs.length}
+    return{balance:bal,cash:ms.cash,cardDebt:ms.cardDebt,income:inc,expense:exp,count:cnt,accounts:accs.length}
   }
   function renderAll(){
     var users=list(),act=S.settings().activeUser;
@@ -2435,8 +2441,8 @@ App.Users=(function(){
   function renderFamilyPanel(){
     var el=document.getElementById('ozet-family');if(!el)return;
     var users=list(),sh=sharedStats();
-    var cards='<div class="wallet-row" onclick="App.UI.nav(\'aile\')" style="cursor:pointer"><div class="wr-left"><span class="wr-emoji">👨‍👩‍👧</span><div><div class="wr-name">Ortak Cüzdan</div><div class="wr-meta">Bu ay '+fmt(sh.income)+' gelir · '+fmt(sh.expense)+' gider · '+sh.count+' işlem</div></div></div><div class="wr-bal '+(sh.balance>=0?'pos':'neg')+'">'+fmt(sh.balance)+'</div></div>';
-    cards+=users.map(function(u){var st=stats(u.id),net=st.income-st.expense;return'<div class="wallet-row" onclick="App.UI.nav(\'aile\')" style="cursor:pointer"><div class="wr-left"><span class="wr-emoji">'+esc(u.emoji||'🙋')+'</span><div><div class="wr-name">'+esc(u.name)+'</div><div class="wr-meta">Bu ay '+fmt(st.income)+' gelir · '+fmt(st.expense)+' gider · '+st.count+' işlem</div></div></div><div class="wr-bal '+(net>=0?'pos':'neg')+'">'+fmt(net)+'</div></div>'}).join('');
+    var cards='<div class="wallet-row" onclick="App.UI.nav(\'aile\')" style="cursor:pointer"><div class="wr-left"><span class="wr-emoji">👨‍👩‍👧</span><div><div class="wr-name">Ortak Cüzdan</div><div class="wr-meta">Bu ay '+fmt(sh.income)+' gelir · '+fmt(sh.expense)+' gider · '+sh.count+' işlem'+(sh.cardDebt?' · 💳 kart borcu '+fmt(sh.cardDebt):'')+'</div></div></div><div class="wr-right"><div class="wr-bal '+(sh.cash>=0?'pos':'neg')+'">'+fmt(sh.cash)+'</div><div class="wr-cap">hesaplarda</div></div></div>';
+    cards+=users.map(function(u){var st=stats(u.id),net=st.income-st.expense;return'<div class="wallet-row" onclick="App.UI.nav(\'aile\')" style="cursor:pointer"><div class="wr-left"><span class="wr-emoji">'+esc(u.emoji||'🙋')+'</span><div><div class="wr-name">'+esc(u.name)+'</div><div class="wr-meta">Bu ay '+fmt(st.income)+' gelir · '+fmt(st.expense)+' gider · '+st.count+' işlem</div></div></div><div class="wr-right"><div class="wr-bal '+(net>=0?'pos':'neg')+'">'+(net>0?'+':'')+fmt(net)+'</div><div class="wr-cap">bu ay net</div></div></div>'}).join('');
     el.innerHTML=cards;
   }
   return{list,active,get,add,edit,remove,setActive,chooseDevice,stats,sharedStats,renderAll,renderFamilyPanel}
@@ -3151,12 +3157,12 @@ App.Inflation=(function(){
 App.NetWorth=(function(){
   var _chart=null;
   function compute(){
-    var accTotal=S.accounts().reduce(function(s,a){return s+(a.balance||0)},0);
+    var accTotal=S.accounts().reduce(function(s,a){return s+(a.balance||0)},0),ms=moneySplit(S.accounts());
     var port=0;
     S.portfolio().forEach(function(p){port+=(p.qty||0)*App.Portfolio.priceOf(p)});
     var debts=S.debts().filter(function(d){return!d.settled}),lent=0,borrowed=0;
     debts.forEach(function(d){var paid=d.payments.reduce(function(s,p){return s+p.amount},0);var rem=Math.max(d.amount-paid,0);if(d.direction==='lent')lent+=rem;else borrowed+=rem});
-    return{accounts:accTotal,portfolio:port,lent:lent,borrowed:borrowed,total:accTotal+port+lent-borrowed};
+    return{accounts:accTotal,cash:ms.cash,cardDebt:ms.cardDebt,cardCredit:ms.cardCredit,portfolio:port,lent:lent,borrowed:borrowed,total:accTotal+port+lent-borrowed};
   }
   function snapshot(){
     var hist=S.netWorthHistory()||[],m=tm(),nw=compute();
@@ -3168,6 +3174,20 @@ App.NetWorth=(function(){
     if(hist.length>24)hist=hist.slice(-24);
     S.saveNetWorthHistory(hist);return hist;
   }
+  // Grafik geçmişi: hesap kısmı bugünkü hesaplardan ve işlenmiş hareketlerden ay sonuna geri hesaplanır.
+  // Silinmiş/yeniden kurulmuş hesapların eski ay kayıtları sahte bir düşüş/çıkış göstermesin; hesaplar açılmadan önceki aylar gösterilmez.
+  function _history(hist,nw,curM){
+    var accs=S.accounts(),today=td(),known=accs.length&&accs.every(function(a){return a.ts>1e12});
+    var first=known?accs.reduce(function(m,a){return Math.min(m,a.ts)},Infinity):0,firstM=first?dateMonth(first):'';
+    return hist.filter(function(h){return!firstM||h.month>=firstM}).map(function(h){
+      if(h.month===curM)return{month:h.month,total:nw.total};
+      var p=h.month.split('-'),end=h.month+'-'+String(new Date(+p[0],+p[1],0).getDate()).padStart(2,'0'),endTs=new Date(+p[0],+p[1],1).getTime();
+      var acc=nw.accounts;
+      S.txns().forEach(function(t){if(t.accountId&&t.date>end&&isBalanceApplied(t,today))acc-=t.type==='income'?t.amount:-t.amount});
+      accs.forEach(function(a){if(known&&a.ts>=endTs)acc-=a.openingBalance||0});
+      return{month:h.month,total:roundMoney(acc+(h.portfolio||0)+(h.lent||0)-(h.borrowed||0))};
+    });
+  }
   function render(){
     var el=document.getElementById('nwCard');if(!el)return;
     var nw=compute();var mode=App.Inflation.getMode();var curM=tm();
@@ -3176,15 +3196,17 @@ App.NetWorth=(function(){
     document.getElementById('nwVal').style.color=curTotal<0?'var(--red)':'var(--txt)';
     var lm=App.Inflation.latestMonth(),lp=lm.split('-');
     var cpiWarn=mode==='real'&&App.Inflation.isStale()?' · ⚠️ TÜFE verisi '+MF[+lp[1]-1]+' '+lp[0]+' sonrası için eksik; sonraki aylar son endeksle değerleniyor, güncelleyin':'';
-    document.getElementById('nwSub').textContent=(mode==='real'?'Reel (TÜFE ayarlı, '+MF[+lp[1]-1]+' '+lp[0]+' fiyatlarıyla)':'Hesaplar + Portföy − Kalan Borçlar')+cpiWarn;
-    var hist=snapshot();
+    document.getElementById('nwSub').textContent=(mode==='real'?'Reel (TÜFE ayarlı, '+MF[+lp[1]-1]+' '+lp[0]+' fiyatlarıyla)':'Hesaplardaki para − kart borçları + portföy ± borç/alacak')+cpiWarn;
+    var hist=_history(snapshot(),nw,curM);
     var adjHist=hist.map(function(h){return{month:h.month,total:mode==='real'?App.Inflation.adjust(h.total,h.month):h.total}});
     var prev=adjHist.length>=2?adjHist[adjHist.length-2]:null;
     var delta=document.getElementById('nwDelta');
     if(prev){var d=curTotal-prev.total,pct=prev.total?((d/Math.abs(prev.total))*100):0;var cls=d>0?'pos':d<0?'neg':'zero',sign=d>0?'▲ ':d<0?'▼ ':'';delta.className='nw-delta '+cls;delta.textContent=sign+fmt(Math.abs(d))+(prev.total?' ('+fmtPct(pct,1)+')':'')}
     else{delta.className='nw-delta zero';delta.textContent='İlk kayıt'}
     var foot=document.getElementById('nwFoot');
-    foot.innerHTML='<span>💳 <b>'+fmt(nw.accounts)+'</b> Hesaplar</span>'+
+    foot.innerHTML='<span>🏦 <b>'+fmt(nw.cash)+'</b> Hesaplardaki para</span>'+
+      (nw.cardDebt?'<span>💳 <b>−'+fmt(nw.cardDebt)+'</b> Kart borcu</span>':'')+
+      (nw.cardCredit?'<span>💳 <b>'+fmt(nw.cardCredit)+'</b> Kartta artı bakiye</span>':'')+
       '<span>💎 <b>'+fmt(nw.portfolio)+'</b> Portföy</span>'+
       (nw.lent?'<span>⬆️ <b>'+fmt(nw.lent)+'</b> Alacak</span>':'')+
       (nw.borrowed?'<span>⬇️ <b>−'+fmt(nw.borrowed)+'</b> Borç</span>':'')+
