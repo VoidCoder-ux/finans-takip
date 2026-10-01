@@ -136,7 +136,7 @@ Model sunucunun listesinden kendiliğinden seçilir; belirli bir model için `wr
 Bankalar uygulama dışına veri vermediği için (açık bankacılık yalnız lisanslı kurumlara açık) hareketler bankanın SMS'inden alınır:
 
 1. Eşitleme açık olmalı. Her telefonda **Ayarlar > 🏦 Banka SMS'leriyle Otomatik Kayıt > Bu Telefonda Kur** deyin; o telefona (ve kişiye) özel bir bağlantı oluşur.
-2. Kestirmeler > Otomasyon > + > **Mesaj** (Mesaj İçeriği: `TL`) > **Hemen Çalıştır** > **URL İçeriğini Al**: bağlantı, Yöntem **POST**, İstek Gövdesi **JSON**, alan `text` = **Kestirme Girdisi**. Adımlar uygulamada da gösterilir.
+2. Kestirmeler > Otomasyon > + > **Mesaj** ("Gönderen" filtresini silip **Filtre Ekle → Mesaj içeriyor `TL`**) > **Hemen Çalıştır** > **URL İçeriğini Al**: bağlantı, Yöntem **POST**, İstek Gövdesi **JSON**, alan `text` = **Kestirme Girişi**. Adımlar uygulamada da gösterilir.
 3. SMS gelince metin `POST /v1/sms/<anahtar>` ile gelen kutusuna düşer; açık uygulamalar anında, kapalı olanlar açılınca kutuyu çeker, metni **telefonda** çözümler ve kutudan siler.
 
 - Şifre/doğrulama kodu SMS'leri, tutar içermeyen ve banka hareketine benzemeyen mesajlar sunucuda **hiç saklanmaz**. Diğerleri uygulama alana kadar (en çok 14 gün) bekler. Kestirmeler şifreleme yapamadığından bu kısa süre boyunca metin sunucuda açık durur.

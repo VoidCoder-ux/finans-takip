@@ -132,6 +132,45 @@ srv.listen(0, async () => {
     // Yeni hesap formunda son 4 hane
     await page.evaluate(() => { document.getElementById('accName').value = 'Akbank Kart'; document.getElementById('accType').value = 'card'; App.Accounts.onTypeChange(); document.getElementById('accLast4').value = '4444'; App.Accounts.add(); });
     eq('add form saves last4', await page.evaluate(() => (S.accounts().find(a => a.name === 'Akbank Kart') || {}).last4), '4444');
+    // --- Özellikler arası: SMS + elle giriş + fiş + aktarım + ikramiyeli maaş ---
+    await page.evaluate(() => { document.querySelectorAll('.modal-bd.show').forEach(m => (m.closest('[id]') || m).remove()); });
+    const before = await page.evaluate(() => S.txns().length);
+    await page.evaluate(() => { App.UI.nav('islemler'); App.UI.setType && App.UI.setType('expense'); document.getElementById('txnAmt').value = '245,50'; document.getElementById('txnDate').value = td(); document.getElementById('txnAccount').value = 'a_world'; App.Transactions.add(); });
+    await page.waitForTimeout(150);
+    eq('manual entry of an amount the SMS already added → asks first, adds nothing yet', await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); return [!!m && /zaten kayıtlı/.test(m.textContent), S.txns().length]; }), [true, before]);
+    await page.evaluate(() => { [...document.querySelectorAll('.modal-bd.show')].pop().querySelector('[data-act="ok"]').click(); });
+    await page.waitForTimeout(150);
+    eq('"Yine de Ekle" adds it once', await page.evaluate(() => S.txns().length), before + 1);
+    await page.evaluate(() => { const t = S.txns().find(x => x.amount === 245.5 && !x.src); App.Transactions.purge ? App.Transactions.purge(t.id) : null; });
+    // Fiş: aynı tutar SMS'le zaten eklenmiş → mevcut kaydı güncelle
+    await page.evaluate(() => App.Receipt.review({ total: 145, date: td(), merchant: 'Starbucks', category: 'Yiyecek', items: [] }, 'ocr'));
+    await page.waitForTimeout(150);
+    await page.evaluate(() => { const m = document.getElementById('rcpReview'); m.querySelector('[data-rk="accountId"]').value = 'a_axess'; m.querySelector('[data-rk="note"]').value = 'Starbucks Bağdat Cad. — fiş'; m.querySelector('[data-rk="category"]').value = 'Yiyecek'; m.querySelector('[data-act="ok"]').click(); });
+    await page.waitForTimeout(150);
+    eq('receipt for an SMS-added purchase offers update instead of a second record', await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); return [...m.querySelectorAll('button')].map(b => b.textContent); }), ['Vazgeç', 'Ayrı Kayıt Ekle', 'Mevcut Kaydı Güncelle']);
+    const n145 = await page.evaluate(() => S.txns().filter(t => t.amount === 145).length);
+    await page.evaluate(() => { [...document.querySelectorAll('.modal-bd.show')].pop().querySelector('[data-act="ok"]').click(); });
+    await page.waitForTimeout(150);
+    eq('update keeps one record, takes the receipt note', await page.evaluate(() => { const l = S.txns().filter(t => t.amount === 145); return [l.length, l[0].note, l[0].src]; }), [n145, 'Starbucks Bağdat Cad. — fiş', 'sms']);
+    // Kendi hesaplarınız arası: giden + gelen SMS → tek transfer (gelir/gider sayılmaz)
+    await page.evaluate(() => { const a = S.accounts(); a.find(x => x.id === 'a_akb').last4 = '3333'; a.find(x => x.id === 'a_ykb').last4 = '2222'; S.saveAccounts(a); });
+    const incBefore = await page.evaluate(() => App.Transactions.monthTotals ? JSON.stringify(App.Transactions.monthTotals(tm())) : '');
+    await page.evaluate(i => App.BankSms.ingest([i]), item('2222 nolu hesabinizdan MEHMET KAYA adina 3.000,00 TL FAST ile gonderilmistir. Yapi Kredi'));
+    const r3 = await page.evaluate(i => App.BankSms.ingest([i]), item('Akbank: 3333 nolu hesabiniza MEHMET KAYA tarafindan 3.000,00 TL FAST gelmistir.', LP));
+    eq('outgoing + incoming same amount between own accounts → paired as transfer', [r3.transfers, await page.evaluate(() => S.txns().filter(t => t.amount === 3000).map(t => [t.type, t.category, !!t.transferId, t.accountId]).sort())], [1, [['expense', 'Transfer', true, 'a_ykb'], ['income', 'Transfer', true, 'a_akb']]]);
+    eq('transfer does not change month income/expense totals', await page.evaluate(() => App.Transactions.monthTotals ? JSON.stringify(App.Transactions.monthTotals(tm())) : ''), incBefore);
+    // İkramiyeli maaş: planlı 38.000 yerine 52.000 gelirse yine aynı kayıt güncellenir
+    await page.evaluate(() => { const t = S.txns(); const x = t.find(y => y.id === 'tr_r_sal2'); App.Transactions.patch(x.id, { amount: 38000, date: tm() + '-15' }); });
+    const r4 = await page.evaluate(i => App.BankSms.ingest([i]), item('Maas odemeniz 52.000,00 TL olarak hesabiniza yatirilmistir. Akbank', LP));
+    eq('salary with bonus (+37%) updates the planned salary, no second salary', [r4.added, r4.updated, await page.evaluate(() => S.txns().filter(t => t.type === 'income' && t.category === 'Maaş' && t.userId === 'u_partner').length)], [0, 1, 1]);
+    // Maaş SMS'i tekrarlayana bağlanamadıysa (tutar farklı), Özet'te "Kaydet" ikinci maaş açmaz: eşleştirir
+    await page.evaluate(() => { const r = S.recurring(); r.push({ id: 'r_bonus', type: 'income', amount: 10000, category: 'Maaş', day: 28, note: 'Ek iş', accountId: 'a_ykb', userId: 'u_self', active: true, ts: 3 }); S.saveRecurring(r); const t = S.txns(); t.unshift({ id: 'sms_extra', type: 'income', amount: 11500, category: 'Maaş', date: td(), note: 'Maaş', accountId: 'a_ykb', userId: 'u_self', ts: 1, balanceApplied: true, src: 'sms' }); S.saveTxns(t); App.Accounts.reconcileAccountBalances(true); App.Recurring.log('r_bonus'); });
+    await page.waitForTimeout(150);
+    eq('recurring "Kaydet" offers to match the bank record', await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); return [...m.querySelectorAll('button')].map(b => b.textContent); }), ['Vazgeç', 'Ayrı Kaydet', 'Eşleştir']);
+    await page.evaluate(() => { [...document.querySelectorAll('.modal-bd.show')].pop().querySelector('[data-act="ok"]').click(); });
+    eq('matched: no new record, recurring counts as logged', await page.evaluate(() => [S.txns().filter(t => t.recurringId === 'r_bonus').map(t => t.id), S.txns().filter(t => t.amount === 10000).length]), [['sms_extra'], 0]);
+    eq('transaction list shows source tag and last4 on account tag', await page.evaluate(() => { App.UI.nav('islemler'); App.Transactions.renderList(); const h = document.getElementById('txnList') ? document.getElementById('txnList').innerText : document.body.innerText; return [h.includes('🏦 SMS'), /World Kart …1234/.test(h)]; }), [true, true]);
+    eq('balances still consistent', await page.evaluate(() => App.Accounts.reconcileAccountBalances(true)), false);
     eq('settings card asks to enable sync first', await page.evaluate(() => { App.UI.nav('aile'); return document.getElementById('setSmsCard').innerText.includes('eşitlemeyi açın'); }), true);
     await ctx.close();
   }
@@ -156,10 +195,27 @@ srv.listen(0, async () => {
     await page.evaluate(() => { const a = S.accounts(); a.find(x => x.id === 'a_world').last4 = '1234'; S.saveAccounts(a); });
     const res = await page.evaluate(() => App.BankSms.pull({ force: true }));
     eq('app pulled and added it', [res && res.added, await page.evaluate(() => S.txns().filter(t => t.src === 'sms').length)], [1, 1]);
+    // İkinci cihaz: onay listesi, son 4 hane ve SMS etiketi eşitlenir; orada onaylanan öğe ilk cihazdan da kalkar
+    await page.evaluate(() => App.BankSms.ingest([{ id: 990001, label: 'abcd1234_u_self', text: 'Kartinizdan 59,90 TL harcama yapildi.', receivedAt: Date.now() }]));
+    await page.evaluate(() => App.Sync.syncNow({ quiet: true }));
+    const code = await page.evaluate(() => App.Sync.codeOf(App.Sync.cfg()));
+    const ctxB = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
+    const pageB = await ctxB.newPage(); pageB.on('pageerror', e => errors.push('B ' + e.message));
+    await pageB.goto(BASE + '/index.html'); await pageB.evaluate(() => { localStorage.clear(); localStorage.setItem('ft_setup_shown', String(Date.now())); }); await pageB.reload(); await pageB.waitForTimeout(300);
+    eq('device B joins', await pageB.evaluate(c => App.Sync.join(c), code), true);
+    await pageB.waitForTimeout(300);
+    eq('B sees queue, last4 and SMS source', await pageB.evaluate(() => [S.smsQueue().length, App.Accounts.get('a_world').last4, S.txns().some(t => t.src === 'sms')]), [1, '1234', true]);
+    await pageB.evaluate(() => { document.querySelectorAll('.modal-bd.show').forEach(m => (m.closest('[id]') || m).remove()); App.BankSms.accept(S.smsQueue()[0].id); });
+    await pageB.waitForTimeout(150);
+    await pageB.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="acc"]').value = 'a_world'; m.querySelector('[data-act="ok"]').click(); });
+    await pageB.waitForTimeout(200);
+    await pageB.evaluate(() => App.Sync.syncNow({ quiet: true })); await page.evaluate(() => App.Sync.syncNow({ quiet: true }));
+    eq('accepted on B → gone from A, transaction on A, same balance', await Promise.all([page.evaluate(() => [S.smsQueue().length, S.txns().some(t => t.amount === 59.9), App.Accounts.get('a_world').balance]), pageB.evaluate(() => App.Accounts.get('a_world').balance)]).then(([a, b]) => [a[0], a[1], a[2] === b]), [0, true, true]);
+    await ctxB.close();
     eq('inbox emptied on server', await page.evaluate(() => App.Sync.api(App.Sync.cfg(), 'GET', '/inbox').then(r => r.body.items.length)), 0);
     await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: '' }) });
     await page.evaluate(() => App.BankSms.pull({ force: true })); await page.evaluate(() => App.UI.nav('aile'));
-    eq('settings shows diagnosis of the last shortcut call (empty body)', await page.evaluate(() => (document.getElementById('smsLast') || {}).textContent || ''), 'Son SMS: az önce · ⚠ boş geldi: Kestirme\'de "text" alanının değeri Kestirme Girdisi olmalı');
+    eq('settings shows diagnosis of the last shortcut call (empty body)', await page.evaluate(() => (document.getElementById('smsLast') || {}).textContent || ''), 'Son SMS: az önce · ⚠ boş geldi: Kestirme\'de "text" alanının değeri Kestirme Girişi olmalı');
     eq('test button round-trip', await page.evaluate(async () => { const toasts = []; const o = App.UI.toast; App.UI.toast = (m) => { toasts.push(m); }; App.BankSms.test(); await new Promise(r => setTimeout(r, 1500)); App.UI.toast = o; return toasts.some(t => /çalışıyor/.test(t)); }), true);
     // Canlı bağlantı: SMS gelince açık uygulama hemen çeker
     await page.evaluate(() => App.Sync.connectLive()); await page.waitForTimeout(800);

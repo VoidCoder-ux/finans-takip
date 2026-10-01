@@ -882,7 +882,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.01.4</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.01.5</div>
 </section>
 
 </main>
@@ -1357,8 +1357,9 @@ App.UI=(function(){
   function confirmModal(opts,onOk){
     var id='cfm_'+gid('m');
     var div=document.createElement('div');div.id=id;div.className='app-dialog-holder';
-    div.innerHTML='<div class="modal-bd show"><div class="modal"><div class="modal-title">'+esc(opts.title||'Onay')+'</div><div style="font-size:.85rem;color:var(--txt2);line-height:1.55;white-space:pre-wrap">'+esc(opts.text||'')+'</div><div class="modal-actions"><button class="btn btn-ghost" data-act="cancel">Vazgeç</button><button class="btn btn-primary" data-act="ok"'+(opts.danger?' style="background:var(--red)"':'')+'>'+esc(opts.okLabel||'Evet')+'</button></div></div></div>';
+    div.innerHTML='<div class="modal-bd show"><div class="modal"><div class="modal-title">'+esc(opts.title||'Onay')+'</div><div style="font-size:.85rem;color:var(--txt2);line-height:1.55;white-space:pre-wrap">'+esc(opts.text||'')+'</div><div class="modal-actions"'+(opts.extra?' style="flex-wrap:wrap"':'')+'><button class="btn btn-ghost" data-act="cancel">Vazgeç</button>'+(opts.extra?'<button class="btn btn-ghost" data-act="extra">'+esc(opts.extra.label)+'</button>':'')+'<button class="btn btn-primary" data-act="ok"'+(opts.danger?' style="background:var(--red)"':'')+'>'+esc(opts.okLabel||'Evet')+'</button></div></div></div>';
     var cancel=function(){closeModal(id);if(opts.onCancel)opts.onCancel()};
+    if(opts.extra)div.querySelector('[data-act="extra"]').addEventListener('click',function(){closeModal(id);opts.extra.fn()});
     div.querySelector('[data-act="cancel"]').addEventListener('click',cancel);
     div.querySelector('[data-act="ok"]').addEventListener('click',function(){closeModal(id);if(onOk)onOk()});
     div.querySelector('.modal-bd').addEventListener('click',function(e){if(e.target===this)cancel()});
@@ -1621,8 +1622,10 @@ App.Transactions=(function(){
     createTransfer({from:from,to:to,amount:amt,date:date,note:note,userId:document.getElementById('txnUser').value||S.settings().activeUser});
     _clearForm();_refresh();App.UI.toast(date<=td()?'Transfer kaydedildi.':'Transfer '+fd(date)+' için planlandı.');
   }
+  var _skipTwin=false;
   function add(){
     if(App.UI.getType()==='transfer'){_addTransfer();return}
+    var force=_skipTwin;_skipTwin=false;
     var amt=parseMoney(document.getElementById('txnAmt').value),date=document.getElementById('txnDate').value;
     var cat=document.getElementById('txnCat').value,note=document.getElementById('txnNote').value.trim();
     var type=App.UI.getType();
@@ -1639,6 +1642,9 @@ App.Transactions=(function(){
     var sharedAcc=App.Accounts.sharedAccount(),chosenAcc=selectedAcc?App.Accounts.get(selectedAcc):null;
     if(!chosenAcc&&!sharedAcc){App.UI.toast('Önce hesap oluşturun.','err');App.UI.nav('hesaplar');return}
     var accId=(chosenAcc||sharedAcc).id;
+    // Kartla ödenen harcama banka SMS'iyle zaten düştüyse elle ikinci kez girilmesin
+    var twin=!force&&insCount<2&&App.BankSms.twin({type:type,amount:amt,date:date,accountId:accId},true);
+    if(twin){App.UI.confirmModal({title:'Bu hareket zaten kayıtlı olabilir',text:'Bankadan ('+(twin.src==='sms'?'SMS':'ekstre')+') aynı tutarda bir kayıt var:\n'+fmt(twin.amount)+' · '+(twin.note||twin.category)+' · '+fd(twin.date)+(twin.accountId?' · '+accLabel(App.Accounts.get(twin.accountId)):'')+'\n\nYine de ayrı bir kayıt eklensin mi?',okLabel:'Yine de Ekle'},function(){_skipTwin=true;add()});return}
     var arr=S.txns();
     if(type==='expense'&&insCount>=2&&insCount<=36){
       var ruleCheck={type:'expense',amount:amt,category:cat,note:note};App.Rules.apply(ruleCheck);var instCat=ruleCheck.category;
@@ -1836,14 +1842,15 @@ App.Transactions=(function(){
   function _h(t,del,pair){
     if(pair||isTransfer(t))return _hTransfer(t,pair,del);
     var info=ci(t.category),sign=t.type==='income'?'+':'-';
-    var an=t.accountId?App.Accounts.getName(t.accountId):'';
+    var ao=t.accountId?App.Accounts.get(t.accountId):null,an=ao?accLabel(ao):'';
     var at=an?'<span class="ti-acc-tag cc-blue">'+esc(an)+'</span>':'';
+    var srcTag=t.src==='sms'?'<span class="stmt-tag" title="Banka SMS\'inden otomatik eklendi">🏦 SMS</span>':t.src==='import'?'<span class="stmt-tag" title="Banka ekstresinden eklendi">📄 Ekstre</span>':'';
     var stmt=t.accountId?statementPeriod(t.accountId,t.date):null;
     var stmtTag=stmt?'<span class="stmt-tag">Ekstre: '+MF[+stmt.split('-')[1]-1]+'</span>':'';
     var insTag=t.installment?'<span class="ti-note" style="background:rgba(249,115,22,.15);color:var(--orange)">Taksit '+t.installment.index+'/'+t.installment.total+'</span>':'';
     var u=t.userId?App.Users.get(t.userId):null;
     var uTag=u?'<span class="user-tag" style="background:'+safeColor(u.color)+'22;color:'+inkColor(u.color)+'"><span class="ue">'+esc(u.emoji||'🙋')+'</span>'+esc(u.name)+'</span>':'';
-    return'<div class="ti"><div class="cat-ico '+info.c+'">'+info.i+'</div><div class="ti-body"><div class="ti-cat">'+esc(t.category)+'</div><div class="ti-meta">'+fd(t.date)+'</div>'+(t.note?'<span class="ti-note">'+esc(t.note)+'</span>':'')+insTag+at+stmtTag+uTag+'</div><div class="ti-right"><div class="ti-amt '+t.type+'">'+sign+fmt(t.amount)+'</div>'+_actions(t,del)+'</div></div>'
+    return'<div class="ti"><div class="cat-ico '+info.c+'">'+info.i+'</div><div class="ti-body"><div class="ti-cat">'+esc(t.category)+'</div><div class="ti-meta">'+fd(t.date)+'</div>'+(t.note?'<span class="ti-note">'+esc(t.note)+'</span>':'')+insTag+at+stmtTag+srcTag+uTag+'</div><div class="ti-right"><div class="ti-amt '+t.type+'">'+sign+fmt(t.amount)+'</div>'+_actions(t,del)+'</div></div>'
   }
   function renderList(){
     var tf=document.getElementById('fType').value,cf=document.getElementById('fCat').value,af=document.getElementById('fAcc').value,mf=document.getElementById('fMonth').value,sf=document.getElementById('fSearch').value.toLowerCase();
@@ -2025,7 +2032,12 @@ App.Recurring=(function(){
   function log(id){
     var rec=S.recurring().find(function(r){return r.id===id});if(!rec)return;
     var currentMonth=tm();
-    if(!_loggedIn(rec,currentMonth)){_logFor(rec,currentMonth);return}
+    if(!_loggedIn(rec,currentMonth)){
+      // Bu ayki hareket bankadan (SMS/ekstre) zaten geldiyse ikinci kayıt açmak yerine onunla eşleştir
+      var tol=rec.category==='Maaş'?0.5:0.15,bank=S.txns().filter(function(t){return(t.src==='sms'||t.src==='import')&&!t.recurringId&&!isTransfer(t)&&t.type===rec.type&&t.date.slice(0,7)===currentMonth&&(!rec.userId||!t.userId||t.userId===rec.userId)&&Math.abs(t.amount-rec.amount)<=Math.max(1,rec.amount*tol)}).sort(function(a,b){return Math.abs(a.amount-rec.amount)-Math.abs(b.amount-rec.amount)})[0];
+      if(bank){App.UI.confirmModal({title:'Bu ay bankadan zaten geldi',text:'"'+(rec.note||rec.category)+'" için bankadan gelen kayıt: '+fmt(bank.amount)+' · '+fd(bank.date)+' · '+(bank.note||bank.category)+'\n\nBu kayıt tekrarlayanla eşleştirilsin mi? (Yeni kayıt açılmaz.)',okLabel:'Eşleştir',extra:{label:'Ayrı Kaydet',fn:function(){_logFor(rec,currentMonth)}}},function(){
+        var txns=S.txns(),x=txns.find(function(t){return t.id===bank.id});if(!x)return;x.recurringId=rec.id;S.saveTxns(txns);_rerender();App.Transactions.renderList();App.UI.toast('Eşleştirildi: bu ay kaydedildi sayılıyor.','ok')});return}
+      _logFor(rec,currentMonth);return}
     App.UI.promptModal({title:'Başka Bir Ay İçin Kaydet',text:'"'+(rec.note||rec.category)+'" bu ay zaten kaydedildi. Unutulan bir ayı kaydetmek için ay seçin.',fields:[{key:'month',label:'Ay',type:'month',value:shiftMonth(currentMonth,-1)}],okLabel:'Kaydet'},function(v){
       var m=String(v.month||'').trim();if(!validMonth(m)){App.UI.toast('Geçerli ay seçin.','err');return false}
       _logFor(rec,m);
@@ -3852,12 +3864,40 @@ App.BankSms=(function(){
     var d0=new Date(p.date+'T12:00:00');
     return S.txns().find(function(t){if(t.src==='sms'||t.type!==p.type||isTransfer(t)||Math.abs(t.amount-p.amount)>0.009)return false;if(accId&&t.accountId&&t.accountId!==accId)return false;return Math.abs((new Date(t.date+'T12:00:00')-d0)/864e5)<=2});
   }
-  // Maaş: bu ay tekrarlayandan oluşturulmuş (ya da planlanmış) maaş kaydını SMS'teki gerçek tutar ve tarihle günceller
+  // Maaş: bu ay tekrarlayandan oluşturulmuş (ya da planlanmış) maaş kaydını SMS'teki gerçek tutar ve tarihle günceller.
+  // İkramiye/zam farkı olabilir: aynı ay, aynı kişi, ±%50 içinde en yakın tutar
   function _salaryTxn(p,userId){
     if(p.type!=='income'||!p.salary)return null;var month=p.date.slice(0,7);
     var recs=S.recurring().filter(function(r){return r.type==='income'&&r.active!==false&&(r.category==='Maaş'||/maa[sş]/i.test(r.note||''))&&(!r.userId||r.userId===userId)});
     var ids=recs.map(function(r){return r.id});
-    return S.txns().find(function(t){return t.type==='income'&&t.src!=='sms'&&ids.indexOf(t.recurringId)>=0&&t.date.slice(0,7)===month&&Math.abs(t.amount-p.amount)<=Math.max(1,t.amount*0.15)})||null;
+    var c=S.txns().filter(function(t){return t.type==='income'&&t.src!=='sms'&&ids.indexOf(t.recurringId)>=0&&t.date.slice(0,7)===month&&Math.abs(t.amount-p.amount)<=Math.max(1,t.amount*0.5)});
+    c.sort(function(a,b){return Math.abs(a.amount-p.amount)-Math.abs(b.amount-p.amount)});return c[0]||null;
+  }
+  // Elle/fişle eklenen bir hareketin bankadan (SMS/ekstre) ya da başka yoldan zaten girilmiş eşi: aynı tür ve tutar, ±2 gün, aynı ya da boş hesap.
+  // bankOnly: yalnız SMS/ekstre kayıtları (elle girilen iki aynı kahve gibi durumlar sorulmasın)
+  function twin(o,bankOnly){
+    var d0=new Date(o.date+'T12:00:00');
+    return S.txns().find(function(t){if(t.type!==o.type||isTransfer(t)||t.installment||Math.abs(t.amount-o.amount)>0.009)return false;if(bankOnly&&t.src!=='sms'&&t.src!=='import')return false;
+      if(o.accountId&&t.accountId&&t.accountId!==o.accountId)return false;return Math.abs((new Date(t.date+'T12:00:00')-d0)/864e5)<=2})||null;
+  }
+  // Kendi hesaplarınız arasında para: bir hesaptan "giden", diğerine "gelen" SMS'i aynı tutarda ve ±1 günde gelince ikisi transfere çevrilir
+  function _transferTwin(p,accId,q){
+    var d0=new Date(p.date+'T12:00:00'),near=function(d){return Math.abs((new Date(d+'T12:00:00')-d0)/864e5)<=1};
+    var t=S.txns().find(function(x){return x.src==='sms'&&!x.transferId&&x.category!=='Transfer'&&x.type!==p.type&&Math.abs(x.amount-p.amount)<0.01&&x.accountId&&x.accountId!==accId&&near(x.date)&&/^(Gelen|Giden)/.test(x.note||'')});
+    if(t)return{txn:t};
+    var qi=q.find(function(x){return x.p&&x.p.type!==p.type&&Math.abs(x.p.amount-p.amount)<0.01&&x.p.accountId&&x.p.accountId!==accId&&near(x.p.date||'')&&/\b(eft|fast|havale|virman)\b/.test(fold(x.text))});
+    return qi?{queued:qi}:null;
+  }
+  function _makeTransfer(p,accId,userId,sid,tw,q){
+    var trf=gid('tr'),arr=S.txns(),today=td(),other,mine={id:sid,type:p.type,amount:p.amount,category:'Transfer',date:p.date,note:'',accountId:accId,userId:userId,ts:Date.now(),balanceApplied:p.date<=today,src:'sms',transferId:trf};
+    if(tw.txn){other=arr.find(function(x){return x.id===tw.txn.id});if(!other)return false;other.category='Transfer';other.transferId=trf}
+    else{var x=tw.queued;other={id:x.id.replace(/^sq/,''),type:x.p.type,amount:x.p.amount,category:'Transfer',date:x.p.date||p.date,note:'',accountId:x.p.accountId,userId:_userOf(x.label),ts:Date.now()-1,balanceApplied:(x.p.date||p.date)<=today,src:'sms',transferId:trf};
+      if(arr.some(function(y){return y.id===other.id}))other.id=gid('t');arr.unshift(other);if(other.balanceApplied)App.Accounts.adjustBalance(other.accountId,other.type==='income'?other.amount:-other.amount);
+      var qi=q.indexOf(x);if(qi>=0)q.splice(qi,1)}
+    var out=mine.type==='expense'?mine:other,inn=mine.type==='expense'?other:mine;
+    mine.note=other.note=App.Accounts.getName(out.accountId)+' → '+App.Accounts.getName(inn.accountId);
+    arr.unshift(mine);S.saveTxns(arr);if(mine.balanceApplied)App.Accounts.adjustBalance(accId,mine.type==='income'?mine.amount:-mine.amount);
+    return true;
   }
   function _salaryRec(p,userId){
     if(p.type!=='income'||!p.salary)return null;var month=p.date.slice(0,7);
@@ -3880,6 +3920,7 @@ App.BankSms=(function(){
       if(p.kind==='ignore'){res.ignored++;return}
       if(S.txns().some(function(t){return t.id===sid})||q.some(function(x){return x.id==='sq'+sid}))return;
       var accId=resolveAccount(p,userId),cat=_category(p),note=_note(p);
+      if(p.transfer&&accId&&(p.kind==='expense'||p.kind==='income')){var tw=_transferTwin(p,accId,q);if(tw&&_makeTransfer(p,accId,userId,sid,tw,q)){if(tw.queued)qChanged=true;res.transfers=(res.transfers||0)+1;return}}
       // Aile içi / kendi hesapları arası para aktarımı gelir-gider sayılmasın: onaya düşer
       if(p.kind!=='review'&&p.transfer&&p.party){var pf=fold(p.party);if(/kendi/.test(pf)||App.Users.list().some(function(u){var n=fold(u.name).trim().split(/\s+/)[0];return n.length>=3&&new RegExp('\\b'+n.replace(/[^a-z0-9]/g,'')+'\\b').test(pf)})){p.kind='review';p.reason='Aile içi ya da kendi hesaplarınız arası aktarım olabilir; aktarımsa Yoksay deyin'}}
       if(p.kind!=='review'&&!accId){p.kind='review';p.reason=p.last4?'…'+p.last4+' ile biten kart/hesap hangi hesabınız? Bir kez seçin, sonrakiler otomatik işlenir.':'Hangi hesaba ait olduğu bulunamadı'}
@@ -3893,10 +3934,10 @@ App.BankSms=(function(){
       q.push({id:'sq'+sid,text:String(it.text).slice(0,1000),label:String(it.label||'').slice(0,100),receivedAt:it.receivedAt||Date.now(),reason:p.reason||'Kontrol gerekiyor',p:{type:p.type||'expense',amount:p.amount,date:p.date,note:note,category:cat,accountId:accId,last4:p.last4},ts:Date.now()});qChanged=true;res.queued++;
     });
     if(qChanged)S.saveSmsQueue(q);
-    if(res.added||res.updated||qChanged)renderAllViews();
+    if(res.added||res.updated||res.transfers||qChanged)renderAllViews();
     return res;
   }
-  function _summary(r){var a=[];if(r.added)a.push(r.added+' banka hareketi eklendi');if(r.updated)a.push(r.updated+' maaş kaydı güncellendi');if(r.queued)a.push(r.queued+' hareket Özet\'te onay bekliyor');return a.join(' · ')}
+  function _summary(r){var a=[];if(r.added)a.push(r.added+' banka hareketi eklendi');if(r.transfers)a.push(r.transfers+' hesaplar arası aktarım eşleştirildi');if(r.updated)a.push(r.updated+' maaş kaydı güncellendi');if(r.queued)a.push(r.queued+' hareket Özet\'te onay bekliyor');return a.join(' · ')}
   // Sunucudaki kutuyu çek → işle → işlenenleri sil. Aynı anda tek çekim; görünür değilken çekmez.
   function pull(opts){
     opts=opts||{};if(_unsupported||!App.Sync.configured()||(!opts.force&&document.hidden))return Promise.resolve(null);
@@ -3947,7 +3988,7 @@ App.BankSms=(function(){
   function copy(){var u=url();if(!u)return;(navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(function(){App.UI.toast('Bağlantı kopyalandı. Kestirmeler\'de URL alanına yapıştırın.','ok')},function(){var el=document.getElementById('smsUrlTxt');if(el){el.focus();el.select()}App.UI.toast('Kopyalanamadı; kutudaki bağlantıyı elle seçip kopyalayın.','info')})}
   function guide(){
     var u=url();if(!u)return;
-    var steps=['<b>Bağlantıyı Kopyala</b>\'ya bas.','<b>Kestirmeler</b> uygulamasını aç → alttan <b>Otomasyon</b> → sağ üstte <b>+</b>.','<b>Mesaj</b>\'ı seç. <b>Mesaj İçeriği</b> kutusuna <b>TL</b> yaz. (İstersen <b>Gönderen</b> ile yalnız bankanı seç.)','<b>Hemen Çalıştır</b>\'ı seç (Çalıştırmadan Önce Sor kapalı) → <b>İleri</b>.','<b>Yeni Boş Otomasyon</b> → <b>Eylem Ekle</b> → aramaya <b>URL İçeriğini Al</b> yaz ve seç.','URL kutusuna kopyaladığın bağlantıyı <b>yapıştır</b>.','Eylemdeki <b>›</b> (Daha Fazla) → <b>Yöntem: POST</b> → <b>İstek Gövdesi: JSON</b> → <b>Yeni Alan Ekle → Metin</b>: anahtar <b>text</b>, değer olarak <b>Kestirme Girdisi</b>\'ni seç (sorarsa <b>İçerik</b>).','<b>Bitti</b>. Bankadan bir SMS geldiğinde hareket uygulamaya kendiliğinden düşer.'];
+    var steps=['<b>Bağlantıyı Kopyala</b>\'ya bas.','<b>Kestirmeler</b> uygulamasını aç → alttan <b>Otomasyon</b> → sağ üstte <b>+</b> → <b>Mesaj</b>.','<b>Gönderen eşittir</b> satırını sağdaki <b>⊖</b> ile sil → <b>Filtre Ekle</b> → <b>Mesaj</b> → <b>içeriyor</b> → <b>TL</b> yaz.','"Şöyle bir mesaj aldığımda" yanındaki <b>›</b> → <b>Hemen Çalıştır</b>.','Alttaki <b>Arayın</b> kutusuna <b>URL İçeriğini Al</b> yaz ve seç.','URL kutusuna kopyaladığın bağlantıyı <b>yapıştır</b>.','"içeriğini al" yanındaki <b>›</b> → <b>Yöntem: POST</b> → <b>İstek Gövdesi: JSON</b> → <b>yeni alan Ekle → Metin</b>: anahtar <b>text</b>, değer olarak <b>Kestirme Girişi</b>\'ni seç.','Sol üstteki <b>‹</b> ile çık. Denemek için birinden sana <b>AILEKASASI-TEST 1,00 TL</b> yazmasını iste; bu kartta "✓ alındı" görünür.'];
     var div=document.createElement('div');div.id='smsGuideHolder';
     div.innerHTML='<div class="modal-bd show" onclick="if(event.target===this)App.UI.closeModal(\'smsGuideHolder\')"><div class="modal"><div class="modal-title">🏦 Banka SMS\'i → Aile Kasası</div>'+
       '<div class="set-sub" style="margin-bottom:8px">Bu bağlantı yalnız <b>bu telefona ('+esc((App.Users.get(S.settings().activeUser)||{}).name||'')+')</b> aittir; başkasıyla paylaşmayın. Eşiniz kendi telefonunda ayrıca kurmalı.</div>'+
@@ -3959,7 +4000,7 @@ App.BankSms=(function(){
     App.UI.mountModal(div,'#smsCopyBtn');
   }
   // Kestirme'den gelen son isteğin sonucu (kurulum tanısı)
-  var WHY={stored:'✓ alındı',empty:'⚠ boş geldi: Kestirme\'de "text" alanının değeri Kestirme Girdisi olmalı',no_amount:'⚠ tutar yoktu (metin eksik gelmiş ya da banka SMS\'i değil)',not_bank:'banka mesajına benzemedi, saklanmadı',secret:'şifre/kod mesajıydı, saklanmadı',duplicate:'aynı SMS ikinci kez geldi',too_long:'⚠ çok uzun',too_large:'⚠ çok uzun',inbox_full:'⚠ kutu dolu: uygulamayı açın'};
+  var WHY={stored:'✓ alındı',empty:'⚠ boş geldi: Kestirme\'de "text" alanının değeri Kestirme Girişi olmalı',no_amount:'⚠ tutar yoktu (metin eksik gelmiş ya da banka SMS\'i değil)',not_bank:'banka mesajına benzemedi, saklanmadı',secret:'şifre/kod mesajıydı, saklanmadı',duplicate:'aynı SMS ikinci kez geldi',too_long:'⚠ çok uzun',too_large:'⚠ çok uzun',inbox_full:'⚠ kutu dolu: uygulamayı açın'};
   function _lastLine(st){if(!st||!st.lastAt)return'Henüz Kestirme\'den SMS gelmedi.';var m=Math.round((Date.now()-st.lastAt)/60000),ago=m<1?'az önce':m<60?m+' dk önce':m<1440?Math.round(m/60)+' sa önce':Math.round(m/1440)+' gün önce';return'Son SMS: '+ago+' · '+(WHY[st.lastReason]||esc(st.lastReason||''))}
   // Elle: SMS metnini yapıştır (kurulumu denemek, eski SMS'leri eklemek ya da Kestirme olmadan kullanmak için)
   function paste(){
@@ -4028,7 +4069,7 @@ App.BankSms=(function(){
     document.addEventListener('visibilitychange',function(){if(!document.hidden)pull()});
     setInterval(function(){if(!document.hidden)pull()},5*60000);
   }
-  return{parse:parse,ingest:ingest,resolveAccount:resolveAccount,byBank:byBank,paste:paste,pull:pull,setup:setup,disable:disable,test:test,copy:copy,guide:guide,setDefault:setDefault,renderCard:renderCard,renderQueue:renderQueue,accept:accept,dismiss:dismiss,dismissAll:dismissAll,init:init,url:url,_fold:fold};
+  return{parse:parse,ingest:ingest,resolveAccount:resolveAccount,byBank:byBank,twin:twin,paste:paste,pull:pull,setup:setup,disable:disable,test:test,copy:copy,guide:guide,setDefault:setDefault,renderCard:renderCard,renderQueue:renderQueue,accept:accept,dismiss:dismiss,dismissAll:dismissAll,init:init,url:url,_fold:fold};
 })();
 
 // ---- Banka/kart ekstresi içe aktarma (Excel .xlsx, Excel görünümlü .xls, CSV, PDF) ----
@@ -4827,11 +4868,17 @@ App.Receipt=(function(){
       if(amt===null){App.UI.toast('Geçerli tutar girin.','err');q('amount').focus();return}
       if(!validDate(d)){App.UI.toast('Geçerli tarih seçin.','err');q('date').focus();return}
       if(!App.Accounts.get(acc)){App.UI.toast('Hesap seçin.','err');return}
-      saving=true;
       try{localStorage.setItem('ft_rcp_acc',acc)}catch(e){}
-      App.Transactions.addExpense({amount:amt,date:d,category:q('category').value,note:q('note').value,accountId:acc,userId:App.Users.get(q('userId').value)?q('userId').value:active});
-      App.UI.closeModal('rcpReview');if(_cur){URL.revokeObjectURL(_cur.url);_cur=null}
-      App.UI.toast('Fişten gider eklendi: '+fmt(amt));
+      var cat=q('category').value,note=q('note').value.trim(),uid=App.Users.get(q('userId').value)?q('userId').value:active;
+      var done=function(msg){App.UI.closeModal('rcpReview');if(_cur){URL.revokeObjectURL(_cur.url);_cur=null}App.UI.toast(msg)};
+      var addNew=function(){saving=true;App.Transactions.addExpense({amount:amt,date:d,category:cat,note:note,accountId:acc,userId:uid});done('Fişten gider eklendi: '+fmt(amt))};
+      // Kartla ödendiyse harcama banka SMS'iyle (ya da elle) zaten eklenmiş olabilir: ikinci kayıt yerine o kayıt fişle tamamlanır
+      var twin=App.BankSms.twin({type:'expense',amount:amt,date:d,accountId:acc},false);
+      if(!twin){addNew();return}
+      saving=true;
+      App.UI.confirmModal({onCancel:function(){saving=false},title:'Bu harcama zaten kayıtlı',text:fmt(twin.amount)+' · '+(twin.note||twin.category)+' · '+fd(twin.date)+(twin.accountId?' · '+accLabel(App.Accounts.get(twin.accountId)):'')+(twin.src==='sms'?' (banka SMS\'inden)':'')+'\n\nFişteki kategori ve açıklama bu kayda işlensin mi? Tutar iki kez sayılmaz.',okLabel:'Mevcut Kaydı Güncelle',extra:{label:'Ayrı Kayıt Ekle',fn:addNew}},function(){
+        var ch={category:cat};if(note)ch.note=note;App.Transactions.patch(twin.id,ch);renderAllViews();done('Mevcut kayıt fişle güncellendi.');
+      });
     });
     div.querySelectorAll('[data-money]').forEach(function(el){el.addEventListener('input',function(){moneyHint(el)})});
     App.UI.mountModal(div,'[data-rk="amount"]');
