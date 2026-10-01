@@ -10,6 +10,7 @@
 
 import { readMarket, refreshMarket, isStale } from './market.js';
 import { readReceipt } from './receipt.js';
+import { postSms, putSmsKey, deleteSmsKey, listInbox, ackInbox, purgeOldSms, ensureSchema } from './sms.js';
 
 const MAX_BODY = 2_000_000;
 const ID_RE = /^[A-Za-z0-9_-]{22,64}$/;
@@ -45,7 +46,7 @@ export default {
 
   // "0 6 * * *": günlük bildirim (09:00 İstanbul) + piyasa; diğer cron (saatlik): yalnız piyasa verileri
   async scheduled(event, env, ctx) {
-    if (event.cron === '0 6 * * *') ctx.waitUntil(sendDuePushes(env));
+    if (event.cron === '0 6 * * *') { ctx.waitUntil(sendDuePushes(env)); ctx.waitUntil(purgeOldSms(env).catch(() => {})); }
     ctx.waitUntil(refreshMarket(env).catch(e => console.warn('market', e && e.message)));
   }
 };
@@ -108,9 +109,9 @@ async function openLive(request, env, id, url) {
   return env.HUB.get(env.HUB.idFromName(id)).fetch('https://hub/connect?device=' + device, { headers: { Upgrade: 'websocket' } });
 }
 
-function notifyHub(env, ctx, id, version, device) {
+function notifyHub(env, ctx, id, version, device, type = 'version') {
   if (!env.HUB || !ctx) return;
-  ctx.waitUntil(env.HUB.get(env.HUB.idFromName(id)).fetch('https://hub/notify', { method: 'POST', body: JSON.stringify({ version, device }) }).catch(() => {}));
+  ctx.waitUntil(env.HUB.get(env.HUB.idFromName(id)).fetch('https://hub/notify', { method: 'POST', body: JSON.stringify({ version, device, type }) }).catch(() => {}));
 }
 
 // Kasa başına tek örnek; WebSocket Hibernation API ile boştayken ücret/bellek harcamaz
@@ -122,8 +123,8 @@ export class VaultHub {
   async fetch(request) {
     const url = new URL(request.url);
     if (url.pathname === '/notify') {
-      const { version, device } = await request.json();
-      const msg = JSON.stringify({ type: 'version', version });
+      const { version, device, type } = await request.json();
+      const msg = JSON.stringify(type === 'inbox' ? { type: 'inbox' } : { type: 'version', version });
       for (const ws of this.ctx.getWebSockets()) {
         if (device && this.ctx.getTags(ws).includes(device)) continue; // yazan cihaza haber gerekmez
         try { ws.send(msg); } catch (e) {}
@@ -154,7 +155,7 @@ async function loadVault(env, id, token) {
 async function route(request, env, url, ctx) {
   const parts = url.pathname.split('/').filter(Boolean); // ['v1', ...]
   if (parts[1] === 'config' && parts.length === 2 && request.method === 'GET') {
-    return json({ api: 1, vapidPublicKey: vapidPublicKey(env), registrationRequired: !!env.REGISTRATION_KEY, live: !!env.HUB, receiptAI: !!env.DEEPSEEK_API_KEY });
+    return json({ api: 1, vapidPublicKey: vapidPublicKey(env), registrationRequired: !!env.REGISTRATION_KEY, live: !!env.HUB, receiptAI: !!env.DEEPSEEK_API_KEY, smsInbox: true });
   }
   // Herkese açık piyasa verisi (kişisel veri yok). Eskimişse arka planda yenilenir; ?refresh=1 yenilemeyi bekler.
   if (parts[1] === 'market' && parts.length === 2 && request.method === 'GET') {
@@ -169,6 +170,13 @@ async function route(request, env, url, ctx) {
       out[k + 'Status'] = { updated: e.updated || 0, error: e.error || '' };
     }
     return json(out, 200, { 'Cache-Control': 'public, max-age=300' });
+  }
+  // Banka SMS'i (iPhone Kestirmeler): anahtar adreste; yalnız gelen kutusuna ekleme yapabilir
+  if (parts[1] === 'sms' && parts.length === 3) {
+    if (request.method !== 'POST') throw new HttpError(405, 'method_not_allowed');
+    const r = await postSms(env, parts[2], request);
+    if (r.vault) notifyHub(env, ctx, r.vault, 0, '', 'inbox');
+    return json(r.body, r.status);
   }
   if (parts[1] !== 'vault' || !parts[2] || !ID_RE.test(parts[2])) throw new HttpError(404, 'not_found');
   const id = parts[2];
@@ -211,9 +219,12 @@ async function route(request, env, url, ctx) {
     if (request.method === 'DELETE') {
       const row = await loadVault(env, id, token);
       if (!row) return json({ deleted: false });
+      await ensureSchema(env);
       await env.DB.batch([
         env.DB.prepare('DELETE FROM push_subs WHERE vault_id = ?').bind(id),
         env.DB.prepare('DELETE FROM receipt_usage WHERE vault_id = ?').bind(id),
+        env.DB.prepare('DELETE FROM sms_keys WHERE vault_id = ?').bind(id),
+        env.DB.prepare('DELETE FROM sms_inbox WHERE vault_id = ?').bind(id),
         env.DB.prepare('DELETE FROM vaults WHERE id = ?').bind(id)
       ]);
       return json({ deleted: true });
@@ -228,6 +239,21 @@ async function route(request, env, url, ctx) {
     const row = await loadVault(env, id, token);
     if (!row) throw new HttpError(404, 'no_vault');
     const r = await readReceipt(env, id, await readJson(request), istanbulDay());
+    return json(r.body, r.status);
+  }
+
+  // /v1/vault/:id/sms-key/:label (PUT {keyHash} / DELETE), /v1/vault/:id/inbox (GET), /v1/vault/:id/inbox/ack (POST {ids})
+  if ((parts[3] === 'sms-key' && parts.length === 5) || (parts[3] === 'inbox' && (parts.length === 4 || (parts.length === 5 && parts[4] === 'ack')))) {
+    const row = await loadVault(env, id, token);
+    if (!row) throw new HttpError(404, 'no_vault');
+    let r;
+    if (parts[3] === 'sms-key') {
+      if (request.method === 'PUT') r = await putSmsKey(env, id, parts[4], await readJson(request));
+      else if (request.method === 'DELETE') r = await deleteSmsKey(env, id, parts[4]);
+    } else if (parts.length === 4) {
+      if (request.method === 'GET') r = await listInbox(env, id);
+    } else if (request.method === 'POST') r = await ackInbox(env, id, await readJson(request));
+    if (!r) throw new HttpError(405, 'method_not_allowed');
     return json(r.body, r.status);
   }
 
