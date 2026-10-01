@@ -881,7 +881,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.01.1</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.01.2</div>
 </section>
 
 </main>
@@ -3731,7 +3731,7 @@ App.BankSms=(function(){
     var out=[],re=/(?:(tl|try|₺|usd|eur|gbp)\s*)?(\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)(?:\s*(tl|try|₺|usd|eur|gbp)\b)?/g,m;
     while((m=re.exec(f))){var cur=m[1]||m[3];if(!cur)continue;var v=_num(m[2]);if(!(v>0)||v>=MAX_MONEY)continue;
       var before=f.slice(Math.max(0,m.index-32),m.index),after=f.slice(re.lastIndex,re.lastIndex+18);
-      out.push({v:v,cur:CUR[cur]||'TRY',at:m.index,bad:NOT_PAID.test(before.split(/[.;:]\s/).pop())||/^\s*(puan|limit|bakiye|chip|bonus|maxipuan|worldpuan)/.test(after)})}
+      out.push({v:v,cur:CUR[cur]||'TRY',at:m.index,bad:NOT_PAID.test(before.split(/[.;!]\s/).pop())||/^\s*(puan|limit|bakiye|chip|bonus|maxipuan|worldpuan)/.test(after)})}
     return out;
   }
   function _title(s){return String(s||'').toLocaleLowerCase('tr-TR').replace(/(^|[\s.&'-])(\S)/g,function(_,a,b){return a+b.toLocaleUpperCase('tr-TR')}).trim()}
@@ -3896,6 +3896,8 @@ App.BankSms=(function(){
       if(r.status!==200||!r.body||!Array.isArray(r.body.items))return null;
       var items=r.body.items.filter(function(i){return i&&Number.isInteger(i.id)&&typeof i.text==='string'});
       var st=_st();if(st&&Array.isArray(r.body.labels)&&r.body.labels.indexOf(st.label)<0&&st.vault===c.vault){st.revoked=true;_save(st)}
+      var mine=st&&Array.isArray(r.body.keys)?r.body.keys.find(function(k){return k&&k.label===st.label}):null;
+      if(mine&&(mine.lastAt!==st.lastAt||mine.lastReason!==st.lastReason)){st.lastAt=mine.lastAt;st.lastReason=String(mine.lastReason||'').slice(0,40);_save(st);renderCard()}
       if(!items.length)return{added:0,queued:0,test:0};
       var res=ingest(items);
       return App.Sync.api(c,'POST','/inbox/ack',{ids:items.map(function(i){return i.id})}).then(function(){
@@ -3945,6 +3947,18 @@ App.BankSms=(function(){
       '<div class="modal-actions"><button class="btn btn-ghost" onclick="App.UI.closeModal(\'smsGuideHolder\')">Kapat</button></div></div></div>';
     App.UI.mountModal(div,'#smsCopyBtn');
   }
+  // Kestirme'den gelen son isteğin sonucu (kurulum tanısı)
+  var WHY={stored:'✓ alındı',empty:'⚠ boş geldi: Kestirme\'de "text" alanının değeri Kestirme Girdisi olmalı',no_amount:'⚠ tutar yoktu (metin eksik gelmiş ya da banka SMS\'i değil)',not_bank:'banka mesajına benzemedi, saklanmadı',secret:'şifre/kod mesajıydı, saklanmadı',duplicate:'aynı SMS ikinci kez geldi',too_long:'⚠ çok uzun',too_large:'⚠ çok uzun',inbox_full:'⚠ kutu dolu: uygulamayı açın'};
+  function _lastLine(st){if(!st||!st.lastAt)return'Henüz Kestirme\'den SMS gelmedi.';var m=Math.round((Date.now()-st.lastAt)/60000),ago=m<1?'az önce':m<60?m+' dk önce':m<1440?Math.round(m/60)+' sa önce':Math.round(m/1440)+' gün önce';return'Son SMS: '+ago+' · '+(WHY[st.lastReason]||esc(st.lastReason||''))}
+  // Elle: SMS metnini yapıştır (kurulumu denemek, eski SMS'leri eklemek ya da Kestirme olmadan kullanmak için)
+  function paste(){
+    App.UI.promptModal({title:'Banka SMS\'i Yapıştır',text:'Mesajlar\'da SMS\'e basılı tutup Kopyala deyin, buraya yapıştırın. Hareket aynı kurallarla eklenir ya da onaya düşer.',fields:[{key:'t',label:'SMS metni',placeholder:'Kartinizdan … 245,50 TL harcama yapilmistir.'}],okLabel:'İşle'},function(v){
+      var text=String(v.t||'').trim();if(text.length<8){App.UI.toast('SMS metnini yapıştırın.','err');return false}
+      var p=parse(text,Date.now());if(p.kind==='ignore'){App.UI.toast('İşlenecek hareket bulunamadı: '+(p.reason||'tanınmadı')+'.','info');return}
+      var r=ingest([{id:'p'+_h(text)+_h(text.length+text),label:'manual00_'+S.settings().activeUser,text:text,receivedAt:Date.now()}]);
+      var msg=_summary(r);App.UI.toast(msg?'🏦 '+msg:r.dupes?'Bu hareket zaten kayıtlı.':'Bu SMS daha önce işlenmiş.',msg?'ok':'info');
+    });
+  }
   function setDefault(){
     var uid=S.settings().activeUser,cur=(S.settings().smsDefaults||{})[uid]||'';
     var opts=[{value:'',label:'— Sorsun (onaya düşsün) —'}].concat(S.accounts().filter(function(a){return a.type!=='cash'}).map(function(a){return{value:a.id,label:(AM[a.type]||{i:''}).i+' '+a.name}}));
@@ -3955,11 +3969,12 @@ App.BankSms=(function(){
   function renderCard(){
     var el=document.getElementById('setSmsCard');if(!el)return;
     var head='<div class="sh-title">🏦 Banka SMS\'leriyle Otomatik Kayıt</div>';
-    if(!App.Sync.configured()){el.innerHTML=head+'<div class="set-sub">Kartla harcama yapınca ya da maaş yatınca bankanın SMS\'i uygulamaya kendiliğinden işlensin. Önce aşağıdaki eşitlemeyi açın.</div>';return}
+    var pasteBtn='<button class="btn btn-sm btn-ghost" onclick="App.BankSms.paste()">SMS Yapıştır</button>';
+    if(!App.Sync.configured()){el.innerHTML=head+'<div class="set-sub">Kartla harcama yapınca ya da maaş yatınca bankanın SMS\'i uygulamaya kendiliğinden işlensin. Otomatik için önce aşağıdaki eşitlemeyi açın; şimdilik SMS\'i kopyalayıp yapıştırabilirsiniz.</div><div class="set-actions">'+pasteBtn+'</div>';return}
     var st=_st(),c=App.Sync.cfg(),on=st&&st.vault===c.vault&&!st.revoked,uid=S.settings().activeUser,d=(S.settings().smsDefaults||{})[uid],dn=d&&App.Accounts.get(d)?App.Accounts.getName(d):'';
     var qn=S.smsQueue().length;
-    el.innerHTML=head+(on?'<div class="set-sub">✓ Bu telefonda açık ('+esc((App.Users.get(uid)||{}).name||'')+'). Eşleşmeyenler: '+(dn?esc(dn):'onaya düşer')+(qn?' · <b>'+qn+'</b> onay bekliyor':'')+'</div><div class="set-actions"><button class="btn btn-sm btn-ghost" onclick="App.BankSms.guide()">Kurulum Adımları</button><button class="btn btn-sm btn-ghost" onclick="App.BankSms.setDefault()">Varsayılan Hesap</button><button class="btn btn-sm btn-ghost" onclick="App.BankSms.pull({force:true})">Şimdi Kontrol Et</button><button class="btn btn-sm btn-ghost" onclick="App.BankSms.disable()">Kapat</button></div>'
-      :'<div class="set-sub">'+(st&&st.revoked?'⚠ Bu telefonun bağlantısı başka bir kurulumla değişti ya da kapatıldı. ':'')+'iPhone Kestirmeler ile bankadan gelen SMS (harcama, maaş, gelen/giden para) uygulamaya kendiliğinden işlenir. Her telefon kendi bağlantısını kurar.</div><div class="set-actions"><button class="btn btn-sm btn-primary" onclick="App.BankSms.setup()">Bu Telefonda Kur</button></div>');
+    el.innerHTML=head+(on?'<div class="set-sub">✓ Bu telefonda açık ('+esc((App.Users.get(_userOf(st.label))||{}).name||'')+'). Eşleşmeyenler: '+(dn?esc(dn):'onaya düşer')+(qn?' · <b>'+qn+'</b> onay bekliyor':'')+'<br/><span id="smsLast">'+_lastLine(st)+'</span></div><div class="set-actions"><button class="btn btn-sm btn-ghost" onclick="App.BankSms.guide()">Kurulum Adımları</button><button class="btn btn-sm btn-ghost" onclick="App.BankSms.setDefault()">Varsayılan Hesap</button><button class="btn btn-sm btn-ghost" onclick="App.BankSms.pull({force:true})">Şimdi Kontrol Et</button>'+pasteBtn+'<button class="btn btn-sm btn-ghost" onclick="App.BankSms.disable()">Kapat</button></div>'
+      :'<div class="set-sub">'+(st&&st.revoked?'⚠ Bu telefonun bağlantısı başka bir kurulumla değişti ya da kapatıldı. ':'')+'iPhone Kestirmeler ile bankadan gelen SMS (harcama, maaş, gelen/giden para) uygulamaya kendiliğinden işlenir. Her telefon kendi bağlantısını kurar.</div><div class="set-actions"><button class="btn btn-sm btn-primary" onclick="App.BankSms.setup()">Bu Telefonda Kur</button>'+pasteBtn+'</div>');
   }
   // Özet: onay bekleyen SMS hareketleri
   function renderQueue(){
@@ -4002,7 +4017,7 @@ App.BankSms=(function(){
     document.addEventListener('visibilitychange',function(){if(!document.hidden)pull()});
     setInterval(function(){if(!document.hidden)pull()},5*60000);
   }
-  return{parse:parse,ingest:ingest,resolveAccount:resolveAccount,byBank:byBank,pull:pull,setup:setup,disable:disable,test:test,copy:copy,guide:guide,setDefault:setDefault,renderCard:renderCard,renderQueue:renderQueue,accept:accept,dismiss:dismiss,dismissAll:dismissAll,init:init,url:url,_fold:fold};
+  return{parse:parse,ingest:ingest,resolveAccount:resolveAccount,byBank:byBank,paste:paste,pull:pull,setup:setup,disable:disable,test:test,copy:copy,guide:guide,setDefault:setDefault,renderCard:renderCard,renderQueue:renderQueue,accept:accept,dismiss:dismiss,dismissAll:dismissAll,init:init,url:url,_fold:fold};
 })();
 
 // ---- Banka/kart ekstresi içe aktarma (Excel .xlsx, Excel görünümlü .xls, CSV, PDF) ----

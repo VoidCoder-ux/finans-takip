@@ -47,6 +47,7 @@ async function api(method, path, token, body, headers) {
   const inbox = await api('GET', V + '/inbox', token);
   eq('inbox lists stored SMS with owner label', inbox.body.items.map(i => [i.label, i.text.slice(0, 12)]), [['u_self', spend.slice(0, 12)], ['u_partner', salary.slice(0, 12)], ['u_self', plain.slice(0, 12)], ['u_self', '4321 ile bit']]);
   eq('inbox reports registered labels', inbox.body.labels.sort(), ['u_partner', 'u_self']);
+  eq('inbox reports last call result per key (no text)', inbox.body.keys.map(k => [k.label, k.lastReason, k.lastAt > 0]).sort(), [['u_partner', 'stored', true], ['u_self', 'stored', true]]);
   eq('ack deletes only given ids', (await api('POST', V + '/inbox/ack', token, { ids: inbox.body.items.slice(0, 2).map(i => i.id) })).body, { deleted: 2 });
   eq('ack by other vault token refused', (await api('POST', V + '/inbox/ack', other, { ids: [inbox.body.items[2].id] })).status, 403);
   eq('remaining inbox', (await api('GET', V + '/inbox', token)).body.items.length, 2);
