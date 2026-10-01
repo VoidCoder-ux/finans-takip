@@ -120,6 +120,18 @@ srv.listen(0, async () => {
     await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="t"]').value = '1234 ile biten kartinizla SHELL PETROL isyerinde 1.100,00 TL harcama yapilmistir. Yapi Kredi'; m.querySelector('[data-act="ok"]').click(); });
     await page.waitForTimeout(150);
     eq('pasting the same SMS again adds nothing', await page.evaluate(() => S.txns().filter(x => x.amount === 1100).length), 1);
+    // Nakit olarak açılmış "Yapıkredi" hesabı: düzenlemede tür değişir, son 4 hane girilir, SMS ona işlenir
+    await page.evaluate(() => { const a = S.accounts(); a.push({ id: 'a_yk_cash', name: 'Yapıkredi', type: 'cash', owner: 'shared', balance: 1000, openingBalance: 1000, ts: 9 }); S.saveAccounts(a); App.Accounts.renderAll(); App.Accounts.edit('a_yk_cash'); });
+    await page.waitForTimeout(150);
+    eq('edit dialog offers type and last4 for a cash account', await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); return [!!m.querySelector('[data-pkey="type"]'), !!m.querySelector('[data-pkey="last4"]')]; }), [true, true]);
+    await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="type"]').value = 'bank'; m.querySelector('[data-pkey="last4"]').value = '5555'; m.querySelector('[data-act="ok"]').click(); });
+    await page.waitForTimeout(150);
+    eq('type changed, last4 saved, balance kept', await page.evaluate(() => { const a = App.Accounts.get('a_yk_cash'); return [a.type, a.last4, a.balance]; }), ['bank', '5555', 1000]);
+    eq('account card shows last4', await page.evaluate(() => { App.UI.nav('hesaplar'); return document.getElementById('accGrid').innerText.includes('…5555'); }), true);
+    eq('SMS with that last4 goes to it', await page.evaluate(i => { App.BankSms.ingest([i]); const t = S.txns().find(x => x.amount === 77); return t && t.accountId; }, item('5555 ile biten hesabinizdan 77,00 TL harcama yapildi.')), 'a_yk_cash');
+    // Yeni hesap formunda son 4 hane
+    await page.evaluate(() => { document.getElementById('accName').value = 'Akbank Kart'; document.getElementById('accType').value = 'card'; App.Accounts.onTypeChange(); document.getElementById('accLast4').value = '4444'; App.Accounts.add(); });
+    eq('add form saves last4', await page.evaluate(() => (S.accounts().find(a => a.name === 'Akbank Kart') || {}).last4), '4444');
     eq('settings card asks to enable sync first', await page.evaluate(() => { App.UI.nav('aile'); return document.getElementById('setSmsCard').innerText.includes('eşitlemeyi açın'); }), true);
     await ctx.close();
   }
