@@ -58,6 +58,7 @@ srv.listen(0, async () => {
     eq('declined transaction ignored', (await P('Yapi Kredi kartinizla yapilmak istenen 1.500,00 TL tutarindaki islem yetersiz limit nedeniyle gerceklestirilemedi.'))[0], 'ignore');
     eq('OTP ignored', (await P('Akbank dogrulama kodunuz: 482913. 245,50 TL islem icin.'))[0], 'ignore');
     eq('only limit info ignored', (await P('Yapi Kredi kartinizin kullanilabilir limiti 8.000,00 TL olmustur.'))[0], 'ignore');
+    eq('limit line with colon is not a payment', (await P('Yapi Kredi: Kullanilabilir limitiniz: 8.000,00 TL.'))[0], 'ignore');
     eq('card bill payment → review', (await P('Kredi kartiniza 5.000,00 TL odeme yapilmistir. Yapi Kredi'))[0], 'review');
     eq('ATM withdrawal → review', (await P("ATM'den 1.000,00 TL nakit cekilmistir. Yapi Kredi"))[0], 'review');
     eq('foreign currency → review', (await P('Akbank: ****9876 kartinizla USD 25,00 tutarinda NETFLIX.COM harcamasi yapilmistir.')).slice(0, 4), ['review', 'expense', 25, 'NETFLIX.COM']);
@@ -108,6 +109,17 @@ srv.listen(0, async () => {
     eq('salary SMS updates the planned salary instead of duplicating', [r2.added, r2.updated], [0, 1]);
     eq('planned salary now has SMS amount and date, balance applied', await page.evaluate(() => { const t = S.txns().find(x => x.id === 'tr_r_sal2'); return [t.amount, t.date === td(), t.balanceApplied, App.Accounts.get('a_akb').balance]; }), [38512.4, true, true, 43512.4]);
     eq('balances stay consistent with history', await page.evaluate(() => App.Accounts.reconcileAccountBalances(true)), false);
+    // Elle yapıştırma (eşitleme olmadan da çalışır)
+    await page.evaluate(() => { App.UI.nav('aile'); [...document.querySelectorAll('#setSmsCard button')].find(b => b.textContent === 'SMS Yapıştır').click(); });
+    await page.waitForTimeout(150);
+    await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="t"]').value = '1234 ile biten kartinizla SHELL PETROL isyerinde 1.100,00 TL harcama yapilmistir. Yapi Kredi'; m.querySelector('[data-act="ok"]').click(); });
+    await page.waitForTimeout(150);
+    eq('pasted SMS added (Shell → Ulaşım, World card)', await page.evaluate(() => { const t = S.txns().find(x => x.amount === 1100); return t ? [t.category, t.accountId, t.src, t.userId] : null; }), ['Ulaşım', 'a_world', 'sms', 'u_self']);
+    await page.evaluate(() => { [...document.querySelectorAll('#setSmsCard button')].find(b => b.textContent === 'SMS Yapıştır').click(); });
+    await page.waitForTimeout(150);
+    await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="t"]').value = '1234 ile biten kartinizla SHELL PETROL isyerinde 1.100,00 TL harcama yapilmistir. Yapi Kredi'; m.querySelector('[data-act="ok"]').click(); });
+    await page.waitForTimeout(150);
+    eq('pasting the same SMS again adds nothing', await page.evaluate(() => S.txns().filter(x => x.amount === 1100).length), 1);
     eq('settings card asks to enable sync first', await page.evaluate(() => { App.UI.nav('aile'); return document.getElementById('setSmsCard').innerText.includes('eşitlemeyi açın'); }), true);
     await ctx.close();
   }
@@ -133,6 +145,9 @@ srv.listen(0, async () => {
     const res = await page.evaluate(() => App.BankSms.pull({ force: true }));
     eq('app pulled and added it', [res && res.added, await page.evaluate(() => S.txns().filter(t => t.src === 'sms').length)], [1, 1]);
     eq('inbox emptied on server', await page.evaluate(() => App.Sync.api(App.Sync.cfg(), 'GET', '/inbox').then(r => r.body.items.length)), 0);
+    await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: '' }) });
+    await page.evaluate(() => App.BankSms.pull({ force: true })); await page.evaluate(() => App.UI.nav('aile'));
+    eq('settings shows diagnosis of the last shortcut call (empty body)', await page.evaluate(() => (document.getElementById('smsLast') || {}).textContent || ''), 'Son SMS: az önce · ⚠ boş geldi: Kestirme\'de "text" alanının değeri Kestirme Girdisi olmalı');
     eq('test button round-trip', await page.evaluate(async () => { const toasts = []; const o = App.UI.toast; App.UI.toast = (m) => { toasts.push(m); }; App.BankSms.test(); await new Promise(r => setTimeout(r, 1500)); App.UI.toast = o; return toasts.some(t => /çalışıyor/.test(t)); }), true);
     // Canlı bağlantı: SMS gelince açık uygulama hemen çeker
     await page.evaluate(() => App.Sync.connectLive()); await page.waitForTimeout(800);

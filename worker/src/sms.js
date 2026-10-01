@@ -40,7 +40,8 @@ export function ensureSchema(env) {
     env.DB.prepare('CREATE INDEX IF NOT EXISTS sms_keys_vault ON sms_keys(vault_id)'),
     env.DB.prepare('CREATE TABLE IF NOT EXISTS sms_inbox (id INTEGER PRIMARY KEY AUTOINCREMENT, vault_id TEXT NOT NULL, label TEXT NOT NULL, text TEXT NOT NULL, text_hash TEXT NOT NULL, received_at INTEGER NOT NULL)'),
     env.DB.prepare('CREATE INDEX IF NOT EXISTS sms_inbox_vault ON sms_inbox(vault_id, received_at)')
-  ]).catch(e => { _schema = null; throw e; });
+  ]).then(() => Promise.all(['last_at INTEGER', 'last_reason TEXT'].map(c => env.DB.prepare('ALTER TABLE sms_keys ADD COLUMN ' + c).run().catch(() => {}))))
+    .catch(e => { _schema = null; throw e; });
   return _schema;
 }
 
@@ -70,18 +71,21 @@ async function readText(request) {
 export async function postSms(env, key, request, now = Date.now()) {
   await ensureSchema(env);
   if (!SMS_KEY_RE.test(key)) return { status: 404, body: { error: 'not_found' } };
-  const row = await env.DB.prepare('SELECT vault_id, label FROM sms_keys WHERE key_hash = ?').bind(await sha256Hex('ft-sms|' + key)).first();
+  const row = await env.DB.prepare('SELECT key_hash, vault_id, label FROM sms_keys WHERE key_hash = ?').bind(await sha256Hex('ft-sms|' + key)).first();
   if (!row) return { status: 404, body: { error: 'not_found' } };
   const text = await readText(request);
-  if (text === null) return { status: 413, body: { error: 'too_large' } };
+  // Kurulum tanısı: son gelen isteğin zamanı ve sonucu (metin değil) uygulamada gösterilir
+  const mark = reason => env.DB.prepare('UPDATE sms_keys SET last_at = ?, last_reason = ? WHERE key_hash = ?').bind(now, reason, row.key_hash).run().catch(() => {});
+  if (text === null) { await mark('too_large'); return { status: 413, body: { error: 'too_large' } }; }
   const s = screenSms(text);
   // Saklanmayan mesajlar için de 200: Kestirme hata vermesin, kullanıcıyı rahatsız etmesin
-  if (!s.ok) return { status: 200, body: { stored: false, reason: s.reason } };
+  if (!s.ok) { await mark(s.reason); return { status: 200, body: { stored: false, reason: s.reason } }; }
   const hash = await sha256Hex(s.text);
   const dup = await env.DB.prepare('SELECT id FROM sms_inbox WHERE vault_id = ? AND text_hash = ? AND received_at > ?').bind(row.vault_id, hash, now - DUP_MS).first();
-  if (dup) return { status: 200, body: { stored: false, reason: 'duplicate' } };
+  if (dup) { await mark('duplicate'); return { status: 200, body: { stored: false, reason: 'duplicate' } }; }
   const cnt = await env.DB.prepare('SELECT COUNT(*) AS n FROM sms_inbox WHERE vault_id = ?').bind(row.vault_id).first();
-  if (cnt && cnt.n >= MAX_PENDING) return { status: 429, body: { error: 'inbox_full' } };
+  if (cnt && cnt.n >= MAX_PENDING) { await mark('inbox_full'); return { status: 429, body: { error: 'inbox_full' } }; }
+  await mark('stored');
   await env.DB.prepare('INSERT INTO sms_inbox (vault_id, label, text, text_hash, received_at) VALUES (?, ?, ?, ?, ?)').bind(row.vault_id, row.label, s.text, hash, now).run();
   return { status: 200, body: { stored: true }, vault: row.vault_id };
 }
@@ -111,8 +115,9 @@ export async function deleteSmsKey(env, vaultId, label) {
 export async function listInbox(env, vaultId) {
   await ensureSchema(env);
   const rs = await env.DB.prepare('SELECT id, label, text, received_at FROM sms_inbox WHERE vault_id = ? ORDER BY id LIMIT 200').bind(vaultId).all();
-  const keys = await env.DB.prepare('SELECT label FROM sms_keys WHERE vault_id = ?').bind(vaultId).all();
-  return { status: 200, body: { items: (rs.results || []).map(r => ({ id: r.id, label: r.label, text: r.text, receivedAt: r.received_at })), labels: (keys.results || []).map(k => k.label) } };
+  const keys = await env.DB.prepare('SELECT label, last_at, last_reason FROM sms_keys WHERE vault_id = ?').bind(vaultId).all();
+  const kr = keys.results || [];
+  return { status: 200, body: { items: (rs.results || []).map(r => ({ id: r.id, label: r.label, text: r.text, receivedAt: r.received_at })), labels: kr.map(k => k.label), keys: kr.map(k => ({ label: k.label, lastAt: k.last_at || 0, lastReason: k.last_reason || '' })) } };
 }
 
 export async function ackInbox(env, vaultId, body) {
