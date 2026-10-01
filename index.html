@@ -145,6 +145,10 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
 .f-range{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--txt2);font-weight:700;flex:1;min-width:150px}.f-range .fs{min-width:0}.filter-sum{font-size:.74rem;color:var(--txt2);margin:-6px 0 10px}
 @media(max-width:768px){.metrics>.mc:last-child:nth-child(odd){grid-column:1/-1;display:flex;align-items:center;gap:12px}.metrics>.mc:last-child:nth-child(odd) .mc-icon{margin-bottom:0}}
 .set-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:12px;margin-bottom:4px}.set-card{display:flex;flex-direction:column;gap:8px;margin-bottom:0}.set-card .btn,.set-card .notif-btn{align-self:flex-start}.set-sub{font-size:.76rem;color:var(--txt2);line-height:1.45}.set-actions{display:flex;gap:8px;flex-wrap:wrap}
+.an-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:16px;margin-bottom:12px;min-width:0}.an-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.an-grid .an-card{margin-bottom:0}@media(max-width:760px){.an-grid{grid-template-columns:1fr}}
+.an-warn{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:var(--r);margin-top:8px;border:1px solid var(--border);background:var(--bg3)}.an-warn.red{border-color:rgba(248,113,113,.55);background:rgba(248,113,113,.10)}.an-warn.yellow{border-color:rgba(234,179,8,.5);background:rgba(234,179,8,.09)}.an-warn.green{border-color:rgba(34,197,94,.45);background:rgba(34,197,94,.08)}
+.an-ico{font-size:1.05rem;line-height:1.3;flex-shrink:0}.an-title{font-size:.84rem;font-weight:800;line-height:1.35}.an-text{font-size:.76rem;color:var(--txt2);line-height:1.45;margin-top:2px;overflow-wrap:anywhere}
+.an-sub{font-size:.68rem;color:var(--txt2);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:12px 0 6px}.an-row{grid-template-columns:minmax(72px,32%) 1fr 9.6em}.an-val{text-align:right}.an-row .dist-track,.an-row .dist-fill{display:block}.an-row .dist-track{min-width:40px}.an-key{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.an-val{font-weight:700;white-space:nowrap}.an-val small{color:var(--txt2);font-weight:600}
 .btn:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.5)}
 .stmt-modal{max-width:640px}.stmt-list{max-height:52vh;overflow:auto;border:1px solid var(--border);border-radius:var(--r);margin-bottom:4px}.stmt-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border)}.stmt-row:last-child{border-bottom:0}.stmt-row.off{opacity:.55}.stmt-chk{display:flex;align-items:center;justify-content:center;min-width:32px;min-height:32px}.stmt-chk input{width:20px;height:20px}.stmt-main{min-width:0;flex:1}.stmt-desc{font-size:.8rem;line-height:1.35;overflow-wrap:anywhere}.stmt-meta{font-size:.7rem;color:var(--txt2);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}.stmt-meta select{font-size:16px;padding:4px 6px;min-height:32px;max-width:170px;background:var(--bg3);color:var(--txt);border:1px solid var(--border);border-radius:8px}.stmt-amt{font-weight:800;font-size:.82rem;white-space:nowrap;min-height:36px;padding:4px 8px;border-radius:8px;background:var(--bg3);border:1px solid var(--border)}.stmt-amt.pos{color:var(--green)}.stmt-amt.neg{color:var(--red)}.stmt-badge{display:inline-block;font-size:.62rem;font-weight:700;padding:2px 6px;border-radius:99px;background:var(--bg4);color:var(--txt2);margin-left:4px}
 .sms-q{border-color:rgba(20,184,166,.45);margin-bottom:14px}.sms-q-item{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:10px 0;border-top:1px solid var(--border)}.sms-q-main{min-width:0;flex:1}.sms-q-top{font-size:.84rem;line-height:1.4;overflow-wrap:anywhere}.sms-q-top .pos{color:var(--green)}.sms-q-top .neg{color:var(--red)}.sms-q-why{font-size:.72rem;color:var(--yellow,#eab308);margin-top:3px;line-height:1.35}.sms-q-txt{font-size:.7rem;color:var(--txt2);margin-top:4px;line-height:1.35;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.sms-q-act{display:flex;flex-direction:column;gap:6px;flex-shrink:0}.sms-steps{margin:0 0 0 18px;padding:0;font-size:.8rem;line-height:1.5;color:var(--txt)}.sms-steps li{margin-bottom:6px}
@@ -464,6 +468,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
   .pr-txns td,.pr-txns th{font-size:7.5pt;padding:2px 3px}
   .pr-txns tr{page-break-inside:avoid}
   thead{display:table-header-group}
+  .pr-warn{margin:0 0 6px 16px;padding:0}.pr-warn li{font-size:8.5pt;margin:2px 0;line-height:1.4}.pr-warn li.red{color:#b71c1c}.pr-warn li.yellow{color:#8a5a00}.pr-warn li.green{color:#1b5e20}
   .pr-empty{font-size:9pt;color:#888;font-style:italic;padding:6px 0}
 }
 </style>
@@ -804,7 +809,8 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="stats-actions"><button class="stats-action-btn" onclick="App.Charts.report()">📄 Seçili Ay PDF Raporu</button></div>
   </div>
   <div class="stats-kpis" id="statsKpis"></div>
-  <div class="insight-grid" id="statsInsights"></div>
+  <div id="statsInsights"></div>
+  <div class="an-grid" id="statsWhere"></div>
   <div class="stats-grid">
     <div class="chart-card"><div class="chart-title">Harcama Dağılımı</div><div class="chart-wrap"><canvas id="cDonut"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">6 Aylık Trend</div><div class="chart-wrap"><canvas id="cBar"></canvas></div></div>
@@ -885,7 +891,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.01.7</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.01.8</div>
 </section>
 
 </main>
@@ -2538,7 +2544,7 @@ App.Charts=(function(){
       ['Gider Değişimi',!prev.count?'Önceki ay verisi yok':(deltaExp>0?'Önceki aya göre '+fmt(deltaExp)+' arttı':deltaExp<0?'Önceki aya göre '+fmt(Math.abs(deltaExp))+' azaldı':'Önceki ayla aynı seviyede')],
       ['İşlem Yoğunluğu',total.count+' işlem · Ortalama işlem '+(total.count?fmt((total.income+total.expense)/total.count):fmt(0))]
     ];
-    var ins=document.getElementById('statsInsights');if(ins)ins.innerHTML=insights.map(function(x){return'<div class="insight-item"><div class="insight-label">'+x[0]+'</div><div class="insight-text">'+x[1]+'</div></div>'}).join('');
+    App.Insights.renderStats(month);
   }
   function report(){var m=document.getElementById('statMonth').value||tm();App.Report.generateMonth(m)}
   function _prevMonth(m){var p=m.split('-'),y=+p[0],mo=+p[1]-1;mo--;if(mo<0){mo=11;y--}return y+'-'+String(mo+1).padStart(2,'0')}
@@ -3251,13 +3257,15 @@ App.Report=(function(){
     var p=m.split('-'),title=MF[+p[1]-1]+' '+p[0];
     var now=new Date(),today=now.toLocaleDateString('tr-TR');
     var txns=S.txns().filter(function(t){return t.date.substring(0,7)===m});
-    var inc=0,exp=0,flowCount=0;txns.forEach(function(t){if(isTransfer(t))return;flowCount++;if(t.type==='income')inc+=t.amount;else exp+=t.amount});
+    // İleri tarihli (planlı) kayıtlar günü gelince sayılır: İstatistikler ve Özet ile aynı kural; listede "planlı" olarak görünür
+    var todayIso=td(),planned=0,inc=0,exp=0,flowCount=0;txns.forEach(function(t){if(isTransfer(t))return;if(t.date>todayIso){planned++;return}flowCount++;if(t.type==='income')inc+=t.amount;else exp+=t.amount});
     var net=inc-exp;
     var users=S.settings().users||[];
-    var accs=S.accounts(),accMap={};accs.forEach(function(a){accMap[a.id]=a.name});
+    var accs=S.accounts(),accMap={};accs.forEach(function(a){accMap[a.id]=accLabel(a)});
     var userMap={};users.forEach(function(u){userMap[u.id]=u});
     var byCatInc={},byCatExp={},byAcc={},byUser={};
     txns.forEach(function(t){
+      if(t.date>todayIso)return;
       var ak=t.accountId||'__none__';byAcc[ak]=byAcc[ak]||{inc:0,exp:0};byAcc[ak][t.type==='income'?'inc':'exp']+=t.amount;
       if(isTransfer(t))return;
       if(t.type==='income')byCatInc[t.category]=(byCatInc[t.category]||0)+t.amount;
@@ -3271,10 +3279,25 @@ App.Report=(function(){
     h+='<div class="pr-h2">Özet</div><table class="pr-sum">';
     h+='<tr><td>Toplam Gelir</td><td class="pr-r pr-g">+'+fmt(inc)+'</td></tr>';
     h+='<tr><td>Toplam Gider</td><td class="pr-r pr-rr">-'+fmt(exp)+'</td></tr>';
-    h+='<tr><td><b>Net Bakiye</b></td><td class="pr-r"><b>'+(net>=0?'+':'')+fmt(net)+'</b></td></tr>';
-    h+='<tr><td>İşlem Sayısı</td><td class="pr-r">'+flowCount+(txns.length>flowCount?' (+'+(txns.length-flowCount)+' transfer bacağı)':'')+'</td></tr>';
+    h+='<tr><td><b>Aylık Net (Gelir − Gider)</b></td><td class="pr-r"><b>'+(net>=0?'+':'')+fmt(net)+'</b></td></tr>';
+    var legs=txns.filter(function(t){return isTransfer(t)&&t.date<=todayIso}).length;
+    h+='<tr><td>İşlem Sayısı</td><td class="pr-r">'+flowCount+(legs?' (+'+legs+' transfer bacağı)':'')+'</td></tr>';
+    if(planned)h+='<tr><td>Planlı (henüz günü gelmedi, toplama girmedi)</td><td class="pr-r">'+planned+' işlem</td></tr>';
     if(inc>0)h+='<tr><td>Tasarruf Oranı</td><td class="pr-r">'+fmtPct(net/inc*100,1)+'</td></tr>';
     h+='</table>';
+    var an=App.Insights.compute(m);
+    h+='<div class="pr-h2">Dikkat Edilecekler</div>';
+    h+=an.warnings.length?'<ul class="pr-warn">'+an.warnings.map(function(x){return'<li class="'+x.level+'"><b>'+esc(x.title)+':</b> '+esc(x.text)+'</li>'}).join('')+'</ul>':'<div class="pr-empty">Bu ay dikkat gerektiren bir durum yok.</div>';
+    var pM=an.prev.month.split('-'),pName=MF[+pM[1]-1]+' '+pM[0],dl=function(c,p){if(!p)return'—';var d=(c-p)/p*100;return(d>0?'▲ ':d<0?'▼ ':'')+fmtPct(Math.abs(d),0)};
+    h+='<div class="pr-h2">Önceki Aylarla Karşılaştırma</div><table class="pr-tbl"><thead><tr><th></th><th class="pr-r">'+esc(title)+'</th><th class="pr-r">'+esc(pName)+'</th><th class="pr-r">Değişim</th><th class="pr-r">Son '+(an.histMonths||3)+' ay ort.</th></tr></thead>';
+    h+='<tr><td>Gelir</td><td class="pr-r pr-g">'+fmt(inc)+'</td><td class="pr-r">'+fmt(an.prev.income)+'</td><td class="pr-r">'+dl(inc,an.prev.income)+'</td><td class="pr-r">'+(an.histMonths?fmt(an.avgIncome):'—')+'</td></tr>';
+    h+='<tr><td>Gider</td><td class="pr-r pr-rr">'+fmt(exp)+'</td><td class="pr-r">'+fmt(an.prev.expense)+'</td><td class="pr-r">'+dl(exp,an.prev.expense)+'</td><td class="pr-r">'+(an.histMonths?fmt(an.avgExpense):'—')+'</td></tr>';
+    if(an.projected!==null)h+='<tr><td colspan="5" style="color:#666">Ay henüz bitmedi: bu tempoyla ay sonu gider tahmini '+fmt(an.projected)+'.</td></tr>';
+    h+='</table>';
+    if(an.places.length){h+='<div class="pr-h2">En Çok Harcanan Yerler</div><table class="pr-tbl"><thead><tr><th>Yer</th><th class="pr-r">Tutar</th><th class="pr-r">Pay</th></tr></thead>';
+      an.places.forEach(function(x){h+='<tr><td>'+esc(x.key)+'</td><td class="pr-r pr-rr">'+fmt(x.amount)+'</td><td class="pr-r">'+(exp>0?fmtPct(x.amount/exp*100,1):'—')+'</td></tr>'});h+='</table>'}
+    if(an.budgets.length){h+='<div class="pr-h2">Bütçe Durumu</div><table class="pr-tbl"><thead><tr><th>Kategori</th><th class="pr-r">Harcanan</th><th class="pr-r">Limit</th><th class="pr-r">Kullanım</th></tr></thead>';
+      an.budgets.forEach(function(x){h+='<tr><td>'+esc(x.k)+'</td><td class="pr-r">'+fmt(x.spent)+'</td><td class="pr-r">'+fmt(x.limit)+'</td><td class="pr-r"'+(x.pct>=100?' style="color:#c62828;font-weight:700"':'')+'>'+(x.limit>0?fmtPct(x.pct,0):'limit bitti')+'</td></tr>'});h+='</table>'}
 
     var incKeys=Object.keys(byCatInc).sort(function(a,b){return byCatInc[b]-byCatInc[a]});
     if(incKeys.length){
@@ -3285,8 +3308,8 @@ App.Report=(function(){
 
     var expKeys=Object.keys(byCatExp).sort(function(a,b){return byCatExp[b]-byCatExp[a]});
     if(expKeys.length){
-      h+='<div class="pr-h2">Gider Kategorileri</div><table class="pr-tbl"><thead><tr><th>Kategori</th><th class="pr-r">Tutar</th><th class="pr-r">Pay</th></tr></thead>';
-      expKeys.forEach(function(k){var v=byCatExp[k],pct=exp>0?(v/exp*100).toFixed(1):'0.0';h+='<tr><td>'+esc(k)+'</td><td class="pr-r pr-rr">'+fmt(v)+'</td><td class="pr-r">%'+String(pct).replace('.',',')+'</td></tr>'});
+      h+='<div class="pr-h2">Gider Kategorileri</div><table class="pr-tbl"><thead><tr><th>Kategori</th><th class="pr-r">Tutar</th><th class="pr-r">Pay</th><th class="pr-r">Son '+(an.histMonths||3)+' ay ort.</th></tr></thead>';
+      expKeys.forEach(function(k){var v=byCatExp[k],pct=exp>0?(v/exp*100).toFixed(1):'0.0',av=an.avgCategories[k]||0;h+='<tr><td>'+esc(k)+'</td><td class="pr-r pr-rr">'+fmt(v)+'</td><td class="pr-r">%'+String(pct).replace('.',',')+'</td><td class="pr-r"'+(av>0&&v>av*1.3?' style="color:#c62828"':'')+'>'+(an.histMonths?fmt(av):'—')+'</td></tr>'});
       h+='</table>';
     }
 
@@ -3298,7 +3321,7 @@ App.Report=(function(){
 
     if(accs.length||byAcc['__none__']){
       h+='<div class="pr-h2">Hesap Hareketleri</div><table class="pr-tbl"><thead><tr><th>Hesap</th><th class="pr-r">Gelir</th><th class="pr-r">Gider</th></tr></thead>';
-      accs.forEach(function(a){var b=byAcc[a.id]||{inc:0,exp:0};h+='<tr><td>'+esc(a.name)+'</td><td class="pr-r pr-g">'+fmt(b.inc)+'</td><td class="pr-r pr-rr">'+fmt(b.exp)+'</td></tr>'});
+      accs.forEach(function(a){var b=byAcc[a.id]||{inc:0,exp:0};h+='<tr><td>'+esc(accLabel(a))+'</td><td class="pr-r pr-g">'+fmt(b.inc)+'</td><td class="pr-r pr-rr">'+fmt(b.exp)+'</td></tr>'});
       if(byAcc['__none__']){var b=byAcc['__none__'];h+='<tr><td style="color:#999">(Hesap belirtilmemiş)</td><td class="pr-r pr-g">'+fmt(b.inc)+'</td><td class="pr-r pr-rr">'+fmt(b.exp)+'</td></tr>'}
       h+='</table>';
     }
@@ -3308,7 +3331,7 @@ App.Report=(function(){
     else{
       h+='<table class="pr-tbl pr-txns"><thead><tr><th>Tarih</th><th>Tür</th><th>Kategori</th><th>Not</th><th>Hesap</th><th>Üye</th><th class="pr-r">Tutar</th></tr></thead>';
       txns.slice().sort(function(a,b){return a.date.localeCompare(b.date)}).forEach(function(t){
-        var sign=t.type==='income'?'+':'-',cls=t.type==='income'?'pr-g':'pr-rr',typeLbl=isTransfer(t)?(t.type==='income'?'Transfer giriş':'Transfer çıkış'):t.type==='income'?'Gelir':'Gider';
+        var sign=t.type==='income'?'+':'-',cls=t.type==='income'?'pr-g':'pr-rr',typeLbl=(isTransfer(t)?(t.type==='income'?'Transfer giriş':'Transfer çıkış'):t.type==='income'?'Gelir':'Gider')+(t.date>todayIso?' (planlı)':'');
         var u=userMap[t.userId];var uLabel=u?(u.emoji||'')+' '+u.name:'-';
         h+='<tr><td>'+esc(fd(t.date))+'</td><td>'+typeLbl+'</td><td>'+esc(t.category)+'</td><td>'+esc(t.note||'-')+'</td><td>'+esc(accMap[t.accountId]||'-')+'</td><td>'+esc(uLabel)+'</td><td class="pr-r '+cls+'">'+sign+fmt(t.amount)+'</td></tr>';
       });
@@ -4349,6 +4372,85 @@ App.Statement=(function(){
   }
   return{pick:pick,onFile:onFile,read:read,open:open,close:close,toggle:toggle,all:all,flip:flip,flipAll:flipAll,setCat:setCat,setAccount:setAccount,commit:commit,
     _analyze:_analyze,_load:function(name,data){var a=_analyze(data);_file=name;_meta={accountId:a.accountId,isCardDoc:a.isCardDoc};_rows=a.rows.map(function(r,i){return Object.assign({i:i},r)});_build();return{rows:_rows,meta:_meta}}};
+})();
+
+// ---- Aylık analiz: nereye gitti, nereden geldi, dikkat edilecekler ----
+// İstatistikler sayfası ve aylık PDF raporu aynı hesabı kullanır. Transferler (kendi hesaplar arası) gelir/gider sayılmaz;
+// ileri tarihli (planlı) kayıtlar günü gelmeden sayılmaz.
+App.Insights=(function(){
+  function _days(m){var p=m.split('-');return new Date(+p[0],+p[1],0).getDate()}
+  function _shift(m,n){var p=m.split('-'),d=new Date(+p[0],+p[1]-1+n,1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+  function _monthName(m){var p=m.split('-');return MF[+p[1]-1]+' '+p[0]}
+  // Not alanından "yer" adı: bilinen zincir adı (Migros, Opet…) ya da notun ilk sözcükleri
+  function _place(t){
+    var n=String(t.note||'').replace(/\(\d+\/\d+\)/g,'').replace(/\s+/g,' ').trim();if(!n)return'';
+    var b=App.Receipt&&App.Receipt.brand?App.Receipt.brand(n):null;if(b)return b.name;
+    n=n.replace(/^(giden para|gelen para|kart harcaması)\s*:?\s*/i,'').split(/\s[·\-–—]\s|,/)[0].trim();
+    var w=n.split(' ').slice(0,3).join(' ');return w.length>40?w.slice(0,40):w;
+  }
+  function _add(o,k,v){if(!k)return;o[k]=(o[k]||0)+v}
+  function _sorted(o,limit){return Object.keys(o).map(function(k){return{key:k,amount:roundMoney(o[k])}}).filter(function(x){return x.amount>0}).sort(function(a,b){return b.amount-a.amount}).slice(0,limit||99)}
+  function _flows(m){
+    var today=td();return S.txns().filter(function(t){return!isTransfer(t)&&t.date.slice(0,7)===m&&t.date<=today});
+  }
+  function compute(month){
+    month=month||tm();var cur=tm(),isCur=month===cur,today=td();
+    var tx=_flows(month),inc=0,exp=0,cats={},incCats={},places={},byUser={},incUser={},byAcc={},incAcc={},big=null;
+    tx.forEach(function(t){
+      var acc=t.accountId?App.Accounts.get(t.accountId):null,an=acc?accLabel(acc):'Hesapsız',u=t.userId?App.Users.get(t.userId):null,un=u?u.name:'Belirtilmemiş';
+      if(t.type==='income'){inc+=t.amount;_add(incCats,t.category,t.amount);_add(incUser,un,t.amount);_add(incAcc,an,t.amount)}
+      else{exp+=t.amount;_add(cats,t.category,t.amount);_add(places,_place(t),t.amount);_add(byUser,un,t.amount);_add(byAcc,an,t.amount);if(!big||t.amount>big.amount)big=t}
+    });
+    inc=roundMoney(inc);exp=roundMoney(exp);
+    // Son 3 ayın ortalaması (hareket olan aylar)
+    var hist=[];for(var i=1;i<=3;i++){var hm=_shift(month,-i),h=_flows(hm);if(!h.length)continue;var he=0,hi=0,hc={};h.forEach(function(t){if(t.type==='income')hi+=t.amount;else{he+=t.amount;_add(hc,t.category,t.amount)}});hist.push({month:hm,income:hi,expense:he,cats:hc})}
+    var avgExp=hist.length?roundMoney(hist.reduce(function(s,h){return s+h.expense},0)/hist.length):0,avgInc=hist.length?roundMoney(hist.reduce(function(s,h){return s+h.income},0)/hist.length):0;
+    var avgCats={};hist.forEach(function(h){Object.keys(h.cats).forEach(function(k){_add(avgCats,k,h.cats[k]/hist.length)})});
+    var prev=hist.length&&hist[0].month===_shift(month,-1)?hist[0]:{month:_shift(month,-1),income:0,expense:0,cats:{}};
+    var elapsed=isCur?new Date().getDate():_days(month),proj=isCur&&elapsed>=5?roundMoney(exp/elapsed*_days(month)):null;
+    var W=[],warn=function(level,icon,title,text){W.push({level:level,icon:icon,title:title,text:text})};
+    // 1) Gelir-gider dengesi
+    if(inc>0&&exp>inc)warn('red','🔴','Gider gelirden fazla','Bu ay '+fmt(exp)+' harcandı, '+fmt(inc)+' gelir var: '+fmt(exp-inc)+' açık.');
+    else if(!inc&&exp>0&&isCur)warn('info','ℹ️','Bu ay henüz gelir kaydı yok','Harcama '+fmt(exp)+'. Maaş/gelir yattığında tablo dengelenecek.');
+    // 2) Harcama temposu (içinde bulunulan ay)
+    if(proj!==null&&avgExp>0){var r=proj/avgExp;
+      if(r>=1.15)warn(r>=1.35?'red':'yellow','📈','Harcama temposu yüksek','Bu tempoyla ay sonunda yaklaşık '+fmt(proj)+' harcanacak; son '+hist.length+' ayın ortalaması '+fmt(avgExp)+' (%'+Math.round((r-1)*100)+' fazla).');
+      else if(r<=0.9)warn('green','✅','Harcama ortalamanın altında','Bu tempoyla ay sonu yaklaşık '+fmt(proj)+'; ortalama '+fmt(avgExp)+'.')}
+    else if(!isCur&&avgExp>0&&exp>avgExp*1.15)warn(exp>avgExp*1.35?'red':'yellow','📈','Ortalamanın üzerinde harcandı',_monthName(month)+' gideri '+fmt(exp)+'; önceki '+hist.length+' ayın ortalaması '+fmt(avgExp)+'.');
+    // 3) Kategori artışları
+    var spikes=Object.keys(cats).map(function(k){var a=avgCats[k]||0;return{k:k,cur:cats[k],avg:a,diff:cats[k]-a}}).filter(function(x){return hist.length&&(x.avg>0?x.cur>x.avg*1.3&&x.diff>=Math.max(300,avgExp*0.05):x.cur>=Math.max(1000,avgExp*0.1))}).sort(function(a,b){return b.diff-a.diff}).slice(0,3);
+    spikes.forEach(function(x){warn('yellow',ci(x.k).i,x.k+(x.avg>0?' harcaması arttı':' bu ay yeni'),x.avg>0?fmt(x.cur)+' · son '+hist.length+' ay ortalaması '+fmt(x.avg)+' (+'+fmt(x.diff)+')':fmt(x.cur)+' · önceki aylarda bu kategoride harcama yoktu.')});
+    // 4) Bütçeler
+    var b=S.budgets(),bud=[];Object.keys(b).forEach(function(k){var lim=isCur?App.Budget.effectiveLimit(k):App.Budget.limitFor(k,month),sp=cats[k]||0;if(!(b[k]>0))return;var pct=lim>0?sp/lim*100:(sp>0?999:0);bud.push({k:k,limit:lim,spent:sp,pct:pct});
+      if(pct>=100)warn('red',ci(k).i,k+' bütçesi aşıldı',fmt(sp)+' / '+fmt(lim)+(lim>0?' (%'+Math.round(pct)+')':''));else if(pct>=80)warn('yellow',ci(k).i,k+' bütçesi dolmak üzere',fmt(sp)+' / '+fmt(lim)+' (%'+Math.round(pct)+')')});
+    // 5) Büyük tek harcama
+    if(big&&exp>0&&big.amount>=Math.max(1000,exp*0.2))warn('info','🧾','En büyük tek harcama',fmt(big.amount)+' · '+(big.note||big.category)+' · '+fd(big.date)+' · ayın giderindeki payı %'+Math.round(big.amount/exp*100)+'.');
+    // 6) Kart borcu ve yaklaşan ödemeler (yalnız içinde bulunulan ay; geçmiş ay raporunda bugünkü bakiye anlamsız)
+    if(isCur){var ms=moneySplit(S.accounts());
+      if(ms.cardDebt>0)warn(ms.cardDebt>ms.cash?'red':'info','💳','Kredi kartı borcu',fmt(ms.cardDebt)+' kart borcu var; hesaplarda '+fmt(ms.cash)+'.'+(ms.cardDebt>ms.cash?' Borç, hesaplardaki paradan fazla.':' Ödemeyi "↔ Transfer" ile girin, gider iki kez sayılmasın.'));
+      var cf=App.Cashflow.summary(30);if(cf.min<0)warn('red','⏳','Bakiye eksiye düşebilir','Önümüzdeki 30 günün ödemeleriyle en düşük bakiye '+fmt(cf.min)+' olabilir.');
+      var q=S.smsQueue().length;if(q)warn('info','🏦','Onay bekleyen banka hareketi',q+' hareket Özet\'te onay bekliyor; eklenmeden istatistiğe girmez.')}
+    // 7) Abonelikler
+    var subs=S.recurring().filter(function(r){return r.isSubscription&&r.type==='expense'&&r.active!==false}),subT=roundMoney(subs.reduce(function(s,r){return s+r.amount},0));
+    if(subT>0)warn('info','📺','Abonelikler','Aylık '+fmt(subT)+' ('+subs.length+' abonelik) · yıllık '+fmt(subT*12)+'.');
+    // 8) Tasarruf
+    var save=inc>0?(inc-exp)/inc*100:null;if(save!==null&&save>=20)warn('green','💪','İyi gidiyor','Tasarruf oranı %'+Math.round(save)+': gelirden '+fmt(inc-exp)+' kaldı.');
+    var order={red:0,yellow:1,info:2,green:3};W.sort(function(a,b){return order[a.level]-order[b.level]});
+    return{month:month,isCurrent:isCur,income:inc,expense:exp,net:roundMoney(inc-exp),count:tx.length,prev:{month:prev.month,income:roundMoney(prev.income),expense:roundMoney(prev.expense)},
+      avgExpense:avgExp,avgIncome:avgInc,histMonths:hist.length,projected:proj,saveRate:save,
+      categories:_sorted(cats),avgCategories:avgCats,places:_sorted(places,8),byUser:_sorted(byUser),byAccount:_sorted(byAcc),
+      incomeCategories:_sorted(incCats),incomeByUser:_sorted(incUser),incomeByAccount:_sorted(incAcc),budgets:bud,subscriptions:subT,biggest:big,warnings:W};
+  }
+  // İstatistikler sayfası
+  function _bars(list,total,color){if(!list.length)return'<div class="set-sub">Kayıt yok.</div>';var max=list[0].amount||1;return'<div class="dist-list">'+list.map(function(x){return'<div class="dist-row an-row"><span class="an-key">'+esc(x.key)+'</span><span class="dist-track"><span class="dist-fill" style="width:'+Math.max(3,Math.round(x.amount/max*100))+'%;background:'+color+'"></span></span><span class="an-val">'+fmt(x.amount)+(total>0?' <small>%'+Math.round(x.amount/total*100)+'</small>':'')+'</span></div>'}).join('')+'</div>'}
+  function renderStats(month){
+    var a=compute(month),w=document.getElementById('statsInsights'),wh=document.getElementById('statsWhere');
+    if(w)w.innerHTML='<div class="an-card"><div class="chart-title">⚠️ Dikkat Edilecekler · '+esc(_monthName(a.month))+'</div>'+(a.warnings.length?a.warnings.map(function(x){return'<div class="an-warn '+x.level+'"><span class="an-ico">'+x.icon+'</span><div><div class="an-title">'+esc(x.title)+'</div><div class="an-text">'+esc(x.text)+'</div></div></div>'}).join(''):'<div class="set-sub">Bu dönem için dikkat gerektiren bir durum yok.</div>')+'</div>';
+    if(wh)wh.innerHTML='<div class="an-card"><div class="chart-title">💸 Nereye Gitti? · '+fmt(a.expense)+'</div><div class="an-sub">Kategoriler</div>'+_bars(a.categories.slice(0,6),a.expense,'var(--red)')+'<div class="an-sub">En çok harcanan yerler</div>'+_bars(a.places.slice(0,5),a.expense,'var(--orange)')+'<div class="an-sub">Kim harcadı</div>'+_bars(a.byUser,a.expense,'var(--purple)')+'<div class="an-sub">Hangi kart / hesaptan</div>'+_bars(a.byAccount,a.expense,'var(--blue)')+'</div>'+
+      '<div class="an-card"><div class="chart-title">💰 Nereden Geldi? · '+fmt(a.income)+'</div><div class="an-sub">Gelir türü</div>'+_bars(a.incomeCategories,a.income,'var(--green)')+'<div class="an-sub">Kime geldi</div>'+_bars(a.incomeByUser,a.income,'var(--teal)')+'<div class="an-sub">Hangi hesaba</div>'+_bars(a.incomeByAccount,a.income,'var(--blue)')+'</div>';
+    return a;
+  }
+  return{compute:compute,renderStats:renderStats,_place:_place};
 })();
 
 // ---- Piyasa verileri (sunucu: /v1/market) ----
