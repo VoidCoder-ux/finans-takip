@@ -882,7 +882,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.01.3</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.01.4</div>
 </section>
 
 </main>
@@ -1005,6 +1005,8 @@ function csvText(v){v=String(v==null?'':v).trim();return /^'[\t\r=+\-@]/.test(v)
 // Başlık/tür karşılaştırması: büyük-küçük harf ve Türkçe harf farkı (I/İ/ı, ş/s…) önemsiz
 function csvFold(v){return String(v==null?'':v).trim().toLocaleLowerCase('tr-TR').replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ö/g,'o').replace(/ç/g,'c').replace(/i̇/g,'i')}
 function fmt(n){var v=Math.round(Number(n||0)*100)/100;if(!isFinite(v)||v===0)v=0;if(v<0)return'-₺'+Math.abs(v).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});return'₺'+v.toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+// Seçim listelerinde hesap adı: aynı adlı hesaplar (ör. birkaç Yapıkredi kartı) son 4 haneyle ayırt edilir
+function accLabel(a){return String(a&&a.name||'')+(a&&a.last4?' …'+a.last4.split(',')[0]:'')}
 function fd(iso){if(!validDate(iso))return '-';var p=iso.split('-');return p[2]+' '+MF[+p[1]-1]+' '+p[0]}
 function td(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function tm(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
@@ -1280,11 +1282,11 @@ App.UI=(function(){
   }
   function refreshAccSelects(){
     var accs=S.accounts();
-    var accOpts=accs.map(function(a){return'<option value="'+a.id+'">'+AM[a.type].i+' '+esc(a.name)+'</option>'}).join('');
+    var accOpts=accs.map(function(a){return'<option value="'+a.id+'">'+AM[a.type].i+' '+esc(accLabel(a))+'</option>'}).join('');
     var first={portAccount:'— Hesaba işleme —',debtAccount:'— Hesaba işleme —',txnAccount:_type==='transfer'?'Kaynak hesap seç':'Varsayılan: ortak hesap',txnToAccount:'Hedef hesap seç',recAccount:'Varsayılan: ortak hesap',gAccount:'Hesap seç (isteğe bağlı)',gSource:'Varsayılan: ortak hesap'};
     Object.keys(first).forEach(function(id){var sel=document.getElementById(id);if(sel){var prev=sel.value;sel.innerHTML='<option value="">'+first[id]+'</option>'+accOpts;if(prev&&accs.some(function(a){return a.id===prev}))sel.value=prev}});
     var el=document.getElementById('fAcc');
-    if(el)el.innerHTML='<option value="">Tüm Hesaplar</option>'+accs.map(function(a){return'<option value="'+a.id+'">'+esc(a.name)+'</option>'}).join('');
+    if(el)el.innerHTML='<option value="">Tüm Hesaplar</option>'+accs.map(function(a){return'<option value="'+a.id+'">'+esc(accLabel(a))+'</option>'}).join('');
     refreshUserSelects();
   }
   // force: "Kim yaptı" kutuları bu cihazın profiline döner (profil değişince / kayıt eklenince)
@@ -1718,7 +1720,7 @@ App.Transactions=(function(){
     _refresh();App.UI.toast(back.length>1?back.length+' işlem geri alındı.':'İşlem geri alındı.','info');
   }
   function _catOptions(type,cur){var list=(type==='income'?IC:type==='expense'?EC:EC.concat(IC).filter(function(c,i,a){return a.indexOf(c)===i})).slice();if(cur&&list.indexOf(cur)===-1)list.push(cur);return list.map(function(c){return{value:c,label:ci(c).i+' '+c}})}
-  function _accOptions(cur){var o=S.accounts().map(function(a){return{value:a.id,label:(AM[a.type]||{i:'💰'}).i+' '+a.name}});if(!cur||!o.some(function(x){return x.value===cur}))o.unshift({value:'',label:'— Hesapsız —'});return o}
+  function _accOptions(cur){var o=S.accounts().map(function(a){return{value:a.id,label:(AM[a.type]||{i:'💰'}).i+' '+accLabel(a)}});if(!cur||!o.some(function(x){return x.value===cur}))o.unshift({value:'',label:'— Hesapsız —'});return o}
   function _userOptions(cur){var o=App.Users.list().map(function(u){return{value:u.id,label:(u.emoji||'🙋')+' '+u.name}});if(!cur||!o.some(function(x){return x.value===cur}))o.unshift({value:'',label:'— Belirtilmemiş —'});return o}
   function _syncGoalLinks(ids,amount,date){
     var goals=S.goals(),changed=false;
@@ -1963,7 +1965,7 @@ App.Recurring=(function(){
   function edit(id){
     var r=S.recurring().find(function(x){return x.id===id});if(!r)return;
     var cats=EC.concat(IC).filter(function(c,i,a){return a.indexOf(c)===i});if(cats.indexOf(r.category)<0)cats.push(r.category);
-    var accs=S.accounts().map(function(a){return{value:a.id,label:(AM[a.type]||{i:'💰'}).i+' '+a.name}});
+    var accs=S.accounts().map(function(a){return{value:a.id,label:(AM[a.type]||{i:'💰'}).i+' '+accLabel(a)}});
     App.UI.promptModal({title:'Tekrarlayanı Düzenle',text:'Değişiklik yalnız bundan sonraki kayıtlara uygulanır; geçmiş işlemler değişmez.',fields:[
       {key:'type',label:'Tür',type:'select',value:r.type,options:[{value:'expense',label:'− Gider'},{value:'income',label:'+ Gelir'}]},
       {key:'amount',label:'Tutar (₺)',type:'number',value:r.amount},
@@ -2702,7 +2704,7 @@ App.Portfolio=(function(){
   // Kısmi/tam satış: miktar düşer; hesap seçilirse satış tutarı hesaba girer (gelir sayılmaz); gerçekleşen K/Z bildirilir
   function sell(id){
     var a=S.portfolio().find(function(x){return x.id===id});if(!a)return;
-    var accs=S.accounts().map(function(x){return{value:x.id,label:(AM[x.type]||{i:'💰'}).i+' '+x.name}});
+    var accs=S.accounts().map(function(x){return{value:x.id,label:(AM[x.type]||{i:'💰'}).i+' '+accLabel(x)}});
     App.UI.promptModal({title:'Sat — '+(a.label||(TM[a.type]?TM[a.type].l:a.type)),text:'Elde: '+fmtQty(a.qty)+' birim.',fields:[
       {key:'qty',label:'Satılan miktar',type:'number',step:'any',value:a.qty},
       {key:'price',label:'Satış birim fiyatı (₺)',type:'number',step:'any',value:priceOf(a)||''},
@@ -3021,7 +3023,7 @@ App.YearlyFund=(function(){
   }
   function markPaid(id){
     var f0=S.fund().find(function(x){return x.id===id});if(!f0)return;
-    var accs=S.accounts().map(function(a){return{value:a.id,label:(AM[a.type]||{i:'💰'}).i+' '+a.name}});
+    var accs=S.accounts().map(function(a){return{value:a.id,label:(AM[a.type]||{i:'💰'}).i+' '+accLabel(a)}});
     App.UI.promptModal({title:'Ödendi — '+f0.name,text:'Biriken katkı sıfırlanır ve sonraki yılın döngüsüne geçilir. İsterseniz ödeme gider olarak da kaydedilir.',fields:[
       {key:'record',label:'Gider kaydı',type:'select',value:accs.length?'yes':'no',options:[{value:'yes',label:'Evet, gider olarak kaydet'},{value:'no',label:'Hayır, sadece fonu sıfırla'}]},
       {key:'amount',label:'Ödenen tutar (₺)',type:'number',value:f0.amount},
@@ -3827,6 +3829,7 @@ App.BankSms=(function(){
     if(!p.bank||!BANK_WORDS[p.bank])return'';
     var c=S.accounts().filter(function(a){return BANK_WORDS[p.bank].test(fold(a.name))});
     if(p.accHint==='card'){var cc=c.filter(function(a){return a.type==='card'});if(cc.length)c=cc}else if(p.accHint==='bank'){var bb=c.filter(function(a){return a.type!=='card'});if(bb.length)c=bb}
+    if(c.length>1){var nc=c.filter(function(a){return a.type!=='cash'});if(nc.length)c=nc}
     if(c.length>1){var mine=c.filter(function(a){return a.owner==='personal'&&a.userId===userId});if(mine.length)c=mine;else{var sh=c.filter(function(a){return a.owner!=='personal'});if(sh.length)c=sh}}
     return c.length===1?c[0].id:'';
   }
@@ -3969,7 +3972,7 @@ App.BankSms=(function(){
   }
   function setDefault(){
     var uid=S.settings().activeUser,cur=(S.settings().smsDefaults||{})[uid]||'';
-    var opts=[{value:'',label:'— Sorsun (onaya düşsün) —'}].concat(S.accounts().map(function(a){return{value:a.id,label:(AM[a.type]||{i:''}).i+' '+a.name}}));
+    var opts=[{value:'',label:'— Sorsun (onaya düşsün) —'}].concat(S.accounts().map(function(a){return{value:a.id,label:(AM[a.type]||{i:''}).i+' '+accLabel(a)}}));
     App.UI.promptModal({title:'Eşleşmeyen SMS\'ler',text:'Kart/hesap anlaşılamayan SMS hareketleri '+((App.Users.get(uid)||{}).name||'bu kişi')+' için hangi hesaba işlensin?',fields:[{key:'acc',label:'Hesap',type:'select',options:opts,value:cur}]},function(v){
       var d=Object.assign({},S.settings().smsDefaults||{});if(v.acc)d[uid]=v.acc;else delete d[uid];S.saveSetting('smsDefaults',d);renderCard();App.UI.toast('Kaydedildi.');
     });
@@ -3997,7 +4000,7 @@ App.BankSms=(function(){
   function dismissAll(){App.UI.confirmModal({title:'Hepsini Yoksay',text:'Onay bekleyen '+S.smsQueue().length+' SMS hareketi eklenmeden silinsin mi?',okLabel:'Yoksay',danger:true},function(){S.saveSmsQueue([]);renderQueue();renderCard()})}
   function accept(id){
     var x=S.smsQueue().find(function(y){return y.id===id});if(!x)return;var p=x.p,userId=_userOf(x.label);
-    var accs=S.accounts().map(function(a){return{value:a.id,label:(AM[a.type]||{i:''}).i+' '+a.name}});if(!accs.length){App.UI.toast('Önce hesap ekleyin.','err');return}
+    var accs=S.accounts().map(function(a){return{value:a.id,label:(AM[a.type]||{i:''}).i+' '+accLabel(a)}});if(!accs.length){App.UI.toast('Önce hesap ekleyin.','err');return}
     var cats=(p.type==='income'?IC:EC).map(function(c){return{value:c,label:ci(c).i+' '+c}});
     App.UI.promptModal({title:'Banka Hareketini Ekle',text:x.text,fields:[
       {key:'type',label:'Tür',type:'select',options:[{value:'expense',label:'Gider'},{value:'income',label:'Gelir'}],value:p.type},
@@ -4230,7 +4233,7 @@ App.Statement=(function(){
       _build();open();
     }).catch(function(e){App.UI.toast(e&&e.message&&!/^zip/.test(e.message)?e.message:'Dosya okunamadı.','err')});
   }
-  function _accOpts(){return S.accounts().map(function(a){return'<option value="'+escAttr(a.id)+'"'+(a.id===_meta.accountId?' selected':'')+'>'+(AM[a.type]||{i:''}).i+' '+esc(a.name)+'</option>'}).join('')}
+  function _accOpts(){return S.accounts().map(function(a){return'<option value="'+escAttr(a.id)+'"'+(a.id===_meta.accountId?' selected':'')+'>'+(AM[a.type]||{i:''}).i+' '+esc(accLabel(a))+'</option>'}).join('')}
   function _catOpts(type,cur){return(type==='income'?IC:EC).map(function(c){return'<option value="'+escAttr(c)+'"'+(c===cur?' selected':'')+'>'+ci(c).i+' '+esc(c)+'</option>'}).join('')}
   function _body(){
     var on=_rows.filter(function(r){return r.on}),inc=0,exp=0;on.forEach(function(r){if(r.type==='income')inc+=r.amount;else exp+=r.amount});
@@ -4804,7 +4807,7 @@ App.Receipt=(function(){
       '<div class="f"><label>Tarih</label><input type="date" data-rk="date" value="'+escAttr(date)+'"/></div></div>'+
       '<div class="f" style="margin:10px 0"><label>Açıklama</label><input type="text" data-rk="note" maxlength="500" value="'+escAttr(note)+'" placeholder="Mağaza / açıklama"/></div>'+
       '<div class="fg c3"><div class="f"><label>Kategori</label><select data-rk="category">'+cats.map(function(c){return'<option value="'+escAttr(c)+'"'+(c===draft.category?' selected':'')+'>'+esc(ci(c).i)+' '+esc(c)+'</option>'}).join('')+'</select></div>'+
-      '<div class="f"><label>Hesap</label><select data-rk="accountId">'+accs.map(function(a){return'<option value="'+escAttr(a.id)+'"'+(a.id===defAcc?' selected':'')+'>'+esc((AM[a.type]||{i:'💰'}).i+' '+a.name)+'</option>'}).join('')+'</select></div>'+
+      '<div class="f"><label>Hesap</label><select data-rk="accountId">'+accs.map(function(a){return'<option value="'+escAttr(a.id)+'"'+(a.id===defAcc?' selected':'')+'>'+esc((AM[a.type]||{i:'💰'}).i+' '+accLabel(a))+'</option>'}).join('')+'</select></div>'+
       '<div class="f"><label>Kim Yaptı</label><select data-rk="userId">'+users.map(function(u){return'<option value="'+escAttr(u.id)+'"'+(u.id===active?' selected':'')+'>'+esc((u.emoji||'🙋')+' '+u.name)+'</option>'}).join('')+'</select></div></div>'+
       '<div class="modal-actions" style="flex-wrap:wrap"><button class="btn btn-ghost" data-act="cancel">Vazgeç</button><button class="btn btn-ghost" data-act="ai" hidden>🤖 Yapay Zekâyla Oku</button><button class="btn btn-primary" data-act="ok">Gider Ekle</button></div></div></div>';
     App.UI.closeModal('rcpReview');
