@@ -98,7 +98,7 @@ srv.listen(0, async () => {
   const browser = await pw.chromium.launch();
   const report = { errors: [], pages: {}, modals: {}, functional: [] };
   const views = [['mobile', 390, 844], ['tablet', 768, 1024], ['desktop', 1280, 900]];
-  const pages = ['ozet', 'hesaplar', 'aile', 'islemler', 'tekrarlayan', 'taksitler', 'borclar', 'butce', 'portfoy', 'asistan', 'istatistikler', 'hedefler', 'kurallar', 'ayarlar'];
+  const pages = ['ozet', 'hesaplar', 'aile', 'islemler', 'tekrarlayan', 'taksitler', 'borclar', 'butce', 'portfoy', 'istatistikler', 'hedefler', 'ayarlar'];
   for (const [vname, w, h] of views) for (const theme of ['dark', 'light']) {
     const ctx = await browser.newContext({ viewport: { width: w, height: h }, serviceWorkers: 'block', isMobile: vname === 'mobile', hasTouch: vname !== 'desktop' });
     const page = await ctx.newPage();
@@ -125,7 +125,7 @@ srv.listen(0, async () => {
       more: 'App.UI.moreMenu()', backup: 'App.Backup.open()', setup: 'App.Onboarding.open()', cash: 'App.Cashflow.open()', report: 'App.Report.open()',
       editTxn: 'App.Transactions.edit(S.txns().find(t=>!t.transferId&&!t.installment).id)', editInst: 'App.Transactions.edit(S.txns().find(t=>t.installment).id)',
       editTrf: 'App.Transactions.edit(S.txns().find(t=>t.transferId).id)', sell: "App.Portfolio.sell('pa1700000000000_p001')", targets: 'App.Portfolio.editTargets()',
-      fundPaid: "App.YearlyFund.markPaid('yf1700000000000_f001')", recEdit: "App.Recurring.edit('r1700000000000_r001')", debtEdit: "App.Debts.edit('d1700000000000_d001')", api: 'App.Portfolio.openApiSettings()',
+      fundPaid: "App.YearlyFund.markPaid('yf1700000000000_f001')", recEdit: "App.Recurring.edit('r1700000000000_r001')", debtEdit: "App.Debts.edit('d1700000000000_d001')",
       smsAccept: "App.BankSms.accept('sqsms1_a')",
       statement: "App.Statement._load('ekstre.pdf',{lines:['Akbank Kredi Kartı Hesap Özeti','28.09.2026 MIGROS KADIKOY 245,50','29.09.2026 ÖDEME - TEŞEKKÜR EDERİZ -5.000,00','30.09.2026 ÇOK UZUN BİR İŞYERİ ADI OLAN MAĞAZA TİCARET ANONİM ŞİRKETİ İSTANBUL 1.234,56']});App.Statement.open()"
     };
