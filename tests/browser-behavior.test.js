@@ -144,8 +144,8 @@ async function run() {
   eq('manual balance correction persists after reload', (await balances(p)).Banka, 1234.5);
 
   // 6) Kural Motoru reachable from desktop sidebar.
-  await p.click('.sidebar [data-nav="kurallar"]');
-  eq('rules page opens from sidebar', await p.isVisible('#page-kurallar'), true);
+  await p.click('.sidebar [data-nav="ayarlar"]');
+  eq('rules live in Ayarlar (no separate page)', [await p.isVisible('#rulesCard'), await p.evaluate(function() { return !!document.getElementById('page-kurallar') || !!document.querySelector('[data-nav="kurallar"]'); })], [true, false]);
   await r.ctx.close();
 
   // 7) Goal contribution in transfer mode is a real transfer (source debited, no phantom income).
@@ -320,11 +320,12 @@ async function runAudit3b() {
   await p.fill('#txnAmt', '1.500');
   eq('amount preview shows parsed value', (await p.locator('#txnAmt + .money-hint').textContent()).trim(), '= ₺1.500,00');
   var csv = '﻿İşlem Tarihi;Açıklama;Tutar\r\n' + TODAY.split('-').reverse().join('.') + ';MIGROS KADIKOY;-1.234,56\r\n' + TODAY.split('-').reverse().join('.') + ';MAAS;25.000,00\r\n';
-  await p.setInputFiles('#csvImport', { name: 'ekstre.csv', mimeType: 'text/csv', buffer: Buffer.from(csv, 'utf8') });
-  await p.waitForSelector('.app-dialog-holder [data-act="ok"]');
-  await p.click('.app-dialog-holder [data-act="ok"]');
+  await p.setInputFiles('#stmtFile', { name: 'ekstre.csv', mimeType: 'text/csv', buffer: Buffer.from(csv, 'utf8') });
+  await p.waitForSelector('#stmtList');
+  await p.selectOption('#stmtAcc', A);
+  await p.click('#stmtOk');
   var imported = await p.evaluate(function() { return S.txns().map(function(t) { return [t.type, t.amount, t.category]; }).sort(); });
-  eq('bank CSV: sign sets type, rule sets category', imported, [['expense', 1234.56, 'Market'], ['income', 25000, 'Diğer']]);
+  eq('bank CSV (Ekstre Yükle): sign sets type, rule sets category', imported, [['expense', 1234.56, 'Market'], ['income', 25000, 'Maaş']]);
   eq('bank CSV applied to balance', (await balances(p)).Banka, 24765.44);
   var txId = await p.evaluate(function() { return S.txns().find(function(t) { return t.type === 'expense'; }).id; });
   await p.evaluate(function(id) { App.Transactions.remove(id); }, txId);
@@ -336,6 +337,12 @@ async function runAudit3b() {
     URL.createObjectURL = function(b) { out = b; return orig.call(URL, b); };
     App.Transactions.exportCSV(); URL.createObjectURL = orig; return out.text();
   });
+  // Uygulamanın kendi CSV'si Ekstre Yükle'den verilince hesap/üye/kategori korunarak eski içe aktarmaya gider (tekrarlar atlanır)
+  await p.setInputFiles('#stmtFile', { name: 'finanstakip.csv', mimeType: 'text/csv', buffer: Buffer.from(exported, 'utf8') });
+  await p.waitForSelector('.app-dialog-holder [data-act="ok"]');
+  eq('own CSV export is recognised by Ekstre Yükle', await p.evaluate(function() { return [...document.querySelectorAll('.app-dialog-holder .modal-title')].pop().textContent; }), 'CSV İçe Aktar');
+  await p.click('.app-dialog-holder [data-act="ok"]');
+  eq('re-importing own export adds no duplicates', await p.evaluate(function() { return S.txns().length; }), 2);
   eq('export uses ; and decimal comma', exported.split('\r\n')[0].replace('﻿', '') + ' | ' + /;"1234,56";/.test(exported), 'Tarih;Tür;Kategori;Tutar;Hesap;Üye;Not | true');
   await r.ctx.close();
 }

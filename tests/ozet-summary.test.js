@@ -52,6 +52,30 @@ srv.listen(0, async () => {
   // Kart borcu yokken
   await page.evaluate(() => { const a = S.accounts(); a.find(x => x.id === 'a_hb').balance = 0; S.saveAccounts(a); App.Accounts.renderSummary(); });
   eq('no card debt', await page.evaluate(() => document.getElementById('heroCard').textContent), '💳 Kart borcu yok');
+  // Hız: genel yenileme yalnız açık sayfayı çizer; gizli sayfa açılınca güncel veriyle çizilir
+  const perf = await page.evaluate(() => {
+    const t = S.txns(), base = Date.now();
+    for (let i = 0; i < 3000; i++) t.push({ id: 'tp' + i, type: i % 5 ? 'expense' : 'income', amount: 10 + (i % 90), category: i % 5 ? 'Market' : 'Maaş', date: td(), note: 'Deneme ' + i, accountId: 'a_tl', userId: 'u_self', ts: base + i, balanceApplied: false });
+    S.saveTxns(t); App.UI.nav('ozet');
+    document.getElementById('txnList').innerHTML = 'ESKI';
+    const t0 = performance.now(); renderAllViews(); const ms = performance.now() - t0;
+    const hiddenUntouched = document.getElementById('txnList').innerHTML === 'ESKI';
+    App.UI.nav('islemler');
+    return { ms: Math.round(ms), hiddenUntouched, shownOnOpen: document.querySelectorAll('#txnList .ti').length > 0 };
+  });
+  console.log('   renderAllViews (3000 işlem, Özet açık): ' + perf.ms + ' ms');
+  eq('refresh does not redraw hidden pages; they are fresh when opened', [perf.hiddenUntouched, perf.shownOnOpen], [true, true]);
+  // Sadeleştirme: Birikim sayfası (Hedefler + Yıllık Giderler), Bütçe'de yalnız limitler; tek bildirim düğmesi; Asistan yok
+  const simp = await page.evaluate(() => {
+    App.UI.nav('hedefler'); const title = document.querySelector('#page-hedefler .ph-title').textContent;
+    App.UI.subTab('hedefler', 'fund'); const fundVisible = !!document.querySelector('#page-hedefler .sub-pane.active #fundList');
+    const budgetHasFund = !!document.querySelector('#page-butce #fundList');
+    App.UI.nav('ayarlar'); const card = document.getElementById('notifBtn').closest('.set-card');
+    return { title, fundVisible, budgetHasFund, notifTitle: card.querySelector('.sh-title').textContent, enableButtons: [...card.querySelectorAll('button')].filter(b => !b.hidden).length, menu: [...document.querySelectorAll('.sidebar [data-nav]')].map(x => x.textContent.trim()) };
+  });
+  eq('Birikim page holds goals and yearly expenses; Bütçe only limits', [simp.title, simp.fundVisible, simp.budgetHasFund], ['Birikim', true, false]);
+  eq('one notifications card with a single enable button', [simp.notifTitle, simp.enableButtons], ['🔔 Bildirimler', 1]);
+  eq('menu without Asistan and Kurallar', simp.menu.some(x => /Asistan|Kurallar/.test(x)) || !simp.menu.some(x => /Birikim/.test(x)), false);
   eq('no page errors', errors, []);
   await browser.close(); srv.close();
   console.log('\n' + pass + ' passed, ' + fail + ' failed');

@@ -128,10 +128,7 @@ var indexHtml = fs.readFileSync('index.html', 'utf8');
 ok('expense categories include credit payment options', /var EC=\[[^\]]*'Kredi Ödemesi'[^\]]*'Kredi Kartı Ödemesi'[^\]]*'Borç Ödemesi'[^\]]*\]/.test(indexHtml));
 ok('credit payment categories have icons and colors', /'Kredi Ödemesi':\{i:'🏦',c:'cc-blue'\}/.test(indexHtml) && /'Kredi Kartı Ödemesi':\{i:'💳',c:'cc-red'\}/.test(indexHtml) && /'Borç Ödemesi':\{i:'🤝',c:'cc-purple'\}/.test(indexHtml));
 ok('client no longer stores DeepSeek API key setting', !/saveSetting\('deepseekApiKey'/.test(indexHtml));
-ok('direct DeepSeek key is session-only', /sessionStorage\.setItem\(KEY_STORE/.test(indexHtml) && !/localStorage\.setItem\(KEY_STORE/.test(indexHtml));
-ok('AI privacy modes exist', /value="local"/.test(indexHtml) && /value="proxy"/.test(indexHtml) && /value="direct"/.test(indexHtml));
-ok('AI proxy URL setting exists', /aiProxyUrl/.test(indexHtml));
-ok('local no-key analysis fallback exists', /Yerel analiz/.test(indexHtml) && /API key, proxy veya dış servis kullanılmadı/.test(indexHtml));
+ok('AI Asistan removed; leftover browser key is wiped', /removeItem\('pf_direct_ai_key'\)/.test(indexHtml) && !/id="page-asistan"|App\.AI=|assistantApiKey|api\.deepseek\.com/.test(indexHtml));
 
 ok('backup and onboarding modules exist', /App\.Backup=\(function/.test(indexHtml) && /App\.Onboarding=\(function/.test(indexHtml));
 ok('cashflow and account selection exist', /App\.Cashflow=\(function/.test(indexHtml) && /id="txnAccount"/.test(indexHtml));
@@ -251,7 +248,7 @@ ok('escape closes topmost modal generically', /modal-bd\.show/.test(indexHtml.sp
 
 // Denetim #3: transfer, düzenleme, hesaplama düzeltmeleri (davranış testi: tests/browser-behavior.test.js)
 ok('no mojibake in UI strings', indexHtml.indexOf('â€') === -1);
-ok('rules page reachable from desktop sidebar', /class="nav-item" data-nav="kurallar"/.test(indexHtml));
+ok('rules reachable in Ayarlar', /id="rulesCard"/.test(indexHtml) && /pg==='ayarlar'\)\{App\.Settings\.render\(\);App\.Rules\.initSelects\(\);App\.Rules\.renderList\(\)/.test(indexHtml));
 ok('transfer type pill exists', /id="pillTrf"/.test(indexHtml) && /id="txnToAccount"/.test(indexHtml));
 ok('monthly totals skip transfers and future plans', /if\(isTransfer\(t\)\|\|!t\.date\.startsWith\(month\)\|\|t\.date>today\)return;count\+\+/.test(indexHtml));
 ok('category totals skip transfers', /t\.type!=='expense'\|\|isTransfer\(t\)\|\|!t\.date\.startsWith\(month\)/.test(indexHtml));
