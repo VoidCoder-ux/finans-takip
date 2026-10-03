@@ -825,7 +825,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.03.1</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.03.2</div>
 </section>
 
 </main>
@@ -3890,7 +3890,7 @@ App.BankSms=(function(){
       '    try {',
       '      var m = Gmail.Users.Messages.get(\'me\', x.id, { format: \'full\' });',
       '      var metin = [baslik_(m, \'From\'), baslik_(m, \'Subject\'), govde_(m.payload)].join(\'\\n\').slice(0, 30000);',
-      '      var r = gonder_({ text: metin, source: \'email\', id: x.id });',
+      '      var r = gonder_({ text: metin, source: \'email\', id: x.id, date: Number(m.internalDate) || 0 });   // e-postanın geldiği an (işlem tarihi yazmıyorsa)',
       '      if (r === 200) { gonderilen.push(x.id); yeni++; } else hata++;',
       '    } catch (e) { hata++; console.warn(\'Gönderilemedi: \' + e); }',
       '  });',

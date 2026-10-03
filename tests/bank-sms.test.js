@@ -188,9 +188,13 @@ srv.listen(0, async () => {
     await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="acc"]').value = 'a_cash'; m.querySelector('[data-pkey="date"]').value = td(); m.querySelector('[data-pkey="note"]').value = ''; m.querySelector('[data-act="ok"]').click(); });
     await page.waitForTimeout(150);
     eq('accepted e-mail item is recorded as e-mail', await page.evaluate(() => { const t = S.txns().find(x => x.amount === 64); return t && [t.via, t.note, t.accountId, t.userId]; }), ['email', 'Banka e-postası', 'a_cash', 'u_self']);
+    // Gerçek Akbank e-postası (sunucunun sakladığı biçim; ad ve kart numarası değiştirildi): işyeri yok, tutar 1,426.78, kalan limit sayılmaz, tarih e-postanın geldiği gün
+    const akbTxt = 'Akbank\nKredi kartı harcamanız\n6262 ile biten Axess Asıl kartınızla 1,426.78 TL tutarında KREDI KARTI harcaması yapılmıştır. 2,961.82 TL limitiniz kalmıştır.\nE-posta tarihi: ' + dmy(yest) + ' 23:58';
+    eq('real Akbank e-mail: English amount format, remaining limit ignored, date from the e-mail', await page.evaluate(t => { const p = App.BankSms.parse(t, Date.now()); return [p.kind, p.amount, p.last4, p.bank, p.merchant, p.date]; }, akbTxt), ['expense', 1426.78, '6262', 'Akbank', '', yest]);
+    eq('real Akbank e-mail recorded with a clear note (the e-mail names no shop)', await page.evaluate(t => { App.BankSms.ingest([{ id: 5004, label: 'gmailbox_u_partner', text: t, receivedAt: Date.now() }]); const x = S.txns().find(y => y.amount === 1426.78); return x && [x.note, x.category, x.accountId, x.date, x.via]; }, akbTxt), ['Akbank kart harcaması', 'Diğer', 'a_axess', yest, 'email']);
     eq('Gmail test message counted on its own', await page.evaluate(() => App.BankSms.ingest([{ id: 5003, label: 'gmailbox_u_self', text: 'AILEKASASI-TEST 1,00 TL 1759480000000', receivedAt: Date.now() }])), { added: 0, updated: 0, dupes: 0, queued: 0, ignored: 0, test: 0, testMail: 1 });
     await page.reload(); await page.waitForTimeout(400);
-    eq('e-mail source survives reload (kept in storage and sync)', await page.evaluate(() => S.txns().filter(t => t.via === 'email').map(t => t.amount).sort((a, b) => a - b)), [64, 245.5]);
+    eq('e-mail source survives reload (kept in storage and sync)', await page.evaluate(() => S.txns().filter(t => t.via === 'email').map(t => t.amount).sort((a, b) => a - b)), [64, 245.5, 1426.78]);
     eq('balances consistent after e-mail records', await page.evaluate(() => App.Accounts.reconcileAccountBalances(true)), false);
     eq('settings card asks to enable sync first', await page.evaluate(() => { App.UI.nav('aile'); return document.getElementById('setSmsCard').innerText.includes('eşitlemeyi açın'); }), true);
     await ctx.close();
@@ -255,7 +259,7 @@ srv.listen(0, async () => {
     const mpost = async body => (await fetch(murl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })).json();
     eq('script test message ("kur") stored', await mpost({ text: 'AILEKASASI-TEST 1,00 TL ' + Date.now() }), { stored: true });
     eq('app says the Gmail link works', await page.evaluate(async () => { const t = []; const o = App.UI.toast; App.UI.toast = m => t.push(m); await App.BankSms.pull({ force: true }); App.UI.toast = o; return t.some(x => /Gmail bağlantısı çalışıyor/.test(x)); }), true);
-    const html = 'Akbank <bilgilendirme@akbank.com>\nKredi Kartı Harcama Bilgilendirmesi\n<html><body><table><tr><td>Sayın OSMAN Q.,</td></tr><tr><td>Kredi kartınızla aşağıdaki işlem gerçekleşmiştir.</td></tr><tr><td>Kart No</td><td>5571 **** **** 1483</td></tr><tr><td>İşlem Tarihi</td><td>' + dmy(today) + ' 14:32</td></tr><tr><td>İşyeri</td><td>ŞOK MARKETLER</td></tr><tr><td>Tutar</td><td>87,40 TL</td></tr></table><p>Bu e-posta otomatik olarak gönderilmiştir, lütfen yanıtlamayınız.</p></body></html>';
+    const html = 'Akbank <bilgilendirme@akbank.com>\nKredi Kartı Harcama Bilgilendirmesi\n<html><body><table><tr><td>Sayın AYSE Y.,</td></tr><tr><td>Kredi kartınızla aşağıdaki işlem gerçekleşmiştir.</td></tr><tr><td>Kart No</td><td>5571 **** **** 1483</td></tr><tr><td>İşlem Tarihi</td><td>' + dmy(today) + ' 14:32</td></tr><tr><td>İşyeri</td><td>ŞOK MARKETLER</td></tr><tr><td>Tutar</td><td>87,40 TL</td></tr></table><p>Bu e-posta otomatik olarak gönderilmiştir, lütfen yanıtlamayınız.</p></body></html>';
     eq('e-mail POST stored', await mpost({ text: html, source: 'email', id: 'g1' }), { stored: true });
     await page.evaluate(() => { const a = S.accounts(); a.find(x => x.id === 'a_axess').last4 = '1483'; S.saveAccounts(a); });
     const rmail = await page.evaluate(() => App.BankSms.pull({ force: true }));

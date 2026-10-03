@@ -22,19 +22,19 @@ const enc1254 = s => Buffer.from([...s].map(c => TR1254[c] || c.charCodeAt(0)));
 const H = (name, value) => ({ name, value });
 const style = '<style type="text/css">' + 'td.k{font-family:Arial;color:#333;padding:4px}'.repeat(900) + '</style>';
 const htmlTxn = '<html><head><meta charset="windows-1254"><title>Akbank</title>' + style + '</head><body style="margin:0"><table width="600" cellpadding="0" style="border:1px solid #ccc">' +
-  '<tr><td class="k"><img src="https://www.akbank.com/logo.png" alt="Akbank"></td></tr><tr><td class="k">Sayın OSMAN Q.,</td></tr>' +
+  '<tr><td class="k"><img src="https://www.akbank.com/logo.png" alt="Akbank"></td></tr><tr><td class="k">Sayın AYSE Y.,</td></tr>' +
   '<tr><td class="k">Kredi kartınızla aşağıdaki işlem gerçekleşmiştir.</td></tr><tr><td class="k">Kart No</td><td class="k">5571 **** **** 1483</td></tr>' +
   '<tr><td class="k">İşyeri</td><td class="k">ŞİŞLİ ECZANESİ</td></tr><tr><td class="k">Tutar</td><td class="k">312,75 TL</td></tr>' +
   '<!-- izleme --><tr><td class="k">Bu e-posta otomatik olarak gönderilmiştir, lütfen yanıtlamayınız.</td></tr></table></body></html>';
 const plainNoAmount = 'Bu e-postayı görüntülemek için HTML destekli bir e-posta programı kullanın.';
 const MSGS = {
   // Çok parçalı: düz metinde tutar yok → HTML parçası (windows-1254, base64url metin) kullanılır
-  m1: { id: 'm1', payload: { mimeType: 'multipart/alternative', headers: [H('From', 'Akbank <bilgilendirme@akbank.com>'), H('Subject', 'Kredi Kartı Harcama Bilgilendirmesi')], parts: [
+  m1: { id: 'm1', internalDate: String(Date.now() - 600000), payload: { mimeType: 'multipart/alternative', headers: [H('From', 'Akbank <bilgilendirme@akbank.com>'), H('Subject', 'Kredi Kartı Harcama Bilgilendirmesi')], parts: [
     { mimeType: 'text/plain', headers: [H('Content-Type', 'text/plain; charset="UTF-8"')], body: { data: b64u(Buffer.from(plainNoAmount)) } },
     { mimeType: 'text/html', headers: [H('Content-Type', 'text/html; charset="windows-1254"')], body: { data: b64u(enc1254(htmlTxn)).replace(/=+$/, '') } }] } },
   // Tek parça düz metin; gövde bayt dizisi olarak gelir (gelişmiş hizmetin bazı sürümleri)
   m2: { id: 'm2', payload: { mimeType: 'text/plain', headers: [H('From', '"Akbank" <info@akbank.com>'), H('Subject', 'Hesap Hareketi'), H('Content-Type', 'text/plain; charset=utf-8')],
-    body: { data: signed(Buffer.from('Sayın OSMAN Q.,\nAkbank 1234 nolu hesabınıza 03.10.2026 tarihinde AHMET DEMİR tarafından 750,00 TL FAST gelmiştir.\nİyi günler dileriz.')) } } },
+    body: { data: signed(Buffer.from('Sayın AYSE Y.,\nAkbank 1234 nolu hesabınıza 03.10.2026 tarihinde AHMET DEMİR tarafından 750,00 TL FAST gelmiştir.\nİyi günler dileriz.')) } } },
   // İç içe (mixed > alternative): tutar geçen düz metin tercih edilir; ek dosya yok sayılır
   m3: { id: 'm3', payload: { mimeType: 'multipart/mixed', headers: [H('From', 'Akbank <bilgilendirme@akbank.com>'), H('Subject', 'İnternet Alışverişi')], parts: [
     { mimeType: 'multipart/alternative', parts: [
@@ -103,9 +103,10 @@ srv.listen(0, async () => {
   eq('every e-mail posted as JSON with its Gmail id', mails.map(p => [p.body.id, p.body.source, p.method, p.type, p.mute]), [['m1', 'email', 'post', 'application/json', true], ['m2', 'email', 'post', 'application/json', true], ['m3', 'email', 'post', 'application/json', true], ['m4', 'email', 'post', 'application/json', true]]);
   const t1 = mails[0].body.text;
   eq('m1: sender and subject first', t1.split('\n').slice(0, 2), ['Akbank <bilgilendirme@akbank.com>', 'Kredi Kartı Harcama Bilgilendirmesi']);
-  eq('m1: HTML part used (plain part had no amount), windows-1254 decoded', [t1.includes('ŞİŞLİ ECZANESİ'), t1.includes('312,75 TL'), t1.includes('Sayın OSMAN'), t1.includes(plainNoAmount)], [true, true, true, false]);
+  eq('e-mail time sent along (Gmail internalDate); 0 when missing', mails.map(p => p.body.date), [Number(MSGS.m1.internalDate), 0, 0, 0]);
+  eq('m1: HTML part used (plain part had no amount), windows-1254 decoded', [t1.includes('ŞİŞLİ ECZANESİ'), t1.includes('312,75 TL'), t1.includes('Sayın AYSE'), t1.includes(plainNoAmount)], [true, true, true, false]);
   eq('m1: style, head, comments and attributes removed (small payload)', [/<style|td\.k|izleme|class=|logo\.png/.test(t1), t1.length < 1200], [false, true]);
-  eq('m2: byte-array body decoded (UTF-8)', mails[1].body.text, '"Akbank" <info@akbank.com>\nHesap Hareketi\nSayın OSMAN Q.,\nAkbank 1234 nolu hesabınıza 03.10.2026 tarihinde AHMET DEMİR tarafından 750,00 TL FAST gelmiştir.\nİyi günler dileriz.');
+  eq('m2: byte-array body decoded (UTF-8)', mails[1].body.text, '"Akbank" <info@akbank.com>\nHesap Hareketi\nSayın AYSE Y.,\nAkbank 1234 nolu hesabınıza 03.10.2026 tarihinde AHMET DEMİR tarafından 750,00 TL FAST gelmiştir.\nİyi günler dileriz.');
   eq('m3: nested parts, plain text with amount preferred, attachment ignored', mails[2].body.text, 'Akbank <bilgilendirme@akbank.com>\nİnternet Alışverişi\nAxess kartınızla TRENDYOL işyerinden 899,90 TL tutarında alışveriş yapılmıştır.');
   eq('sent ids remembered', JSON.parse(g.st.props.gonderilen), ['m1', 'm2', 'm3', 'm4']);
   const n = g.st.posts.length;
@@ -147,7 +148,8 @@ srv.listen(0, async () => {
     eq('real server: campaign e-mail not stored, the rest stored', gr.st.posts.map(p => JSON.parse(p.reply)), [{ stored: true }, { stored: true }, { stored: true }, { stored: true }, { stored: false, reason: 'no_amount' }]);
     const items = (await api('GET', V + '/inbox', token)).body.items.map(i => i.text);
     eq('real server: stored texts are short and without greeting/footer', [items.length, items.every(t => t.length < 400 && !/Sayın|yanıtlamayınız|İyi günler|<|>/.test(t))], [4, true]);
-    eq('real server: card e-mail keeps the transaction lines', items[1], 'Akbank\nKredi Kartı Harcama Bilgilendirmesi\nKredi kartınızla aşağıdaki işlem gerçekleşmiştir.\nKart No: 5571 **** **** 1483\nİşyeri: ŞİŞLİ ECZANESİ\nTutar: 312,75 TL');
+    const tr = new Date(Number(MSGS.m1.internalDate) + 3 * 3600_000), p2 = x => String(x).padStart(2, '0');
+    eq('real server: card e-mail keeps the transaction lines and the e-mail time', items[1], 'Akbank\nKredi Kartı Harcama Bilgilendirmesi\nKredi kartınızla aşağıdaki işlem gerçekleşmiştir.\nKart No: 5571 **** **** 1483\nİşyeri: ŞİŞLİ ECZANESİ\nTutar: 312,75 TL\nE-posta tarihi: ' + p2(tr.getUTCDate()) + '.' + p2(tr.getUTCMonth() + 1) + '.' + tr.getUTCFullYear() + ' ' + p2(tr.getUTCHours()) + ':' + p2(tr.getUTCMinutes()));
     // Betik silinip yeniden kurulsa (hatırlanan liste boş) aynı e-postalar ikinci kez saklanmaz
     const again = google(curl); vm.runInContext(realCode, again.ctx); vm.runInContext('kontrolEt()', again.ctx);
     eq('re-installed script: same e-mails not stored twice', again.st.posts.map(p => JSON.parse(p.reply).reason), ['duplicate', 'duplicate', 'duplicate', 'no_amount']);
