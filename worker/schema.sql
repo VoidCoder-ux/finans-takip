@@ -58,3 +58,10 @@ CREATE TABLE IF NOT EXISTS sms_inbox (
   received_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS sms_inbox_vault ON sms_inbox(vault_id, received_at);
+
+-- Gmail betiğinden alınmış e-postaların kimlik özeti (aynı e-posta ikinci kez eklenmesin); 28 günde temizlenir
+CREATE TABLE IF NOT EXISTS sms_seen (
+  hash        TEXT PRIMARY KEY,          -- SHA-256('mail|' + kasa + '|' + Gmail ileti kimliği)
+  vault_id    TEXT NOT NULL,
+  at          INTEGER NOT NULL
+);

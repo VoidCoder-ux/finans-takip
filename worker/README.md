@@ -18,6 +18,7 @@ Tek bir Cloudflare Worker üç işi yapar:
 | İşlemler, hesaplar, borçlar… | **Hayır.** Telefonda AES-256-GCM ile şifrelenir; anahtar sunucuya hiç gelmez. |
 | Eşitleme kodu / anahtar | **Hayır.** Sunucu yalnız erişim belirtecinin SHA-256 özetini tutar. |
 | Bildirim | Yalnız **hangi günlerde** bildirim gideceği. Ödemenin adı ve tutarı telefonda kalır; bildirim metnini telefon kendi oluşturur. |
+| Banka SMS'i / e-postası | **Kısa süre, açık metin.** Kestirme ve Gmail betiği şifreleme yapamaz. Metin, uygulama alana kadar (en çok 14 gün) bekler, sonra silinir. E-postanın yalnız işlem satırları saklanır. |
 
 Eşitleme kodu verilerinize tam erişim verir; yalnız aile üyeleriyle paylaşın. Kod sızarsa:
 1. Ayarlar > Eşitleme > **Sunucudan Sil** ile kasayı silin.
@@ -135,7 +136,7 @@ Model sunucunun listesinden kendiliğinden seçilir; belirli bir model için `wr
 
 Bankalar uygulama dışına veri vermediği için (açık bankacılık yalnız lisanslı kurumlara açık) hareketler bankanın SMS'inden alınır:
 
-1. Eşitleme açık olmalı. Her telefonda **Ayarlar > 🏦 Banka SMS'leriyle Otomatik Kayıt > Bu Telefonda Kur** deyin; o telefona (ve kişiye) özel bir bağlantı oluşur.
+1. Eşitleme açık olmalı. Her telefonda **Ayarlar > 🏦 Bankadan Otomatik Kayıt > 📱 SMS > Bu Telefonda Kur** deyin; o telefona (ve kişiye) özel bir bağlantı oluşur.
 2. Kestirmeler > Otomasyon > + > **Mesaj** ("Gönderen" filtresini silip **Filtre Ekle → Mesaj içeriyor `TL`**) > **Hemen Çalıştır** > **URL İçeriğini Al**: bağlantı, Yöntem **POST**, İstek Gövdesi **JSON**, alan `text` = **Kestirme Girişi**. Adımlar uygulamada da gösterilir.
 3. SMS gelince metin `POST /v1/sms/<anahtar>` ile gelen kutusuna düşer; açık uygulamalar anında, kapalı olanlar açılınca kutuyu çeker, metni **telefonda** çözümler ve kutudan siler.
 
@@ -144,6 +145,22 @@ Bankalar uygulama dışına veri vermediği için (açık bankacılık yalnız l
 - Kart/hesap eşleşmesi: hesabı düzenleyip **son 4 hane** girin; ya da ilk SMS'i Özet'teki onay listesinden bir kez hesap seçerek ekleyin (son 4 hane öğrenilir). Banka adı hesap adında geçiyorsa (ör. "Akbank Axess") o da kullanılır.
 - Elle/fişle girilmiş aynı hareket tekrar eklenmez; maaş SMS'i tekrarlayan maaş kaydını gerçek tutar ve tarihle günceller. Kart borcu ödemesi, ATM, yabancı para ve aile içi aktarımlar onaya düşer.
 - Android'de SMS'i bir adrese ileten otomasyon uygulamalarıyla (ör. MacroDroid) aynı bağlantı kullanılabilir.
+
+## Banka e-postalarıyla otomatik kayıt (Gmail)
+
+Bazı bankalar (ör. Akbank) işlem bildirimini SMS yerine yalnız kendi uygulamasından ve e-postayla gönderir. iPhone başka uygulamaların bildirimlerini okutmaz; e-posta ise kişinin kendi Google hesabında çalışan küçük bir **Google Apps Script** betiğiyle alınır:
+
+1. Eşitleme açık olmalı. **Ayarlar > 🏦 Bankadan Otomatik Kayıt > 📧 Gmail'den Al** deyin. Kişiye özel bağlantı (`gmailbox_<kişi>` etiketi) oluşur ve kurulum penceresi açılır.
+2. Bilgisayarda **script.google.com > Yeni proje**. **Proje Ayarları**'nda "appsscript.json manifest dosyasını göster"i işaretleyin; `appsscript.json` ve `Kod.gs` içeriğini pencerede verilen metinlerle değiştirip kaydedin.
+3. **kur** işlevini ▶ Çalıştır'la bir kez çalıştırın ve izin verin. "Google bu uygulamayı doğrulamadı" uyarısı beklenir: betik sizin. **Gelişmiş > … projesine git > İzin ver**.
+4. `kur` 5 dakikada bir çalışan bir tetikleyici kurar ve bir deneme iletisi gönderir. Uygulamada "✓ Gmail bağlantısı çalışıyor" ve kartta "Son e-posta: … · ✓ alındı" görünür.
+
+- **İzin salt okunur.** İzinler `gmail.readonly`, `script.external_request` ve `script.scriptapp`'tir. Betik yalnız `ARAMA`'ya uyan e-postaları okur (varsayılan `from:akbank newer_than:2d`); e-posta silemez, değiştiremez, gönderemez. Başka banka için ARAMA satırına `OR from:...` eklenir.
+- Betik e-postayı (gönderen, konu, gövde) bağlantıya POST eder: `{"text": …, "source": "email", "id": <Gmail ileti kimliği>}`. HTML'in stil ve öznitelikleri Google tarafında atılır.
+- **Sunucu yalnız işlem satırlarını saklar** (tutar, işyeri, kart, tarih). Selamlama ("Sayın …"), onay/doğrulama kodu satırları, kampanya, imza ve yasal metin hiç kaydedilmez. İşlem satırı olmayan e-postalar (kampanya, duyuru) saklanmaz. Saklanan metin SMS'le aynı yoldan işlenir.
+- Aynı e-posta Gmail kimliğiyle tanınır. Betik yeniden kurulsa da ikinci kez eklenmez; kimlik özetleri 28 günde silinir. Sunucu hata verirse e-posta 5 dakika sonra yeniden denenir.
+- Aynı hareket hem SMS hem e-postayla gelirse tek kayıt olur. İşlem listesinde kaynak 📧 E-posta olarak görünür.
+- Durum (son e-posta, sonucu) sunucudan okunur. Betik bilgisayardan kurulsa da telefonda görünür. Başka cihazda **Yeni Betik Oluştur** denirse eski kod geçersiz olur; yeni kodu Google'daki projeye yapıştırmak gerekir. **Gmail'i Kapat** bağlantıyı hemen geçersiz kılar.
 
 ## Ekstre içe aktarma
 
@@ -183,5 +200,9 @@ Yerel veritabanı depo dışında (`../../.finans-takip-dev`) tutulur. Depo içi
 | PUT | `/v1/vault/:id` | `{baseVersion, data}`: sürüm eşleşirse yazar, değilse **409** |
 | DELETE | `/v1/vault/:id` | Kasayı ve bildirim kayıtlarını siler |
 | PUT/DELETE | `/v1/vault/:id/push/:deviceId` | Push uç noktası ve bildirim günleri |
+| POST | `/v1/sms/:anahtar` | Banka SMS'i (Kestirme) ya da e-postası (Gmail betiği, `source:"email"`) gelen kutusuna; anahtar yalnız ekleme yapabilir |
+| PUT/DELETE | `/v1/vault/:id/sms-key/:etiket` | SMS/Gmail bağlantısı (anahtarın SHA-256 özeti) |
+| GET | `/v1/vault/:id/inbox` | Bekleyen SMS/e-postalar ve her bağlantının son istek sonucu |
+| POST | `/v1/vault/:id/inbox/ack` | İşlenenleri gelen kutusundan siler |
 
 Kimlik doğrulama `Authorization: Bearer <belirteç>` başlığıyla yapılır. Belirteç, eşitleme anahtarından türetilir.

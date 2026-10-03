@@ -1,5 +1,6 @@
 // Usage: node tests/sms-e2e.test.js [http://127.0.0.1:8787]
 // Banka SMS gelen kutusu: Kestirmeler'in POST ettiği SMS saklanır, kasa sahibi çeker ve siler; şifre/kod SMS'leri saklanmaz.
+// Banka e-postası (Gmail betiği): gövdeden yalnız işlem satırları saklanır; kampanya e-postası saklanmaz; aynı e-posta iki kez eklenmez.
 // Sunucu çalışmıyorsa atlanır.
 const crypto = require('crypto');
 const BASE = process.argv[2] || process.env.SYNC_BASE || 'http://127.0.0.1:8787';
@@ -40,7 +41,8 @@ async function api(method, path, token, body, headers) {
   eq('verification code never stored', (await api('POST', '/v1/sms/' + key, null, { text: 'Akbank dogrulama kodunuz 551203. Tutar 99,00 TL' })).body, { stored: false, reason: 'secret' });
   eq('message without amount not stored', (await api('POST', '/v1/sms/' + key, null, { text: 'Yeni kampanyamizi kacirmayin!' })).body, { stored: false, reason: 'no_amount' });
   eq('personal chat with an amount not stored', (await api('POST', '/v1/sms/' + key, null, { text: 'Aksam gelirken 100 TL getirir misin?' })).body, { stored: false, reason: 'not_bank' });
-  eq('oversized message rejected', (await api('POST', '/v1/sms/' + key, null, { text: 'x'.repeat(9000) })).status, 413);
+  eq('oversized message rejected', (await api('POST', '/v1/sms/' + key, null, { text: 'x'.repeat(130000) })).status, 413);
+  eq('long text without a transaction not stored', (await api('POST', '/v1/sms/' + key, null, { text: 'x'.repeat(9000) })).body, { stored: false, reason: 'no_amount' });
   eq('warning line "sifrenizi paylasmayin" does not drop a real spend SMS', (await api('POST', '/v1/sms/' + key, null, { text: '4321 ile biten kartinizdan 99,90 TL harcama yapildi. Sifrenizi kimseyle paylasmayiniz.' })).body, { stored: true });
 
   eq('inbox needs vault token', (await api('GET', V + '/inbox', other)).status, 403);
@@ -48,9 +50,32 @@ async function api(method, path, token, body, headers) {
   eq('inbox lists stored SMS with owner label', inbox.body.items.map(i => [i.label, i.text.slice(0, 12)]), [['u_self', spend.slice(0, 12)], ['u_partner', salary.slice(0, 12)], ['u_self', plain.slice(0, 12)], ['u_self', '4321 ile bit']]);
   eq('inbox reports registered labels', inbox.body.labels.sort(), ['u_partner', 'u_self']);
   eq('inbox reports last call result per key (no text)', inbox.body.keys.map(k => [k.label, k.lastReason, k.lastAt > 0]).sort(), [['u_partner', 'stored', true], ['u_self', 'stored', true]]);
+  eq('key list carries a short hash prefix (to spot a replaced key), not the hash', inbox.body.keys.map(k => [k.label, k.h]).sort(), [['u_partner', sha('ft-sms|' + key2).slice(0, 8)], ['u_self', sha('ft-sms|' + key).slice(0, 8)]]);
   eq('ack deletes only given ids', (await api('POST', V + '/inbox/ack', token, { ids: inbox.body.items.slice(0, 2).map(i => i.id) })).body, { deleted: 2 });
   eq('ack by other vault token refused', (await api('POST', V + '/inbox/ack', other, { ids: [inbox.body.items[2].id] })).status, 403);
   eq('remaining inbox', (await api('GET', V + '/inbox', token)).body.items.length, 2);
+
+  // --- Banka e-postası (Gmail betiği) ---
+  const mkey = b64u(crypto.randomBytes(32));
+  eq('register Gmail key', (await api('PUT', V + '/sms-key/gmailbox_u_self', token, { keyHash: sha('ft-sms|' + mkey) })).status, 200);
+  const style = '<style>' + '.x{color:red}'.repeat(400) + '</style>';
+  const mail = 'Akbank <bilgilendirme@akbank.com>\nKredi Kartı Harcama Bilgilendirmesi\n<html><head><title>Akbank</title>' + style + '</head><body><table>' +
+    '<tr><td>Sayın OSMAN Q.,</td></tr><tr><td>Kredi kartınızla aşağıdaki işlem gerçekleşmiştir.</td></tr>' +
+    '<tr><td>Kart No</td><td>5571 **** **** 1483</td></tr><tr><td>İşlem Tarihi</td><td>02.10.2026 14:32</td></tr><tr><td>İşyeri</td><td>MİGROS KADIKÖY</td></tr>' +
+    '<tr><td>Tutar</td><td>245,50&nbsp;TL</td></tr><tr><td>Onay Kodu</td><td>482913</td></tr><tr><td>Kullanılabilir Limit</td><td>12.345,67 TL</td></tr></table>' +
+    '<p>Axess ile %20&#39;ye varan indirim fırsatını kaçırmayın! 500 TL&#39;ye kadar chip-para kazanın.</p><p>Bu e-posta otomatik olarak gönderilmiştir, lütfen yanıtlamayınız.</p>' +
+    '<p>Akbank T.A.Ş. Mersis No: 0015001526400497 · Kişisel verileriniz KVKK kapsamında işlenir.</p></body></html>';
+  eq('long HTML e-mail accepted (only the transaction part kept)', (await api('POST', '/v1/sms/' + mkey, null, { text: mail, source: 'email', id: '18c2f0a1b2' })).body, { stored: true });
+  eq('same e-mail (Gmail id) again → not stored twice', (await api('POST', '/v1/sms/' + mkey, null, { text: mail, source: 'email', id: '18c2f0a1b2' })).body, { stored: false, reason: 'duplicate' });
+  const promo = 'Akbank <kampanya@akbank.com>\nSize özel fırsat!\n<html><body><p>Axess kartınızla market alışverişlerinizde 250 TL\'ye varan chip-para kazanın!</p><p>Kampanyaya katılmak için AXESS yazıp gönderin.</p><p>Bu e-posta bilgilendirme amaçlı gönderilmiştir.</p></body></html>';
+  eq('campaign e-mail not stored', (await api('POST', '/v1/sms/' + mkey, null, { text: promo, source: 'email', id: '18c2f0a1b3' })).body, { stored: false, reason: 'no_amount' });
+  const plainMail = 'Akbank <info@akbank.com>\nHesap Hareketi\nSayın OSMAN QARLAK,\nAkbank 1234 nolu hesabınıza 03.10.2026 tarihinde AHMET DEMIR tarafından 750,00 TL FAST gelmiştir.\nİyi günler dileriz.\nBu e-posta bilgilendirme amaçlı gönderilmiştir.';
+  eq('plain-text e-mail stored', (await api('POST', '/v1/sms/' + mkey, null, { text: plainMail, source: 'email', id: '18c2f0a1b4' })).body, { stored: true });
+  const mails = (await api('GET', V + '/inbox', token)).body.items.filter(i => i.label === 'gmailbox_u_self').map(i => i.text);
+  eq('stored e-mail text: sender, subject and transaction lines only', mails[0], 'Akbank\nKredi Kartı Harcama Bilgilendirmesi\nKredi kartınızla aşağıdaki işlem gerçekleşmiştir.\nKart No: 5571 **** **** 1483\nİşlem Tarihi: 02.10.2026 14:32\nİşyeri: MİGROS KADIKÖY\nTutar: 245,50 TL\nKullanılabilir Limit: 12.345,67 TL');
+  eq('no greeting with name, approval code, campaign or legal text kept', mails.some(t => /Sayın|OSMAN|482913|indirim|Mersis|KVKK|yanıtlamayınız|İyi günler/.test(t)), false);
+  eq('plain e-mail kept short', mails[1], 'Akbank\nHesap Hareketi\nAkbank 1234 nolu hesabınıza 03.10.2026 tarihinde AHMET DEMIR tarafından 750,00 TL FAST gelmiştir.');
+  eq('Gmail key shows its own last result', (await api('GET', V + '/inbox', token)).body.keys.find(k => k.label === 'gmailbox_u_self').lastReason, 'stored');
 
   // Anahtar yenilenince eskisi geçersiz olur; anahtar silinince SMS kabul edilmez
   const key3 = b64u(crypto.randomBytes(32));
