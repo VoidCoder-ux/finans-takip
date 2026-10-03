@@ -225,6 +225,7 @@ async function route(request, env, url, ctx) {
         env.DB.prepare('DELETE FROM receipt_usage WHERE vault_id = ?').bind(id),
         env.DB.prepare('DELETE FROM sms_keys WHERE vault_id = ?').bind(id),
         env.DB.prepare('DELETE FROM sms_inbox WHERE vault_id = ?').bind(id),
+        env.DB.prepare('DELETE FROM sms_seen WHERE vault_id = ?').bind(id),
         env.DB.prepare('DELETE FROM vaults WHERE id = ?').bind(id)
       ]);
       return json({ deleted: true });

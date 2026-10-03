@@ -1,6 +1,7 @@
 // Usage: node tests/bank-sms.test.js [http://127.0.0.1:8787]
 // Banka SMS'i → işlem: çözümleme (Yapı Kredi / Akbank kalıpları), hesap eşleme, mükerrer/maaş kontrolü, onay listesi.
-// Eşitleme sunucusu çalışıyorsa (wrangler dev) Kestirme bağlantısı → gelen kutusu → uygulama akışı da uçtan uca sınanır.
+// Banka e-postası (Gmail betiği) aynı kurallarla işlenir; aynı hareket hem SMS hem e-postayla gelirse tek kayıt olur.
+// Eşitleme sunucusu çalışıyorsa (wrangler dev) Kestirme / Gmail bağlantısı → gelen kutusu → uygulama akışı da uçtan uca sınanır.
 const http = require('http'), fs = require('fs'), path = require('path');
 function loadPlaywright() { try { return require('playwright'); } catch (e) {} try { return require(path.join(require('child_process').execSync('npm root -g', { encoding: 'utf8' }).trim(), 'playwright')); } catch (e) { return null; } }
 const pw = loadPlaywright();
@@ -171,6 +172,30 @@ srv.listen(0, async () => {
     eq('matched: no new record, recurring counts as logged', await page.evaluate(() => [S.txns().filter(t => t.recurringId === 'r_bonus').map(t => t.id), S.txns().filter(t => t.amount === 10000).length]), [['sms_extra'], 0]);
     eq('transaction list shows source tag and last4 on account tag', await page.evaluate(() => { App.UI.nav('islemler'); App.Transactions.renderList(); const h = document.getElementById('txnList') ? document.getElementById('txnList').innerText : document.body.innerText; return [h.includes('🏦 SMS'), /World Kart …1234/.test(h)]; }), [true, true]);
     eq('balances still consistent', await page.evaluate(() => App.Accounts.reconcileAccountBalances(true)), false);
+    // --- Banka e-postası (Gmail betiğinden): aynı kurallar; SMS'le de gelen aynı hareket ikinci kez eklenmez ---
+    await page.evaluate(() => { document.querySelectorAll('.modal-bd.show').forEach(m => (m.closest('[id]') || m).remove()); const a = S.accounts(); a.find(x => x.id === 'a_axess').last4 = '1483'; S.saveAccounts(a); });
+    const mailTxt = 'Akbank\nKredi Kartı Harcama Bilgilendirmesi\nKredi kartınızla aşağıdaki işlem gerçekleşmiştir.\nKart No: 5571 **** **** 1483\nİşlem Tarihi: ' + dmy(today) + ' 14:32\nİşyeri: MİGROS KADIKÖY\nTutar: 245,50 TL\nKullanılabilir Limit: 12.345,67 TL';
+    eq('e-mail text parsed (amount, merchant, card, bank; limit ignored)', await P(mailTxt), ['expense', 'expense', 245.5, 'MİGROS KADIKÖY', '1483', 'Akbank']);
+    eq('e-mail item added', (await page.evaluate(t => App.BankSms.ingest([{ id: 5001, label: 'gmailbox_u_partner', text: t, receivedAt: Date.now() }]), mailTxt)).added, 1);
+    eq('e-mail transaction: e-mail source, owner from link, card by last4, Migros → Market', await page.evaluate(() => { const t = S.txns().find(x => x.id.startsWith('sms5001_')); return t && [t.src, t.via, t.userId, t.accountId, t.category, t.note]; }), ['sms', 'email', 'u_partner', 'a_axess', 'Market', 'Migros']);
+    const rsm = await page.evaluate(i => App.BankSms.ingest([i]), item('Akbank: 1483 ile biten kartinizla MIGROS KADIKOY isyerinden 245,50 TL harcama yapilmistir.', LP));
+    eq('same purchase also arriving by SMS → not added twice', [rsm.added, rsm.dupes, await page.evaluate(() => S.txns().filter(t => t.amount === 245.5 && t.accountId === 'a_axess').length)], [0, 1, 1]);
+    eq('transaction list tags it as e-mail', await page.evaluate(() => { App.UI.nav('islemler'); App.Transactions.renderList(); return document.getElementById('txnList').innerText.includes('📧 E-posta'); }), true);
+    await page.evaluate(() => App.BankSms.ingest([{ id: 5002, label: 'gmailbox_u_self', text: 'Hesap Hareketi\nKartınızdan 64,00 TL harcama yapılmıştır.', receivedAt: Date.now() }]));
+    eq('e-mail without a known account waits for approval, marked as e-mail', await page.evaluate(() => { App.BankSms.renderQueue(); const x = S.smsQueue().find(y => /^sqsms5002_/.test(y.id)); return [!!x, [...document.querySelectorAll('#ozet-sms .sms-q-item')].some(e => e.textContent.includes('📧') && e.textContent.includes('64,00'))]; }), [true, true]);
+    await page.evaluate(() => App.BankSms.accept(S.smsQueue().find(y => /^sqsms5002_/.test(y.id)).id));
+    await page.waitForTimeout(150);
+    await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="acc"]').value = 'a_cash'; m.querySelector('[data-pkey="date"]').value = td(); m.querySelector('[data-pkey="note"]').value = ''; m.querySelector('[data-act="ok"]').click(); });
+    await page.waitForTimeout(150);
+    eq('accepted e-mail item is recorded as e-mail', await page.evaluate(() => { const t = S.txns().find(x => x.amount === 64); return t && [t.via, t.note, t.accountId, t.userId]; }), ['email', 'Banka e-postası', 'a_cash', 'u_self']);
+    // Gerçek Akbank e-postası (sunucunun sakladığı biçim; ad ve kart numarası değiştirildi): işyeri yok, tutar 1,426.78, kalan limit sayılmaz, tarih e-postanın geldiği gün
+    const akbTxt = 'Akbank\nKredi kartı harcamanız\n6262 ile biten Axess Asıl kartınızla 1,426.78 TL tutarında KREDI KARTI harcaması yapılmıştır. 2,961.82 TL limitiniz kalmıştır.\nE-posta tarihi: ' + dmy(yest) + ' 23:58';
+    eq('real Akbank e-mail: English amount format, remaining limit ignored, date from the e-mail', await page.evaluate(t => { const p = App.BankSms.parse(t, Date.now()); return [p.kind, p.amount, p.last4, p.bank, p.merchant, p.date]; }, akbTxt), ['expense', 1426.78, '6262', 'Akbank', '', yest]);
+    eq('real Akbank e-mail recorded with a clear note (the e-mail names no shop)', await page.evaluate(t => { App.BankSms.ingest([{ id: 5004, label: 'gmailbox_u_partner', text: t, receivedAt: Date.now() }]); const x = S.txns().find(y => y.amount === 1426.78); return x && [x.note, x.category, x.accountId, x.date, x.via]; }, akbTxt), ['Akbank kart harcaması', 'Diğer', 'a_axess', yest, 'email']);
+    eq('Gmail test message counted on its own', await page.evaluate(() => App.BankSms.ingest([{ id: 5003, label: 'gmailbox_u_self', text: 'AILEKASASI-TEST 1,00 TL 1759480000000', receivedAt: Date.now() }])), { added: 0, updated: 0, dupes: 0, queued: 0, ignored: 0, test: 0, testMail: 1 });
+    await page.reload(); await page.waitForTimeout(400);
+    eq('e-mail source survives reload (kept in storage and sync)', await page.evaluate(() => S.txns().filter(t => t.via === 'email').map(t => t.amount).sort((a, b) => a - b)), [64, 245.5, 1426.78]);
+    eq('balances consistent after e-mail records', await page.evaluate(() => App.Accounts.reconcileAccountBalances(true)), false);
     eq('settings card asks to enable sync first', await page.evaluate(() => { App.UI.nav('aile'); return document.getElementById('setSmsCard').innerText.includes('eşitlemeyi açın'); }), true);
     await ctx.close();
   }
@@ -224,6 +249,34 @@ srv.listen(0, async () => {
       await page.waitForTimeout(1500);
       eq('live push: new SMS appears without reopening the app', await page.evaluate(() => S.txns().some(t => t.amount === 145 && t.src === 'sms')), true);
     }
+    // --- Gmail: bağlantı, betik, e-posta akışı, başka cihaz, yenileme, kapatma ---
+    eq('Gmail link created', await page.evaluate(() => App.BankSms.mailSetup()), true);
+    const murl = await page.evaluate(() => App.BankSms.mailUrl());
+    eq('Gmail link is separate from the SMS link', [/\/v1\/sms\/[A-Za-z0-9_-]{43}$/.test(murl), murl !== url], [true, true]);
+    eq('guide shows the manifest (read-only Gmail) and the script with the link inside', await page.evaluate(u => { const m = JSON.parse(document.getElementById('mailManifestTxt').value), c = document.getElementById('mailCodeTxt').value; return [m.oauthScopes.includes('https://www.googleapis.com/auth/gmail.readonly'), m.oauthScopes.some(x => /mail\.google\.com|gmail\.modify|gmail\.send/.test(x)), c.includes("var BAGLANTI = '" + u + "'"), /function kur\(\)/.test(c)]; }, murl), [true, false, true, true]);
+    await page.evaluate(() => App.UI.closeModal('mailGuideHolder'));
+    eq('card shows Gmail on, no e-mail yet', await page.evaluate(() => { App.UI.nav('aile'); return [(document.getElementById('mailLast') || {}).textContent || '', /Betik ve Adımlar/.test(document.getElementById('setSmsCard').innerText)]; }), ['Henüz e-posta gelmedi: Google\'da "kur" çalıştırılınca burada "✓ alındı" görünür.', true]);
+    const mpost = async body => (await fetch(murl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })).json();
+    eq('script test message ("kur") stored', await mpost({ text: 'AILEKASASI-TEST 1,00 TL ' + Date.now() }), { stored: true });
+    eq('app says the Gmail link works', await page.evaluate(async () => { const t = []; const o = App.UI.toast; App.UI.toast = m => t.push(m); await App.BankSms.pull({ force: true }); App.UI.toast = o; return t.some(x => /Gmail bağlantısı çalışıyor/.test(x)); }), true);
+    const html = 'Akbank <bilgilendirme@akbank.com>\nKredi Kartı Harcama Bilgilendirmesi\n<html><body><table><tr><td>Sayın AYSE Y.,</td></tr><tr><td>Kredi kartınızla aşağıdaki işlem gerçekleşmiştir.</td></tr><tr><td>Kart No</td><td>5571 **** **** 1483</td></tr><tr><td>İşlem Tarihi</td><td>' + dmy(today) + ' 14:32</td></tr><tr><td>İşyeri</td><td>ŞOK MARKETLER</td></tr><tr><td>Tutar</td><td>87,40 TL</td></tr></table><p>Bu e-posta otomatik olarak gönderilmiştir, lütfen yanıtlamayınız.</p></body></html>';
+    eq('e-mail POST stored', await mpost({ text: html, source: 'email', id: 'g1' }), { stored: true });
+    await page.evaluate(() => { const a = S.accounts(); a.find(x => x.id === 'a_axess').last4 = '1483'; S.saveAccounts(a); });
+    const rmail = await page.evaluate(() => App.BankSms.pull({ force: true }));
+    eq('app pulled the e-mail and added it as e-mail', [rmail && rmail.added, await page.evaluate(() => { const t = S.txns().find(x => x.amount === 87.4); return t && [t.via, t.accountId, t.userId, t.note]; })], [1, ['email', 'a_axess', 'u_self', 'ŞOK']]);
+    eq('settings shows the last e-mail result', await page.evaluate(() => (document.getElementById('mailLast') || {}).textContent || ''), 'Son e-posta: az önce · ✓ alındı');
+    eq('other device sees Gmail on (status from server) without the script', await page.evaluate(() => { const keep = localStorage.getItem('ft_mail'); localStorage.removeItem('ft_mail'); App.BankSms.renderCard(); const h = document.getElementById('setSmsCard').innerText; localStorage.setItem('ft_mail', keep); App.BankSms.renderCard(); return [/betik başka bir cihazda/.test(h), /Yeni Betik Oluştur/.test(h), /Betik ve Adımlar/.test(h), /Son e-posta: az önce/.test(h)]; }), [true, true, false, true]);
+    // Başka cihazda yeni betik oluşturuldu: bu cihazdaki eski kod artık gösterilmez
+    await page.evaluate(async () => { const k = 'Z'.repeat(43); const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('ft-sms|' + k)))].map(b => b.toString(16).padStart(2, '0')).join(''); await App.Sync.api(App.Sync.cfg(), 'PUT', '/sms-key/gmailbox_u_self', { keyHash: h }); await App.BankSms.pull({ force: true }); });
+    eq('key replaced elsewhere → old script no longer offered here', await page.evaluate(() => [App.BankSms.mailUrl(), /Yeni Betik Oluştur/.test(document.getElementById('setSmsCard').innerText)]), ['', true]);
+    eq('old Gmail link refused', (await fetch(murl, { method: 'POST', body: JSON.stringify({ text: html, source: 'email', id: 'g2' }) })).status, 404);
+    await page.evaluate(() => { App.BankSms.mailSetup(true); }); await page.waitForTimeout(150);
+    await page.evaluate(() => [...document.querySelectorAll('.modal-bd.show')].pop().querySelector('[data-act="ok"]').click()); await page.waitForTimeout(700);
+    const murl2 = await page.evaluate(() => App.BankSms.mailUrl());
+    eq('"Yeni Betik Oluştur" makes a new working link; an e-mail already received is still not added twice', [!!murl2 && murl2 !== murl, await (await fetch(murl2, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: html, source: 'email', id: 'g1' }) })).json()], [true, { stored: false, reason: 'duplicate' }]);
+    await page.evaluate(() => App.UI.closeModal('mailGuideHolder'));
+    eq('Gmail disable revokes the link', await page.evaluate(async () => { App.BankSms.mailDisable(); await new Promise(r => setTimeout(r, 100)); [...document.querySelectorAll('.modal-bd.show')].pop().querySelector('[data-act="ok"]').click(); await new Promise(r => setTimeout(r, 600)); return [App.BankSms.mailUrl(), /Gmail'den Al/.test(document.getElementById('setSmsCard').innerText)]; }), ['', true]);
+    eq('Gmail link refused after disable', (await fetch(murl2, { method: 'POST', body: JSON.stringify({ text: 'Kartinizdan 10,00 TL harcama' }) })).status, 404);
     eq('disable revokes the link', await page.evaluate(async () => { App.BankSms.disable(); await new Promise(r => setTimeout(r, 100)); const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('.btn-danger,.btn-primary,[data-act="ok"]').click(); await new Promise(r => setTimeout(r, 600)); return App.BankSms.url(); }), '');
     eq('old link refused after disable', (await fetch(url, { method: 'POST', body: JSON.stringify({ text: 'Kartinizdan 10,00 TL harcama' }) })).status, 404);
     await page.evaluate(() => App.Sync.api(App.Sync.cfg(), 'DELETE', ''));
