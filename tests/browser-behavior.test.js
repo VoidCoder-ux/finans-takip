@@ -125,7 +125,7 @@ async function run() {
   // 4) Editing a normal transaction moves the effect to the new account/amount.
   await p.click('#pillExp');
   await p.fill('#txnAmt', '100');
-  await p.selectOption('#txnAccount', 'a1700000000000_cccc');
+  await p.click('#txnPayChips [data-acc="a1700000000000_cccc"]');   // "Ne ile ödedin?" düğmesi
   await p.click('#page-islemler .btn-primary');
   eq('expense reduces bank', (await balances(p)).Banka, 900);
   var tid = await p.evaluate(function() { return S.txns()[0].id; });
@@ -601,7 +601,7 @@ async function runDeviceProfile() {
   await submitPrompt(p, { u: 'u_partner' });
   eq('device profile chosen and form follows it', await p.evaluate(function() { return [S.settings().activeUser, document.getElementById('txnUser').value, document.getElementById('recUser').value, document.getElementById('setDeviceCard').textContent.indexOf('Eş') >= 0]; }), ['u_partner', 'u_partner', 'u_partner', true]);
   await p.evaluate(function() { App.UI.nav('islemler'); App.UI.setType('expense'); });
-  await p.fill('#txnAmt', '120'); await p.selectOption('#txnAccount', A); await p.selectOption('#txnUser', 'u_self');
+  await p.fill('#txnAmt', '120'); await p.click('#txnPayChips [data-acc="' + A + '"]'); await p.selectOption('#txnUser', 'u_self');
   await p.evaluate(function() { App.Transactions.add(); });
   eq('who-did-it can be changed per entry, then returns to device profile', await p.evaluate(function() { return [S.txns()[0].userId, document.getElementById('txnUser').value]; }), ['u_self', 'u_partner']);
   eq('active profile is not part of synced data', await p.evaluate(function() { var c = App.Sync.collect(); return [Object.prototype.hasOwnProperty.call(c.s || {}, 'activeUser'), Object.prototype.hasOwnProperty.call(c.s || {}, 'users')]; }), [false, true]);

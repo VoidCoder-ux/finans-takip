@@ -133,6 +133,13 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .ti-acc-tag{display:inline-block;border-radius:99px;padding:1px 8px;font-size:.68rem;font-weight:600;margin-top:3px;margin-left:3px}
 .ti-right{text-align:right;flex-shrink:0}.ti-amt{font-size:.95rem;font-weight:700;letter-spacing:-.02em}
 .ti-amt.income{color:var(--green)}.ti-amt.expense{color:var(--red)}.ti-amt.transfer{color:var(--blue)}
+.pay-wrap{margin-bottom:12px}
+.pay-lbl{font-size:.72rem;font-weight:700;color:var(--txt2);letter-spacing:.03em;text-transform:uppercase;margin-bottom:6px}
+.pay-chips{display:flex;flex-wrap:wrap;gap:8px}
+.pay-chip{padding:9px 13px;border-radius:99px;border:2px solid var(--border2);background:var(--bg3);color:var(--txt);font-size:.84rem;font-weight:600;min-height:44px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:all var(--tr)}
+.pay-chip.on{border-color:var(--teal);background:rgba(20,184,166,.14);color:var(--teal)}
+.pay-chip.add{border-style:dashed;color:var(--txt2);background:transparent}
+.pay-hint{font-size:.74rem;color:var(--txt2);margin-top:6px;line-height:1.45}
 .tp.on-trf{border-color:var(--blue);color:var(--blue);background:rgba(59,130,246,.1)}
 .ti-actions{display:flex;gap:2px;justify-content:flex-end}
 .rec-item{flex-wrap:wrap}.rec-actions{flex-basis:100%;display:flex;gap:4px;justify-content:flex-end;align-items:center;border-top:1px solid var(--border);padding-top:6px;margin-top:-2px}.rec-status{display:inline-block;margin-top:4px}
@@ -586,7 +593,8 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
   <div class="card">
     <div class="type-pills"><button class="tp on-inc" id="pillInc" onclick="App.UI.setType('income')">+ Gelir</button><button class="tp" id="pillExp" onclick="App.UI.setType('expense')">− Gider</button><button class="tp" id="pillTrf" onclick="App.UI.setType('transfer')">↔ Transfer</button></div>
     <div class="fg c3"><div class="f"><label>Tutar (₺)</label><input type="text" inputmode="decimal" id="txnAmt" placeholder="0,00" data-money="money" autocomplete="off"/></div><div class="f"><label>Tarih</label><input type="date" id="txnDate"/></div><div class="f" id="txnCatWrap"><label>Kategori</label><select id="txnCat"></select></div></div>
-    <div class="fg c3" style="margin-bottom:11px"><div class="f"><label id="txnAccLbl">Hesap</label><select id="txnAccount"></select></div><div class="f" id="txnToWrap" style="display:none"><label>Hedef Hesap</label><select id="txnToAccount"></select></div><div class="f"><label>Kim Yaptı</label><select id="txnUser"></select></div><div class="f"><label>Not</label><input type="text" id="txnNote" placeholder="Açıklama..."/></div></div>
+    <div class="pay-wrap" id="txnPayWrap"><div class="pay-lbl" id="txnPayLbl">💳 Ne ile ödedin?</div><div class="pay-chips" id="txnPayChips" role="radiogroup" aria-labelledby="txnPayLbl" onclick="App.UI.pickAcc(event)"></div></div>
+    <div class="fg c3" style="margin-bottom:11px"><div class="f" id="txnAccWrap"><label id="txnAccLbl">Hesap</label><select id="txnAccount" onchange="App.UI.pickAcc(this.value)"></select></div><div class="f" id="txnToWrap" style="display:none"><label>Hedef Hesap</label><select id="txnToAccount"></select></div><div class="f"><label>Kim Yaptı</label><select id="txnUser"></select></div><div class="f"><label>Not</label><input type="text" id="txnNote" placeholder="Açıklama..."/></div></div>
     <div id="txnTrfRow" style="margin:-2px 0 12px;display:none;font-size:.74rem;color:var(--txt2);line-height:1.45">↔ Kendi hesaplarınız arasındaki para hareketi (ör. bankadan kredi kartı borcu ödemek). Gelir/gider toplamlarına ve bütçeye sayılmaz.</div>
     <div class="fg c2" id="txnInstRow" style="margin-bottom:11px"><div class="f"><label>Taksit Sayısı</label><input type="number" id="txnInst" placeholder="Tek çekim için boş bırak" min="2" max="36"/></div><div class="f"><label>İlk Taksit Tarihi</label><input type="date" id="txnInstStart"/></div></div>
     <button class="btn btn-primary" onclick="App.Transactions.add()">İşlemi Ekle</button>
@@ -825,7 +833,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.03.2</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.03.3</div>
 </section>
 
 </main>
@@ -1210,7 +1218,7 @@ App.UI=(function(){
     sec.querySelectorAll('.sub-pane').forEach(function(p){p.classList.toggle('active',p.getAttribute('data-pane')===tabId)});
   }
   function setType(t){
-    _type=t;
+    if(_type!==t)_picked=false;_type=t;
     document.getElementById('pillInc').className='tp'+(t==='income'?' on-inc':'');
     document.getElementById('pillExp').className='tp'+(t==='expense'?' on-exp':'');
     var pt=document.getElementById('pillTrf');if(pt)pt.className='tp'+(t==='transfer'?' on-trf':'');
@@ -1219,6 +1227,43 @@ App.UI=(function(){
     show('txnCatWrap',t!=='transfer');show('txnTrfRow',t==='transfer');show('txnToWrap',t==='transfer');show('txnInstRow',t==='expense');
     var lbl=document.getElementById('txnAccLbl');if(lbl)lbl.textContent=t==='transfer'?'Kaynak Hesap':'Hesap';
     refreshAccSelects();
+  }
+  // "Ne ile ödedin?": hesap/kart düğmeleri. Seçim gizli #txnAccount kutusunda tutulur; transferde açılır kutular görünür.
+  // Varsayılan: bu kişinin bu tür işlemde son kullandığı hesap, yoksa ortak hesap
+  var LKEY='ft_last_acc',_picked=false;   // _picked: bu işlem için hesap elle seçildi
+  function _lastAccs(){try{return JSON.parse(localStorage.getItem(LKEY)||'{}')||{}}catch(e){return{}}}
+  function rememberAcc(userId,type,accId){_picked=false;if(!accId||type==='transfer')return;var m=_lastAccs();m[(userId||'')+'|'+type]=accId;try{localStorage.setItem(LKEY,JSON.stringify(m))}catch(e){}}
+  function renderPayChips(){
+    var w=document.getElementById('txnPayWrap'),box=document.getElementById('txnPayChips'),sel=document.getElementById('txnAccount');if(!w||!box||!sel)return;
+    var tr=_type==='transfer',aw=document.getElementById('txnAccWrap');w.style.display=tr?'none':'';if(aw)aw.style.display=tr?'':'none';if(tr)return;
+    var accs=S.accounts(),u=document.getElementById('txnUser'),uid=u&&u.value||S.settings().activeUser;
+    document.getElementById('txnPayLbl').textContent=_type==='income'?'🏦 Hangi hesaba geldi?':'💳 Ne ile ödedin?';
+    if(!_picked||!sel.value||!accs.some(function(a){return a.id===sel.value})){var last=_lastAccs()[uid+'|'+_type],sh=App.Accounts.sharedAccount();sel.value=last&&accs.some(function(a){return a.id===last})?last:sh?sh.id:accs[0]?accs[0].id:''}
+    box.innerHTML=accs.map(function(a){var on=a.id===sel.value;return'<button type="button" class="pay-chip'+(on?' on':'')+'" role="radio" aria-checked="'+on+'" data-acc="'+escAttr(a.id)+'">'+(AM[a.type]||{i:''}).i+' '+esc(accLabel(a))+'</button>'}).join('')+
+      '<button type="button" class="pay-chip add" data-acc="__new__">+ Kart / Hesap Ekle</button>'+
+      (accs.length<2?'<div class="pay-hint" style="flex-basis:100%">Kredi kartlarını ve banka hesaplarını ayrı ayrı ekleyin: harcama hangisiyle yapıldıysa o hesaptan düşer (kartta borç olarak görünür).</div>':'');
+  }
+  function pickAcc(ev){var id=typeof ev==='string'?ev:null;if(id===null){var b=ev&&ev.target&&ev.target.closest?ev.target.closest('[data-acc]'):null;if(!b)return;id=b.getAttribute('data-acc')}if(id==='__new__'){addAccQuick();return}document.getElementById('txnAccount').value=id;_picked=true;renderPayChips()}
+  // Formdan çıkmadan kart/hesap ekle; eklenen hemen seçilir
+  function addAccQuick(){
+    App.UI.promptModal({title:'Kart / Hesap Ekle',text:'Harcama ve gelirler seçtiğiniz hesaba işlenir. Kredi kartı harcaması kartın borcunu artırır; kart borcunu ödemek için bankadan karta Transfer yapın.',fields:[
+      {key:'name',label:'Adı',placeholder:'Ör: Akbank Axess, Yapı Kredi Vadesiz'},
+      {key:'type',label:'Tür',type:'select',value:'card',options:[{value:'card',label:'💳 Kredi Kartı'},{value:'bank',label:'🏦 Banka Hesabı'},{value:'cash',label:'💵 Nakit'}]},
+      {key:'bal',label:'Şu anki bakiye / kart borcu (₺, isteğe bağlı)',type:'number',placeholder:'0'},
+      {key:'last4',label:'Son 4 hane (isteğe bağlı, banka SMS/e-postası için)',placeholder:'1234'},
+      {key:'owner',label:'Kimin',type:'select',value:'shared',options:[{value:'shared',label:'👨‍👩‍👧 Ortak'},{value:'personal',label:'🙋 '+(((App.Users.get(S.settings().activeUser)||{}).name)||'Benim')}]}],okLabel:'Ekle'},function(v){
+      var name=String(v.name||'').trim().slice(0,80);if(!name){App.UI.toast('Ad girin.','err');return false}
+      var type=['card','bank','cash'].indexOf(v.type)>=0?v.type:'card',bal=String(v.bal||'').trim()?parseMoney(v.bal,{allowZero:true,min:-MAX_MONEY}):0;
+      if(bal===null){App.UI.toast('Geçerli tutar girin.','err');return false}
+      if(type==='card'&&bal>0)bal=-bal;   // kart borcu eksi bakiye olarak tutulur
+      var l4=String(v.last4||'').match(/\d+/g)||[];if(l4.some(function(x){return x.length!==4})){App.UI.toast('Son 4 hane 4 rakam olmalı (ör. 1234).','err');return false}
+      var all=S.accounts(),clash=l4.length&&all.find(function(o){return o.last4&&o.last4.split(',').some(function(x){return l4.indexOf(x)>=0})});
+      if(clash){App.UI.toast('Bu son 4 hane "'+clash.name+'" hesabında kayıtlı.','err');return false}
+      var own=v.owner==='personal'?'personal':'shared',na={id:gid('a'),name:name,type:type,owner:own,userId:own==='personal'?S.settings().activeUser:null,statementDay:null,balance:bal,openingBalance:bal,ts:Date.now()};
+      if(l4.length)na.last4=l4.filter(function(x,i){return l4.indexOf(x)===i}).slice(0,6).join(',');
+      all.push(na);S.saveAccounts(all);refreshAccSelects();document.getElementById('txnAccount').value=na.id;_picked=true;renderPayChips();
+      if(App.Accounts.renderAll)App.Accounts.renderAll();if(App.Accounts.renderSummary)App.Accounts.renderSummary();App.UI.toast(name+' eklendi ve seçildi.','ok');
+    });
   }
   function getType(){return _type}
   function _fs(el,cats){if(!el)return;el.innerHTML=cats.map(function(c){return'<option value="'+escAttr(c)+'">'+esc(ci(c).i)+' '+esc(c)+'</option>'}).join('')}
@@ -1236,7 +1281,7 @@ App.UI=(function(){
     Object.keys(first).forEach(function(id){var sel=document.getElementById(id);if(sel){var prev=sel.value;sel.innerHTML='<option value="">'+first[id]+'</option>'+accOpts;if(prev&&accs.some(function(a){return a.id===prev}))sel.value=prev}});
     var el=document.getElementById('fAcc');
     if(el)el.innerHTML='<option value="">Tüm Hesaplar</option>'+accs.map(function(a){return'<option value="'+a.id+'">'+esc(accLabel(a))+'</option>'}).join('');
-    refreshUserSelects();
+    refreshUserSelects();renderPayChips();
   }
   // force: "Kim yaptı" kutuları bu cihazın profiline döner (profil değişince / kayıt eklenince)
   function refreshUserSelects(force){
@@ -1423,7 +1468,7 @@ App.UI=(function(){
     var d=new Date();
     document.getElementById('todayDate').textContent=d.getDate()+' '+MF[d.getMonth()]+' '+d.getFullYear()+', '+['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'][d.getDay()];
   }
-  return{nav,renderPage,currentPage,subTab,toggleTheme,initCollapsibles,setType,getType,quickAdd,moreMenu,moreClose,mountModal,closeModal,confirmModal,promptModal,applyA11y,initSelects,refreshAccSelects,refreshUserSelects,refreshFilterDropdowns,toast,toastAction,flipSign,setTheme,bindEvents,initDates,syncActiveProfilePill}
+  return{nav,renderPage,currentPage,subTab,toggleTheme,initCollapsibles,setType,getType,renderPayChips,pickAcc,addAccQuick,rememberAcc,quickAdd,moreMenu,moreClose,mountModal,closeModal,confirmModal,promptModal,applyA11y,initSelects,refreshAccSelects,refreshUserSelects,refreshFilterDropdowns,toast,toastAction,flipSign,setTheme,bindEvents,initDates,syncActiveProfilePill}
 })();
 
 App.Accounts=(function(){
@@ -1619,7 +1664,7 @@ App.Transactions=(function(){
       else if(type==='expense'&&newTxn.category==='Kredi Kartı Ödemesi'&&S.accounts().some(function(a){return a.type==='card'}))App.UI.toast('İşlem eklendi. Kartınız hesap olarak kayıtlıysa kart ödemesini "↔ Transfer" ile girin; yoksa harcama iki kez gider sayılır.','info');
       else App.UI.toast('İşlem eklendi.');
     }
-    _clearForm();_refresh();
+    App.UI.rememberAcc(userId,type,accId);_clearForm();_refresh();
   }
   function remove(id){
     var t=S.txns().find(function(x){return x.id===id});
