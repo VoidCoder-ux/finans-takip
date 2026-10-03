@@ -181,6 +181,19 @@ npm run deploy
 
 Uygulama dosyaları Worker ile birlikte yayınlanır.
 
+### Otomatik yükleme (GitHub Actions, isteğe bağlı)
+
+`.github/workflows/deploy.yml` ana dala her birleştirmede aynı yüklemeyi kendisi yapar. Elle `npm run deploy` gerekmez. Bir kez GitHub'da **Settings > Secrets and variables > Actions > New repository secret** ile dört değer eklenir:
+
+| Ad | Nereden |
+|----|---------|
+| `CLOUDFLARE_API_TOKEN` | Cloudflare > My Profile > API Tokens > Create Token > **Edit Cloudflare Workers** şablonu (ücretsiz) |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare > Workers & Pages sayfasında sağdaki **Account ID** |
+| `D1_DATABASE_ID` | `wrangler.toml`'a elle yazdığınız `database_id` (`npx wrangler d1 list`) |
+| `VAPID_SUBJECT` | `wrangler.toml`'daki değer, ör. `mailto:siz@ornek.com` |
+
+Gizli anahtarlar (`VAPID_PRIVATE_JWK`, `DEEPSEEK_API_KEY`) Cloudflare'de kalır, GitHub'a eklenmez. Secret eklenmemişse iş hata vermez, uyarıyla atlanır. Hemen yüklemek için: **Actions > Cloudflare'e yükle > Run workflow**.
+
 ## Geliştirme ve test
 
 ```bash
