@@ -85,7 +85,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .mc-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.95rem;margin-bottom:10px}
 .mc-val{font-size:clamp(.85rem,3vw,1.2rem);font-weight:700;letter-spacing:-.03em;margin-bottom:2px;word-break:break-all;overflow-wrap:break-word}.mc-lbl{font-size:.82rem;color:var(--txt2);font-weight:500}
 .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;margin-top:22px}
-.sh-title{font-size:.95rem;font-weight:700}.sh-link{font-size:.86rem;color:var(--teal);font-weight:600;cursor:pointer}
+.sh-title{font-size:.95rem;font-weight:700}.sh-link{font-size:.86rem;color:var(--teal);font-weight:600;cursor:pointer;white-space:nowrap}
 .sh-link:hover{opacity:.8}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:20px;margin-bottom:16px}
 .card.dashed{border-style:dashed;border-color:var(--border2)}
@@ -149,14 +149,14 @@ input[type="checkbox"]{width:22px;height:22px;min-width:22px;accent-color:var(--
 /* Özet: sade düzen — para kutusu, bu ay, hızlı düğmeler */
 .hero-top{display:flex;align-items:center;justify-content:space-between;gap:10px;position:relative;z-index:1}
 .hero-acc{font-size:.82rem;font-weight:700;background:rgba(0,0,0,.2);border-radius:99px;padding:4px 10px;white-space:nowrap}
-.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;position:relative;z-index:1}
+.hero-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(8.5rem,1fr));gap:10px;position:relative;z-index:1}
 .hero-tile{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.14);border-radius:var(--r2);padding:12px 14px;color:#fff;font:inherit;min-width:0}
 button.hero-tile{cursor:pointer}button.hero-tile:hover{background:rgba(0,0,0,.28)}
-.hero-tile .ht-lbl{font-size:.82rem;font-weight:600;opacity:.92}.hero-tile b{font-size:clamp(1rem,4.4vw,1.3rem);font-weight:800;letter-spacing:-.02em;overflow-wrap:anywhere}
+.hero-tile .ht-lbl{font-size:.82rem;font-weight:600;opacity:.92}.hero-tile b{font-size:clamp(1rem,4.4vw,1.3rem);font-weight:800;letter-spacing:-.02em;white-space:nowrap}
 .hero-tile .ht-note{font-size:.82rem;opacity:.9}
 .month-card{margin-bottom:14px}.month-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.month-count{font-size:.86rem;color:var(--txt2)}.month-count b{color:var(--txt)}
-.month-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.mg{display:flex;flex-direction:column;gap:2px;min-width:0}.mg-lbl{font-size:.82rem;color:var(--txt2);font-weight:600}.mg b{font-size:clamp(.92rem,3.6vw,1.15rem);font-weight:800;letter-spacing:-.02em;overflow-wrap:anywhere}
+.month-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(6.5rem,1fr));gap:10px 8px}
+.mg{display:flex;flex-direction:column;gap:2px;min-width:0}.mg-lbl{font-size:.82rem;color:var(--txt2);font-weight:600}.mg b{font-size:clamp(.92rem,3.6vw,1.15rem);font-weight:800;letter-spacing:-.02em;white-space:nowrap}
 .month-card .pos{color:var(--green)}.month-card .neg{color:var(--red)}
 .month-bar{height:8px;border-radius:99px;background:var(--bg3);overflow:hidden;margin-top:12px}.month-bar span{display:block;height:100%;border-radius:99px;background:var(--green);transition:width .3s}
 .month-bar span.yellow{background:var(--yellow)}.month-bar span.red{background:var(--red)}
@@ -185,7 +185,7 @@ button.hero-tile{cursor:pointer}button.hero-tile:hover{background:rgba(0,0,0,.28
 .cc-alert-txt{min-width:0;font-size:.93rem;line-height:1.4}
 .ccb-card{margin-bottom:14px;display:flex;flex-direction:column;gap:10px}.ccb-head{display:flex;justify-content:space-between;align-items:center}
 .ccb{display:flex;flex-direction:column;gap:5px;text-align:left;width:100%;padding:10px 12px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--txt);font:inherit;cursor:pointer}
-.ccb-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}.ccb-top b{min-width:0;overflow-wrap:anywhere}.ccb-debt{font-weight:800;color:var(--red);white-space:nowrap}.ccb-debt .pos{color:var(--green)}
+.ccb-top{display:flex;justify-content:space-between;gap:4px 10px;align-items:baseline;flex-wrap:wrap}.ccb-top b{min-width:0;overflow-wrap:break-word}.ccb-debt{font-weight:800;color:var(--red);white-space:nowrap}.ccb-debt .pos{color:var(--green)}
 .ccb-sub{font-size:.86rem;color:var(--txt2)}.ccb-sub b{color:var(--txt)}.ccb-sub.neg,.ccb-sub .neg{color:var(--red);font-weight:700}.cc-alert-acts{display:flex;flex-direction:column;gap:6px;flex-shrink:0}.cc-alert-txt div{color:var(--txt2)}
 .uncat-card{border-color:rgba(234,179,8,.45);background:rgba(234,179,8,.07);margin-bottom:14px}
 .uncat-head{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
@@ -481,7 +481,12 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
   .budget-grid,.goals-grid,.debt-grid,.port-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .btn-del,.sh-toggle,.sub-tab{min-height:44px;min-width:44px}
 }
+/* Dar ekranda ya da en büyük yazıda hesap kartları tek sütun: adlar kelime ortasından bölünmesin, düğmeler simgenin üstüne binmesin */
+@media(max-width:360px){.acc-grid{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:480px){html[data-fs="xl"] .acc-grid,html[data-fs="l"] .acc-grid{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:480px){.port-grid,.debt-grid,.goals-grid,.budget-grid{grid-template-columns:minmax(0,1fr)}.modal-bd{padding-left:12px;padding-right:12px}}
+/* Yatay telefon (768 px üstü ama dokunmatik): dokunma alanları telefon boyunda kalsın */
+@media(min-width:769px) and (pointer:coarse){.btn-sm,.btn.btn-sm[style]{min-height:40px}.sh-toggle{min-width:40px;min-height:40px}.rec-filter-btn,.rate-chip,.notif-btn,.nw-mode-toggle .nw-mode{min-height:40px}.btn-del,.sub-tab{min-height:40px;min-width:40px}}
 /* iOS Safari 16px altındaki alanlara odaklanınca sayfayı büyütür */
 @media(hover:none) and (pointer:coarse){input,select,textarea{font-size:max(16px,1rem)!important}}
 /* Yatay tutulan telefon: masaüstü kenar çubuğu yerine telefon düzeni */
@@ -4045,8 +4050,8 @@ App.BankSms=(function(){
     var isMove=/Kredi kartı borç ödemesi|ATM|aktarım/.test(x.reason||''),tos=[{value:'',label:'— Aktarım değil —'}].concat(accs),toDef='';
     if(isMove){var here=App.Accounts.get(p.accountId),wantCard=/Kredi kartı/.test(x.reason)&&!(here&&here.type==='card'),cand=S.accounts().filter(function(a){return a.id!==p.accountId&&(/ATM/.test(x.reason)?a.type==='cash':wantCard?a.type==='card':a.type!=='card')});if(cand.length===1)toDef=cand[0].id}
     App.UI.promptModal({title:'Banka Hareketini Ekle',text:x.text,fields:[
-      {key:'type',label:'Tür',type:'select',options:[{value:'expense',label:'Gider'},{value:'income',label:'Gelir'},{value:'move',label:'↔ Hesaplar arası aktarım (kart ödemesi, ATM, kendi hesabım)'}],value:isMove?'move':p.type},
-      {key:'to',label:'Aktarımsa karşı hesap',type:'select',options:tos,value:toDef},
+      {key:'type',label:'Tür',type:'select',options:[{value:'expense',label:'Gider'},{value:'income',label:'Gelir'},{value:'move',label:'↔ Aktarım (gider değil)'}],value:isMove?'move':p.type},
+      {key:'to',label:'Aktarımsa karşı hesap (kart ödemesi, ATM, kendi hesabınız)',type:'select',options:tos,value:toDef},
       {key:'amount',label:'Tutar (₺)',type:'number',value:p.amount},
       {key:'date',label:'Tarih',type:'date',value:p.date||td()},
       {key:'acc',label:'Hesap'+(p.last4?' (…'+p.last4+' ile biten)':''),type:'select',options:accs,value:p.accountId||accs[0].value},
