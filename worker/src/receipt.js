@@ -48,17 +48,30 @@ export function cleanResult(r, categories) {
   };
 }
 
+// Sunucu geneli günlük sınır: kayıt anahtarı (REGISTRATION_KEY) tanımlı değilse herkes kasa açabilir; kasa başına sınır tek başına
+// DeepSeek faturasını sınırlamaz. '__all__' satırı tüm kasaların o günkü toplamıdır
+const DEFAULT_GLOBAL_LIMIT = 300;
+const ALL = '__all__';
+async function bump(env, id, day) {
+  const row = await env.DB.prepare(`INSERT INTO receipt_usage (vault_id, day, n) VALUES (?, ?, 1)
+    ON CONFLICT(vault_id, day) DO UPDATE SET n = n + 1 RETURNING n`).bind(id, day).first();
+  return row ? row.n : 1;
+}
 async function useQuota(env, vaultId, day) {
   const limit = Math.max(1, Number(env.RECEIPT_DAILY_LIMIT) || DEFAULT_DAILY_LIMIT);
-  const row = await env.DB.prepare(`INSERT INTO receipt_usage (vault_id, day, n) VALUES (?, ?, 1)
-    ON CONFLICT(vault_id, day) DO UPDATE SET n = n + 1 RETURNING n`).bind(vaultId, day).first();
-  return { ok: !row || row.n <= limit, used: row ? row.n : 1, limit };
+  const glimit = Math.max(1, Number(env.RECEIPT_GLOBAL_DAILY_LIMIT) || DEFAULT_GLOBAL_LIMIT);
+  const used = await bump(env, vaultId, day);
+  if (used > limit) return { ok: false, used, limit };
+  const all = await bump(env, ALL, day);
+  if (all > glimit) { await dec(env, ALL, day); await dec(env, vaultId, day); return { ok: false, used, limit, global: true }; }
+  return { ok: true, used, limit };
+}
+async function dec(env, id, day) {
+  try { await env.DB.prepare('UPDATE receipt_usage SET n = n - 1 WHERE vault_id = ? AND day = ? AND n > 0').bind(id, day).run(); } catch (e) {}
 }
 
 // Başarısız çağrı günlük hakkı tüketmesin
-async function refund(env, vaultId, day) {
-  try { await env.DB.prepare('UPDATE receipt_usage SET n = n - 1 WHERE vault_id = ? AND day = ? AND n > 0').bind(vaultId, day).run(); } catch (e) {}
-}
+async function refund(env, vaultId, day) { await dec(env, vaultId, day); await dec(env, ALL, day); }
 
 let _model = null;
 async function pickModel(env, base) {
