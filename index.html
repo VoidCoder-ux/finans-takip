@@ -1154,7 +1154,7 @@ App.Backup=(function(){
         if(!Array.isArray(data.stores.pf_t)&&!Array.isArray(data.stores.pf_a))throw new Error('empty backup');
       }catch(e){App.UI.toast('Yedek dosyası okunamadı ya da bozuk. Mevcut veriler değişmedi.','err');return}
       var total=Object.keys(data.stores).filter(function(k){return KEYS.indexOf(k)>=0}).length;
-      App.UI.confirmModal({title:'Yedeği Geri Yükle',text:total+' veri deposu geri yüklenecek. Mevcut yerel veriler değişecek.',okLabel:'Geri Yükle',danger:true},function(){
+      App.UI.confirmModal({title:'Yedeği Geri Yükle',text:total+' veri deposu geri yüklenecek. Mevcut yerel veriler değişecek.'+(App.Sync&&App.Sync.configured()?'\n\nEşitleme açık: yedek, diğer telefonlardaki kayıtlarla birleştirilir (onlardaki yeni kayıtlar silinmez).':''),okLabel:'Geri Yükle',danger:true},function(){
         var prev={};
         try{
           // Yedekte olmayan veri depoları boşaltılır (eski kayıtlar yedektekilere karışmasın); ayarlar yoksa korunur
@@ -4289,9 +4289,10 @@ App.Statement=(function(){
       throw e;
     });
   }
+  var _cut={pages:0};
   function _readPdf(u8){
     return App.Receipt._debug.pdfLib().then(function(lib){return _openPdf(lib,u8,'',0)}).then(function(doc){
-      var pages=[];for(var i=1;i<=Math.min(doc.numPages,40);i++)pages.push(i);
+      var pages=[];for(var i=1;i<=Math.min(doc.numPages,40);i++)pages.push(i);_cut.pages=doc.numPages>40?doc.numPages:0;
       return pages.reduce(function(pr,i){return pr.then(function(acc){return doc.getPage(i).then(function(pg){return pg.getTextContent()}).then(function(tc){
         // Aynı yükseklikteki parçalar bir satır; aralarındaki boşluk büyükse sütun ayracı (" | ")
         var items=tc.items.filter(function(x){return x.str&&x.str.trim()}).map(function(x){return{s:x.str,x:x.transform[4],y:Math.round(x.transform[5]),w:x.width||0}});
@@ -4437,6 +4438,9 @@ App.Statement=(function(){
       _file=file.name||'ekstre';_meta={accountId:a.accountId,isCardDoc:a.isCardDoc};
       _rows=a.rows.slice(0,1000).map(function(r,i){return Object.assign({i:i},r)});
       _build();open();
+      // Sınır nedeniyle okunmayan kısım varsa açıkça söylenir (sessizce eksik kalmasın)
+      var cut=[];if(_cut.pages)cut.push('PDF '+_cut.pages+' sayfa; yalnız ilk 40 sayfa okundu');if(a.rows.length>1000)cut.push(a.rows.length+' satırdan yalnız ilk 1.000\'i gösteriliyor');
+      if(cut.length)App.UI.toast('⚠ '+cut.join(' · ')+'. Kalanı için ekstreyi bankadan daha kısa tarih aralığıyla indirip ayrıca yükleyin.','err');_cut.pages=0;
     }).catch(function(e){App.UI.toast(e&&e.message&&!/^zip/.test(e.message)?e.message:'Dosya okunamadı.','err')});
   }
   function _accOpts(){return S.accounts().map(function(a){return'<option value="'+escAttr(a.id)+'"'+(a.id===_meta.accountId?' selected':'')+'>'+(AM[a.type]||{i:''}).i+' '+esc(accLabel(a))+'</option>'}).join('')}
