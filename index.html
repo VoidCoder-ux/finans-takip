@@ -1221,8 +1221,8 @@ App.Onboarding=(function(){
     if(S.settings().onboarded||!status().some(function(s){return!s.ok}))return;
     var last=0;try{last=+localStorage.getItem('ft_setup_shown')||0}catch(e){}
     if(Date.now()-last<7*864e5)return;
-    try{localStorage.setItem('ft_setup_shown',String(Date.now()))}catch(e){}
-    setTimeout(open,500);
+    // Açık bir pencerenin (ör. kullanıcının o an doldurduğu form) üstüne çıkmaz; o zaman bir sonraki açılışta
+    setTimeout(function(){if(document.querySelector('.modal-bd.show'))return;try{localStorage.setItem('ft_setup_shown',String(Date.now()))}catch(e){}open()},500);
   }
   return{open,close,skip,go,maybe,status}
 })();

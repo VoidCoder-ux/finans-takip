@@ -49,6 +49,8 @@ async function openApp(seed) {
   await page.goto(base + '/index.html');
   await page.evaluate(function(seed) {
     localStorage.clear();
+    // Haftalık kurulum hatırlatması zamanlayıcıyla açılır; yavaş makinede testin tıkladığı pencerenin üstüne binmesin
+    localStorage.setItem('ft_setup_shown', String(Date.now()));
     Object.keys(seed || {}).forEach(function(k) { localStorage.setItem(k, JSON.stringify(seed[k])); });
   }, seed || {});
   await page.reload();
@@ -699,8 +701,9 @@ async function runQC2() {
     App.Backup.restore({ files: [new File([JSON.stringify(backup)], 'b.json', { type: 'application/json' })] });
   });
   await p.waitForSelector('.app-dialog-holder [data-act="ok"]', { state: 'attached' });
-  await p.evaluate(function() { document.querySelector('.app-dialog-holder [data-act="ok"]').click(); });
-  await p.waitForTimeout(900); await p.waitForFunction(function() { return window.App && App.Transactions; });
+  // Geri yükleme sayfayı yeniler: sabit süre yerine yenilemenin bitmesi beklenir (yavaş makinede eski sayfa okunmasın)
+  await Promise.all([p.waitForEvent('load', { timeout: 30000 }), p.evaluate(function() { document.querySelector('.app-dialog-holder [data-act="ok"]').click(); })]);
+  await p.waitForFunction(function() { return window.App && App.Transactions && window.S && S.settings(); });
   eq('backup restore keeps this phone\'s profile and theme', await p.evaluate(function() { return [S.settings().activeUser, S.settings().theme]; }), ['u_partner', 'light']);
   await r.ctx.close();
 }
