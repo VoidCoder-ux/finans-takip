@@ -19,7 +19,7 @@ function seed() {
   return {
     pf_a: [
       { id: 'a_bank', name: 'Yapı Kredi Vadesiz', type: 'bank', owner: 'shared', last4: '4359', balance: 20000, openingBalance: 20000, ts: 1 },
-      { id: 'a_ax', name: 'Akbank Axess', type: 'card', owner: 'shared', last4: '7777', statementDay: cutDay, balance: -1426.78 - 80 - 45, openingBalance: 0, ts: 2 }],
+      { id: 'a_ax', name: 'Akbank Axess', type: 'card', owner: 'shared', last4: '7777', statementDay: cutDay, balance: -2000 - 1426.78 - 80 - 45, openingBalance: -2000, ts: 2 }],
     pf_t: [
       { id: 't_akb', type: 'expense', amount: 1426.78, category: 'Diğer', date: day(-1), note: 'Akbank kart harcaması', accountId: 'a_ax', userId: 'u_self', ts: 3, balanceApplied: true, src: 'sms', via: 'email' },
       { id: 't_k1', type: 'expense', amount: 80, category: 'Diğer', date: day(-2), note: 'Kırtasiye Ali', accountId: 'a_ax', userId: 'u_self', ts: 2, balanceApplied: true },
@@ -81,12 +81,12 @@ srv.listen(0, async () => {
   eq('same shop on another row follows; generic Akbank row does not', await page.evaluate(() => [document.querySelector('[data-uncat="t_k2"]').value, document.querySelector('[data-uncat="t_akb"]').value]), ['Market', '']);
   if (OUT) await page.screenshot({ path: OUT + '/uncat.png' });
   await page.evaluate(() => document.getElementById('uncatSave').click()); await page.waitForTimeout(150);
-  eq('saved: both rows Market, balance unchanged, card shows 1 left', await page.evaluate(() => [S.txns().filter(t => t.note === 'Kırtasiye Ali').map(t => t.category), App.Accounts.get('a_ax').balance, document.querySelector('#ozet-uncat .sh-title').textContent]), [['Market', 'Market'], -1551.78, '🏷️ Kategorisi belli olmayan 1 harcama']);
+  eq('saved: both rows Market, balance unchanged, card shows 1 left', await page.evaluate(() => [S.txns().filter(t => t.note === 'Kırtasiye Ali').map(t => t.category), App.Accounts.get('a_ax').balance, document.querySelector('#ozet-uncat .sh-title').textContent]), [['Market', 'Market'], -3551.78, '🏷️ Kategorisi belli olmayan 1 harcama']);
 
-  // 7) Kart son ödeme hatırlatması (kesim + 10 gün; kesimden sonra ödeme yoksa)
+  // 7) Kart son ödeme hatırlatması (kesim + 10 gün): kesimden önceki borç (dönem borcu) ve asgari tutar
   const dues = await page.evaluate(() => [App.Notifications.cardDues(3).map(c => [c.in, c.text]), App.Notifications.upcomingBills(3).filter(b => b.kind === 'card').length, App.Push.plan().items.some(x => /Akbank Axess …7777 son ödeme/.test(x.text))]);
-  eq('card due in 2 days: reminder text, in-app list and push plan', dues, [[[2, '💳 Akbank Axess …7777 son ödeme — güncel borç ₺1.551,78']], 1, true]);
-  eq('no reminder after paying the card', await page.evaluate(() => { const t = S.txns(); t.push({ id: 'pay', type: 'income', amount: 500, category: 'Transfer', date: td(), note: 'Ödeme', accountId: 'a_ax', userId: 'u_self', ts: 9, balanceApplied: false }); S.saveTxns(t); const n = App.Notifications.cardDues(3).length; S.saveTxns(t.filter(x => x.id !== 'pay')); return n; }), 0);
+  eq('card due in 2 days: reminder text, in-app list and push plan', dues, [[[2, '💳 Akbank Axess …7777 son ödeme: ₺2.000,00 (asgari ₺400,00)']], 1, true]);
+  eq('no reminder after paying the statement debt', await page.evaluate(() => { const t0 = JSON.stringify(S.txns()), a0 = JSON.stringify(S.accounts()); App.Transactions.createTransfer({ from: 'a_bank', to: 'a_ax', amount: 2000, date: td(), userId: 'u_self' }); const n = App.Notifications.cardDues(3).length; S.saveTxns(JSON.parse(t0)); S.saveAccounts(JSON.parse(a0)); return n; }), 0);
   eq('no reminder for a card without debt', await page.evaluate(() => { const a = S.accounts(), c = a.find(x => x.id === 'a_ax'), b = c.balance; c.balance = 0; S.saveAccounts(a); const n = App.Notifications.cardDues(3).length; c.balance = b; S.saveAccounts(a); return n; }), 0);
 
   // 8) Ekstre yüklenince işyeri adı bilinmeyen e-posta kaydına ad ve kategori
@@ -98,7 +98,7 @@ srv.listen(0, async () => {
   eq('preview: known e-mail record will get the shop name; new row selected', await page.evaluate(() => [[...document.querySelectorAll('#stmtList .stmt-row')].map(r => [r.querySelector('input').checked, r.querySelector('.stmt-desc').textContent.trim()]), /1 kayda işyeri adı eklenecek/.test(document.getElementById('stmtSum').textContent), document.getElementById('stmtOk').textContent]), [[[false, 'MIGROS KADIKOY kayıtlı · adı eklenecek'], [true, 'BIM BIRLESIK MAGAZALAR']], true, '1 İşlemi Ekle · 1 Güncelle']);
   if (OUT) await page.screenshot({ path: OUT + '/enrich.png' });
   await page.click('#stmtOk'); await page.waitForTimeout(200);
-  eq('e-mail record now has shop name and category; amount/balance kept; no duplicate', await page.evaluate(() => { const t = S.txns().find(x => x.id === 't_akb'); return [t.note, t.category, t.amount, t.via, S.txns().filter(x => x.amount === 1426.78).length, App.Accounts.get('a_ax').balance]; }), ['MIGROS KADIKOY', 'Market', 1426.78, 'email', 1, -1614.28]);
+  eq('e-mail record now has shop name and category; amount/balance kept; no duplicate', await page.evaluate(() => { const t = S.txns().find(x => x.id === 't_akb'); return [t.note, t.category, t.amount, t.via, S.txns().filter(x => x.amount === 1426.78).length, App.Accounts.get('a_ax').balance]; }), ['MIGROS KADIKOY', 'Market', 1426.78, 'email', 1, -3614.28]);
   eq('uncategorized card gone', await page.evaluate(() => document.getElementById('ozet-uncat').innerHTML), '');
   eq('balances consistent', await page.evaluate(() => App.Accounts.reconcileAccountBalances(true)), false);
   eq('no page errors', errors, []);
