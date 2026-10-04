@@ -2,7 +2,7 @@
 
 **Tarih:** 2026-10-04
 **Başlangıç:** `main` 131a317, sürüm 2026.10.04.5
-**Sonuç:** `claude/lucid-edison-e0skrj` 11746e2 (+ rapor), sürüm 2026.10.04.6
+**Sonuç:** `claude/lucid-edison-e0skrj` (PR #61), sürüm 2026.10.04.8
 **Değişiklik:** 8 commit (rapor dahil 9), 38 dosya, +925 / −106 satır
 **Karar:** **Şu koşullarla hazır** (bkz. §9)
 
@@ -26,7 +26,7 @@ Test verileri tamamen kurmacadır. Canlı kasaya, bankaya, Gmail'e ya da üretim
 | Kart harcaması, kart ödemesi, düzenleme, silme, geri al, yenileme | Çalıştırılarak doğrulandı | O (`qc-finance` A1–A10) |
 | İleri tarihli kayıt | Sorun bulundu → düzeltildi (F2) | O |
 | Kuruş, taksit bölme, sayı biçimleri, geçersiz tutar, çift dokunma | Sorun bulundu → düzeltildi (F1) | O (`qc-finance` D, E, G, H) |
-| İade / iptal | Davranış doğrulandı, **karar gerekiyor** (K1) | O, K |
+| İade / iptal | Karar verildi (K1) ve uygulandı: iade gideri azaltır | O (`qc-finance` F2–F4) |
 | Özet = İstatistik = PDF rapor | Çalıştırılarak doğrulandı | O (`qc-finance` A3–A4) |
 | Kart: dönem / sonraki ekstre / taksit / limit / fazla ödeme | Sorun bulundu → düzeltildi (F3, F5) | O (`qc-cards`, `cards`) |
 | Tarihler: artık yıl, ay sonu, yıl değişimi, kesim günü | Çalıştırılarak doğrulandı | O (`qc-cards` 1–3) |
@@ -91,14 +91,13 @@ Test verileri tamamen kurmacadır. Canlı kasaya, bankaya, Gmail'e ya da üretim
 | F20 | P2 | Görsel | Yatay telefonda düğmeler 25–31 px'ti. | Dokunmatik ekranda ≥40 px. | qc-visual |
 | F21 | P2 | Görsel | 320 px + en büyük yazıda tutarlar sayının ortasından bölünüyordu (₺92.020,0│0), kart adı harf ortasından bölünüyordu, düzenle düğmesi simgenin üstüne biniyordu. | Tutarlar bölünmez; dar ekranda kutucuklar alt alta, hesap kartları tek sütun. | T (önce/sonra), qc-visual |
 | F23 | P2 | Yayın hattı | Otomatik yükleme yalnız 2 küçük testi (tarih, piyasa) çalıştırıyordu. Banka, kart ve eşitleme yayından önce hiç sınanmıyordu. | `test.yml`: her PR'da ve yüklemeden önce ~780 kontrollük tam paket, yerel sunucu dahil. Test geçmezse yükleme yapılmaz. | GitHub Actions |
+| F25 | P2 | Piyasa verisi | GitHub'daki başka bir çalıştırmada market-e2e testinde 5 kontrol başarısız oldu. Kök neden: telefon "veri az önce alındı" kaydını tutuyor ama verinin kendisi (önbellek) yazılamamış ya da silinmişse, uygulama 30 dakika boyunca kur, fon ve TÜFE verisi kullanmıyor ve yeniden de istemiyordu. | Önbellek boşsa beklemeden yeniden alınır. CI'daki 5 hata aynen yeniden üretildi; düzeltmeden sonra geçiyor. | market-e2e (yeni kontrol) |
+| F24 | P3 | Kurulum hatırlatması / test | GitHub'daki bir test çalıştırması bir kez zaman aşımına uğradı. Haftalık "Kurulum Kontrolü" penceresi açılıştan 500 ms sonra çıkıyor ve o an açık olan pencerenin (CSV onayı) üstüne biniyordu. Ayrıca yedek geri yükleme testi sayfa yenilenmesini sabit 900 ms bekliyordu. | Hatırlatma açık bir pencere varken çıkmaz. Test yenilemenin kendisini bekler. "Rastgele hata" sayılmadı: 8–10 kat yavaşlatılmış tarayıcıda yeniden üretildi, düzeltmeden sonra 3/3 geçti. | browser-behavior (yavaşlatılmış) |
 | F13, F17, F22 | P3 | Portföy / yedek / onay metni | Kur alınamayınca uyarı yoktu; yedekte eşitleme birleştirmesi anlatılmıyordu; seçenek metni kesiliyordu. | Uyarı ve açıklamalar eklendi. | T |
 
-## 3. Karar gerektiren konular (açık, P1/P0 değil)
+## 3. Karar gerektiren konular
 
-- **K1 — İadeler.** Banka SMS'iyle ya da elle girilen iade şu an *gelir* sayılıyor. Kart borcu ve bakiye doğru; yalnız "Bu ay gelir" ve tasarruf oranı iade kadar şişiyor.
-  - **(a) Önerilen:** "İade" kategorisi aylık gideri azaltsın (muhasebedeki karşılığı budur).
-  - **(b)** Olduğu gibi kalsın.
-  - Toplamlar 6 yerde hesaplanıyor; seçiminize göre uygulanır.
+- **K1 — İadeler: karar verildi, uygulandı ("gideri azaltsın").** Yeni **İade** kategorisi (↩️) gelir sayılmaz; Özet, İstatistikler, PDF rapor, aile paneli ve filtre toplamlarında o ayın giderinden düşülür. Bankanın iade/iptal SMS'leri ve ekstredeki iade satırları kendiliğinden bu kategoriye girer. Daha önce bankadan "İade: …" notuyla gelmiş kayıtlar açılışta İade'ye taşınır. Kategori bütçeleri değişmez (iadenin hangi kategoriden olduğu bilinmez). PDF raporda "İade (giderden düşüldü)" satırı görünür. Test: qc-finance F2–F4, statement-import.
 - **K2 — Sunucu kayıt anahtarı (`REGISTRATION_KEY`).** Tanımlı değil; adresi bilen herkes boş bir kasa açabilir. Verilerinize erişemez ama sunucu kaynağı kullanır. F18 maliyeti sınırladı. Yine de Cloudflare'de anahtar tanımlamanız önerilir. Bu bir dakikalık, sizin yapacağınız bir iş; tanımlandıktan sonra yeni telefonlar eşitlemeye bu anahtarla katılır.
 
 ## 4. Çalıştırılan testler
@@ -124,7 +123,7 @@ Test verileri tamamen kurmacadır. Canlı kasaya, bankaya, Gmail'e ya da üretim
 | statement-import | 24 | 24 |
 | sync-e2e | 29 | 29 |
 | worker-api | 29 | 29 |
-| **yeni** qc-finance | — | 26 |
+| **yeni** qc-finance | — | 29 |
 | **yeni** qc-cards | — | 17 |
 | **yeni** qc-bank | — | 15 |
 | **yeni** qc-data | — | 9 |
@@ -132,7 +131,7 @@ Test verileri tamamen kurmacadır. Canlı kasaya, bankaya, Gmail'e ya da üretim
 | **yeni** receipt-quota | — | 3 |
 | ui-scan, xss-scan | temiz | temiz |
 | **yeni** qc-visual | — | temiz (72 ekran + ilk açılış) |
-| **Toplam** | **689** | **774**, hepsi geçti |
+| **Toplam** | **689** | **779**, hepsi geçti |
 
 Hepsini tek komutla çalıştırmak için: `START_SERVER=1 REQUIRE_SERVER=1 bash tests/run-all.sh`
 
@@ -163,7 +162,7 @@ Hepsini tek komutla çalıştırmak için: `START_SERVER=1 REQUIRE_SERVER=1 bash
 ## 6. Aile kabul testi (ilk kurulumdan, ~20 dakika)
 
 1. **Yedek alın:** Ayarlar > Yedek / Geri Yükle > **Yedek İndir**. Dosyayı saklayın.
-2. Güncellemeden sonra Ayarlar'ın en altında **2026.10.04.6** yazdığını görün.
+2. Güncellemeden sonra Ayarlar'ın en altında **2026.10.04.8** yazdığını görün.
 3. **Bankadan kart ödemesi:** İşlem > Gider > kartı seçin > 100 TL ekleyin. Hesaplar'da kart borcu 100 artar, banka değişmez. Kart > **💳 Ödeme Gir** > 100 > Kaydet. Banka 100 azalır, kart borcu 0, "Bu ay gider" yalnız 100 artmıştır.
 4. **Eşin telefonu:** Aynı kayıtlar 1 dakika içinde görünür. Eşin eklediği bir kayıt sizin telefonunuza da gelir.
 5. **Taksit:** Kartla 3 taksit 300 TL girin. Kart borcu 100 artar; kart detayında "Gelecek taksitlere ayrılan ₺200" ve kalan limit 300 azalmış görünür.
@@ -177,7 +176,7 @@ Hepsini tek komutla çalıştırmak için: `START_SERVER=1 REQUIRE_SERVER=1 bash
 - **Veri yapısı değişmedi.** Geçiş gerekmez. Eski kayıtlar olduğu gibi okunur.
 - **Yeni alanlar yalnız SMS'ten gelen taksit planında:** `src: 'sms'` ve sabit kimlik. Eski sürüm bu kayıtları sıradan taksit olarak okur.
 - **Yayından önce** her telefonda **Yedek İndir**.
-- **Yayın sonrası kontrol:** sürüm 2026.10.04.6 · Özet açılıyor · bir harcama ekle/sil · eşitleme "son eşitleme: az önce" · Ayarlar > SMS bağlantısı "açık".
+- **Yayın sonrası kontrol:** sürüm 2026.10.04.8 · Özet açılıyor · bir harcama ekle/sil · eşitleme "son eşitleme: az önce" · Ayarlar > SMS bağlantısı "açık".
 - **Geri dönüş:**
   1. GitHub > Pull requests > birleştirilen PR > **Revert**.
   2. Açılan geri alma PR'ını birleştirin; otomatik yükleme eski sürümü geri koyar.
@@ -198,12 +197,11 @@ Hepsini tek komutla çalıştırmak için: `START_SERVER=1 REQUIRE_SERVER=1 bash
 
 **Gerekçe:**
 - Bulunan 8 P1 sorunun hepsi düzeltildi ve testlerle korunuyor. Açık P0 ya da P1 yok.
-- 774 otomatik kontrol ve 144 ekranlık görsel tarama (ui-scan 72 + qc-visual 72) temiz.
+- 779 otomatik kontrol ve 144 ekranlık görsel tarama (ui-scan 72 + qc-visual 72) temiz.
 - Para akışının tamamı (harcama → ödeme → düzenleme → silme → yenileme → iki/üç cihaz eşitlemesi) bağımsız beklenen değerlerle doğrulandı.
 
 **Koşullar:**
 1. PR'daki GitHub "Testler" kontrolü yeşil olmalı.
 2. Yayından önce her telefonda yedek alınmalı.
 3. §6 kabul testi gerçek iPhone'larda yapılmalı. Özellikle SMS Kestirmesi, Gmail ve bildirimler bu denetimde gerçek cihazda sınanamadı.
-4. K1 (iade) için tercih bildirilmeli. Şu anki davranış veri bozmaz, yalnız aylık gelir göstergesini şişirir.
-5. Önerilen: K2 kayıt anahtarı.
+4. Önerilen: K2 kayıt anahtarı.
