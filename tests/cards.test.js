@@ -99,14 +99,46 @@ srv.listen(0, async () => {
   eq('same payment again (other message) → not added twice', [r2.transfers || 0, r2.dupes, await page.evaluate(() => S.txns().filter(t => t.transferId && t.amount === 1000).length)], [0, 1, 2]);
   eq('card payment with unknown card still goes to approval', await page.evaluate(() => App.BankSms.ingest([{ id: 7003, label: 'abcd1234_u_self', text: 'Garanti: Kredi kartiniza 300,00 TL odeme yapilmistir.', receivedAt: Date.now() }]).queued), 1);
 
+  // 8b) Ödemenin iki kez girilmesine karşı: mesajla gelen ödeme varken "Borcu Öde" sorar; borçtan fazla ödemede sorar
+  await page.evaluate(() => { App.Cards.pay('a_world'); document.getElementById('ccAmt').value = '1000'; document.getElementById('ccPayOk').click(); }); await page.waitForTimeout(150);
+  eq('Borcu Öde: same payment already recorded → asks, adds nothing yet', await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); return [/zaten kayıtlı olabilir/.test(m.textContent), S.txns().filter(t => t.accountId === 'a_world' && t.type === 'income' && t.amount === 1000).length]; }), [true, 1]);
+  await closeModals();
+  const debtW = await page.evaluate(() => App.Cards.info('a_world').debt);
+  await page.evaluate(d => { App.Cards.pay('a_world'); document.getElementById('ccAmt').value = String(d + 5000); document.getElementById('ccPayOk').click(); }, debtW); await page.waitForTimeout(150);
+  eq('Borcu Öde: more than the debt → asks', await page.evaluate(() => /Ödeme borçtan fazla/.test([...document.querySelectorAll('.modal-bd.show')].pop().textContent)), true);
+  await closeModals();
+  // Bankaların farklı cümleleri kart borcu ödemesi olarak tanınır; karta "gelen" para gelir sayılmaz
+  const P = t => page.evaluate(t => { const x = App.BankSms.parse(t, Date.now()); return [x.kind, /Kredi kartı borç ödemesi/.test(x.reason)]; }, t);
+  eq('"…ile biten kartınıza … ödeme yapılmıştır" recognised', await P('Akbank: 7777 ile biten kartınıza 04.10.2026 tarihinde 12.000,00 TL ödeme yapılmıştır.'), ['review', true]);
+  eq('"kredi kartı ödemeniz alınmıştır" recognised', await P('Yapi Kredi: 2947 nolu kredi karti odemeniz alinmistir. Tutar: 500,00 TL'), ['review', true]);
+  eq('"kartınızdan fatura ödemeniz" stays a spend', (await P('Kartinizdan 450,00 TL fatura odemeniz gerceklesmistir. Yapi Kredi'))[1], false);
+  const r3 = await page.evaluate(() => { const b = App.Accounts.get('a_bank').balance; const r = App.BankSms.ingest([{ id: 7010, label: 'abcd1234_u_self', text: 'Akbank: 7777 ile biten kartiniza 750,00 TL yatirilmistir.', receivedAt: Date.now() }]); return [r.transfers || 0, r.added, App.Accounts.get('a_bank').balance - b, S.txns().filter(t => t.amount === 750 && t.accountId === 'a_ax').map(t => [t.type, t.category, !!t.transferId])]; });
+  eq('money "to the card" becomes a card payment from the bank, not income', r3, [1, 0, -750, [['income', 'Transfer', true]]]);
+  // Mükerrer ödeme uyarısı ve tek dokunuşla düzeltme
+  await page.evaluate(() => { App.Transactions.createTransfer({ from: 'a_bank', to: 'a_ax', amount: 750, date: td(), userId: 'u_self' }); App.UI.nav('ozet'); renderAllViews(); });
+  eq('Özet warns about the same card payment recorded twice', await page.evaluate(() => [...document.querySelectorAll('#ozet-cards .cc-alert b')].map(b => b.textContent).filter(t => /iki kez/.test(t))), ['⚠️ Aynı kart ödemesi iki kez kaydedilmiş olabilir']);
+  const bankBefore = await page.evaluate(() => App.Accounts.get('a_bank').balance);
+  await page.evaluate(() => [...document.querySelectorAll('#ozet-cards .cc-alert')].find(x => /iki kez/.test(x.textContent)).querySelector('.btn-primary').click()); await page.waitForTimeout(200);
+  await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); if (m && m.querySelector('[data-act="ok"]')) m.querySelector('[data-act="ok"]').click(); }); await page.waitForTimeout(200);
+  eq('"Birini Sil": one payment removed, money back in the bank, warning gone', await page.evaluate(b => [S.txns().filter(t => t.amount === 750 && t.accountId === 'a_ax').length, App.Accounts.get('a_bank').balance - b, document.querySelectorAll('#ozet-cards .cc-alert').length && [...document.querySelectorAll('#ozet-cards .cc-alert')].some(x => /iki kez/.test(x.textContent))], bankBefore), [1, 750, false]);
+  // Fazla ödeme (alacak) görünür
+  eq('card in credit shows a clear warning', await page.evaluate(() => { const a = S.accounts(), c = a.find(x => x.id === 'a_cash'); const x = { id: 'a_tmp', name: 'Deneme Kart', type: 'card', owner: 'shared', balance: 1200, openingBalance: 1200, ts: 99 }; a.push(x); S.saveAccounts(a); const h = App.Cards.mini(App.Accounts.get('a_tmp')); const hero = (App.Accounts.renderSummary(), document.getElementById('heroCard').textContent); S.saveAccounts(S.accounts().filter(y => y.id !== 'a_tmp')); App.Accounts.renderSummary(); return [/fazla ödeme \(alacak\)/.test(h), /kartta alacak ₺1\.200,00/.test(hero)]; }), [true, true]);
+  // Son ödeme tarihi elle: kesimden 12 gün sonra olan banka
+  await page.evaluate(() => App.Accounts.edit('a_world')); await page.waitForTimeout(150);
+  const dd = await page.evaluate(() => { const c = App.Cards.info('a_world').cut, d = new Date(c + 'T12:00:00'); d.setDate(d.getDate() + 12); const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="dueDate"]').value = iso; m.querySelector('[data-act="ok"]').click(); return iso; });
+  await page.waitForTimeout(150);
+  eq('due date entered as a full date (12 days after cut) is used', await page.evaluate(() => [App.Accounts.get('a_world').dueOffset, App.Cards.info('a_world').due]), [12, dd]);
+  eq('wrong order (due before cut) is refused', await page.evaluate(() => App.Cards.fromDates('2026-10-10', '2026-10-01').err || ''), 'Son ödeme tarihi, kesim tarihinden 1-40 gün sonra olmalı.');
+  await closeModals();
+
   // 9) Kart ekleme / düzenleme alanları
   await page.evaluate(() => App.Accounts.edit('a_ax')); await page.waitForTimeout(150);
-  eq('edit dialog has statement day and limit', await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); return [m.querySelector('[data-pkey="stmt"]').value !== '', m.querySelector('[data-pkey="limit"]').value]; }), [true, '10000']);
+  eq('edit dialog has statement date, due date (full dates) and limit', await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); return [m.querySelector('[data-pkey="cutDate"]').value === App.Cards.info('a_ax').cut && m.querySelector('[data-pkey="dueDate"]').value === App.Cards.info('a_ax').due, m.querySelector('[data-pkey="limit"]').value]; }), [true, '10000']);
   await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="limit"]').value = '25000'; m.querySelector('[data-act="ok"]').click(); }); await page.waitForTimeout(150);
   eq('limit updated', await page.evaluate(() => App.Accounts.get('a_ax').limit), 25000);
   await page.evaluate(() => { App.UI.nav('islemler'); App.UI.setType('expense'); document.querySelector('[data-acc="__new__"]').click(); }); await page.waitForTimeout(150);
-  await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="name"]').value = 'Garanti Bonus'; m.querySelector('[data-pkey="limit"]').value = '30.000'; m.querySelector('[data-pkey="stmt"]').value = '20'; m.querySelector('[data-act="ok"]').click(); }); await page.waitForTimeout(150);
-  eq('quick add card with limit and statement day', await page.evaluate(() => { const a = S.accounts().find(x => x.name === 'Garanti Bonus'); return [a.type, a.limit, a.statementDay]; }), ['card', 30000, 20]);
+  await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="name"]').value = 'Garanti Bonus'; m.querySelector('[data-pkey="limit"]').value = '30.000'; m.querySelector('[data-pkey="cutDate"]').value = '2026-09-20'; m.querySelector('[data-pkey="dueDate"]').value = '2026-10-02'; m.querySelector('[data-act="ok"]').click(); }); await page.waitForTimeout(150);
+  eq('quick add card with limit and statement day', await page.evaluate(() => { const a = S.accounts().find(x => x.name === 'Garanti Bonus'); return [a.type, a.limit, a.statementDay, a.dueOffset]; }), ['card', 30000, 20, 12]);
   await page.evaluate(() => { App.UI.nav('hesaplar'); document.getElementById('accName').value = 'İş Bankası Maximum'; document.getElementById('accType').value = 'card'; App.Accounts.onTypeChange(); document.getElementById('accLimit').value = '40.000'; App.Accounts.add(); });
   eq('add form saves limit', await page.evaluate(() => (S.accounts().find(a => a.name === 'İş Bankası Maximum') || {}).limit), 40000);
   // 10) Ortak limit: aynı bankanın iki kartı tek limit; borç ve ekstre kart kart ayrı
