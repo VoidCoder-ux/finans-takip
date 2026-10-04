@@ -91,6 +91,7 @@ Test verileri tamamen kurmacadır. Canlı kasaya, bankaya, Gmail'e ya da üretim
 | F20 | P2 | Görsel | Yatay telefonda düğmeler 25–31 px'ti. | Dokunmatik ekranda ≥40 px. | qc-visual |
 | F21 | P2 | Görsel | 320 px + en büyük yazıda tutarlar sayının ortasından bölünüyordu (₺92.020,0│0), kart adı harf ortasından bölünüyordu, düzenle düğmesi simgenin üstüne biniyordu. | Tutarlar bölünmez; dar ekranda kutucuklar alt alta, hesap kartları tek sütun. | T (önce/sonra), qc-visual |
 | F23 | P2 | Yayın hattı | Otomatik yükleme yalnız 2 küçük testi (tarih, piyasa) çalıştırıyordu. Banka, kart ve eşitleme yayından önce hiç sınanmıyordu. | `test.yml`: her PR'da ve yüklemeden önce ~780 kontrollük tam paket, yerel sunucu dahil. Test geçmezse yükleme yapılmaz. | GitHub Actions |
+| F24 | P3 | Kurulum hatırlatması / test | GitHub'daki bir test çalıştırması bir kez zaman aşımına uğradı. Haftalık "Kurulum Kontrolü" penceresi açılıştan 500 ms sonra çıkıyor ve o an açık olan pencerenin (CSV onayı) üstüne biniyordu. Ayrıca yedek geri yükleme testi sayfa yenilenmesini sabit 900 ms bekliyordu. | Hatırlatma açık bir pencere varken çıkmaz. Test yenilemenin kendisini bekler. "Rastgele hata" sayılmadı: 8–10 kat yavaşlatılmış tarayıcıda yeniden üretildi, düzeltmeden sonra 3/3 geçti. | browser-behavior (yavaşlatılmış) |
 | F13, F17, F22 | P3 | Portföy / yedek / onay metni | Kur alınamayınca uyarı yoktu; yedekte eşitleme birleştirmesi anlatılmıyordu; seçenek metni kesiliyordu. | Uyarı ve açıklamalar eklendi. | T |
 
 ## 3. Karar gerektiren konular
