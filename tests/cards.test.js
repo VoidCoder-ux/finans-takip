@@ -131,9 +131,23 @@ srv.listen(0, async () => {
   eq('wrong order (due before cut) is refused', await page.evaluate(() => App.Cards.fromDates('2026-10-10', '2026-10-01').err || ''), 'Son ödeme tarihi, kesim tarihinden 1-40 gün sonra olmalı.');
   await closeModals();
 
+  // 8c) Yaklaşan kesim tarihi girilince saklanır: önceki ekstre kapanmış sayılır, borç sonraki ekstreye yazılır
+  const up = await page.evaluate(() => { const d = new Date(); const c = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7), du = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 17); const f = x => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); return [f(c), f(du)]; });
+  await page.evaluate(() => App.Accounts.edit('a_ax')); await page.waitForTimeout(150);
+  await page.evaluate(([c, d]) => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="cutDate"]').value = c; m.querySelector('[data-pkey="dueDate"]').value = d; m.querySelector('[data-act="ok"]').click(); }, up); await page.waitForTimeout(150);
+  eq('upcoming cut date kept: no overdue, debt goes to next statement with entered dates', await page.evaluate(() => { const i = App.Cards.info('a_ax'); return [i.upcoming, i.overdue, i.stmtLeft, i.nextCut, i.nextDue, i.nextStmt === i.debt]; }), [true, false, 0].concat(up).concat([true]));
+  await page.evaluate(() => App.Accounts.edit('a_ax')); await page.waitForTimeout(150);
+  eq('edit dialog shows the entered (upcoming) dates again', await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); return [m.querySelector('[data-pkey="cutDate"]').value, m.querySelector('[data-pkey="dueDate"]').value]; }), up);
+  await closeModals();
+  eq('reload keeps the entered dates', await page.evaluate(() => { S.load(); const i = App.Cards.info('a_ax'); return [i.nextCut, i.nextDue]; }), up);
+  // Özet: her kart için borç / kullanılabilir limit çubuğu
+  const bars = await page.evaluate(() => { App.UI.nav('ozet'); renderAllViews(); return [...document.querySelectorAll('#ozet-cardbars .ccb')].map(b => [b.querySelector('.ccb-top b').textContent, !!b.querySelector('.cc-bar') || /Limit girilmedi/.test(b.textContent), /Kullanılabilir|aşıldı|Limit girilmedi/.test(b.textContent)]); });
+  eq('Özet "Kartlarım": one row per card with debt and available limit', [bars.length >= 2, bars.every(b => b[1] && b[2]), bars.map(b => b[0]).slice(0, 2)], [true, true, ['Yapı Kredi World …2947', 'Akbank Axess …7777']]);
+  if (OUT) await page.locator('#ozet-cardbars').screenshot({ path: OUT + '/ozet-cardbars.png' });
+
   // 9) Kart ekleme / düzenleme alanları
   await page.evaluate(() => App.Accounts.edit('a_ax')); await page.waitForTimeout(150);
-  eq('edit dialog has statement date, due date (full dates) and limit', await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); return [m.querySelector('[data-pkey="cutDate"]').value === App.Cards.info('a_ax').cut && m.querySelector('[data-pkey="dueDate"]').value === App.Cards.info('a_ax').due, m.querySelector('[data-pkey="limit"]').value]; }), [true, '10000']);
+  eq('edit dialog has statement date, due date (full dates) and limit', await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); return [(i => m.querySelector('[data-pkey="cutDate"]').value === (i.upcoming ? i.nextCut : i.cut) && m.querySelector('[data-pkey="dueDate"]').value === (i.upcoming ? i.nextDue : i.due))(App.Cards.info('a_ax')), m.querySelector('[data-pkey="limit"]').value]; }), [true, '10000']);
   await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="limit"]').value = '25000'; m.querySelector('[data-act="ok"]').click(); }); await page.waitForTimeout(150);
   eq('limit updated', await page.evaluate(() => App.Accounts.get('a_ax').limit), 25000);
   await page.evaluate(() => { App.UI.nav('islemler'); App.UI.setType('expense'); document.querySelector('[data-acc="__new__"]').click(); }); await page.waitForTimeout(150);
