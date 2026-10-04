@@ -65,7 +65,8 @@ srv.listen(0, async () => {
   await page.evaluate(() => { document.querySelectorAll('#ccOpts .cc-opt')[1].click(); document.getElementById('ccPayOk').click(); }); await page.waitForTimeout(150);
   const afterMin = await page.evaluate(() => { const i = App.Cards.info('a_world'); return [App.Accounts.get('a_bank').balance, App.Accounts.get('a_world').balance, i.stmtLeft, i.minLeft, App.Accounts.get('a_world').payFrom, JSON.stringify(App.Transactions.monthTotals(tm()))]; });
   eq('paid minimum: bank −2000, card debt −2000, minimum done, not counted as income/expense', afterMin.slice(0, 5).concat(/"income":0/.test(afterMin[5]) || !/"income":2000/.test(afterMin[5])), [28000, -10000, 8000, 0, 'a_bank', true]);
-  eq('reminder now shows the remaining statement debt', await page.evaluate(() => App.Notifications.cardDues(7).filter(c => /World/.test(c.text)).map(c => [c.in, c.text])), [[5, '💳 Yapı Kredi World …2947 son ödeme: ₺8.000,00']]);
+  eq('minimum paid: no reminder any more (remaining statement debt is optional)', await page.evaluate(() => App.Notifications.cardDues(7).filter(c => /World/.test(c.text)).length), 0);
+  eq('minimum paid: card shows a calm green note, not a warning', await page.evaluate(() => { const i = App.Cards.info('a_world'), d = document.createElement('div'); d.innerHTML = App.Cards.mini(App.Accounts.get('a_world')); const e = d.querySelector('.cc-due'); return [i.minPaid, e.className, /^✓ Asgari ödendi · kalan dönem borcu ₺8\.000,00 · son ödeme /.test(e.textContent)]; }), [true, 'cc-due ok', true]);
   // Kalanı öde → hatırlatma ve uyarı yok
   await page.evaluate(() => { App.Cards.pay('a_world'); document.getElementById('ccPayOk').click(); }); await page.waitForTimeout(150);
   eq('statement paid: no current reminder, card shows paid', await page.evaluate(() => [App.Notifications.cardDues(7).filter(c => /World/.test(c.text) && c.in <= 7).length, App.Cards.info('a_world').stmtLeft, App.Accounts.get('a_world').balance, App.Accounts.get('a_bank').balance]), [0, 0, -2000, 20000]);
@@ -75,6 +76,15 @@ srv.listen(0, async () => {
   eq('Akbank: overdue, minimum not paid', ax, [true, true, 8600, 1720, -5]);
   eq('Özet shows red overdue alert with pay button', await page.evaluate(() => { App.UI.nav('ozet'); return [...document.querySelectorAll('#ozet-cards .cc-alert')].map(x => [x.classList.contains('red'), x.querySelector('b').textContent, x.querySelector('button').textContent]); }), [[true, '⚠️ Son ödeme günü geçti', '💳 Öde']]);
   eq('Stats warnings: limit almost full and overdue', await page.evaluate(() => App.Insights.compute(tm()).warnings.filter(w => /Akbank/.test(w.title)).map(w => w.level + ':' + w.title).sort()), ['red:Akbank Axess …7777 son ödeme geçti', 'yellow:Akbank Axess …7777 limiti dolmak üzere']);
+  // Asgari son ödemeden önce ödendiyse: Özet uyarısı, hatırlatma ve kırmızı uyarı kalkar
+  eq('Akbank minimum paid: no Özet alert, no reminder, no overdue warning; bars say paid', await page.evaluate(() => {
+    const a = S.accounts(), c = a.find(x => x.id === 'a_ax'); c.balance += 1720; S.saveAccounts(a);
+    const t = S.txns(); t.push({ id: 't_minax', type: 'income', amount: 1720, category: 'Transfer', date: td(), note: 'Asgari', accountId: 'a_ax', userId: 'u_self', ts: 9, balanceApplied: true }); S.saveTxns(t);
+    App.Cards.renderAlerts(); const i = App.Cards.info('a_ax');
+    const out = [i.minPaid, i.minMissed, document.querySelectorAll('#ozet-cards .cc-alert').length, App.Notifications.cardDues(60).filter(x => /Akbank/.test(x.text)).length, App.Insights.compute(tm()).warnings.filter(w => /son ödeme/.test(w.title)).length,
+      [...document.querySelectorAll('#ozet-cardbars .ccb')].find(b => /Akbank/.test(b.textContent)).querySelector('.ccb-sub.ok').textContent];
+    const b = S.accounts(); b.find(x => x.id === 'a_ax').balance -= 1720; S.saveAccounts(b); S.saveTxns(S.txns().filter(x => x.id !== 't_minax')); App.Cards.renderAlerts();
+    return out; }), [true, false, 0, 0, 0, '✓ Asgari ödendi · kalan dönem borcu ₺6.880,00']);
 
   // Asgari oran: limit 100.000 TL'ye kadar %20, aşarsa %40
   eq('minimum rate: 100.000 limit → %20, 100.001 → %40', await page.evaluate(() => { const a = S.accounts(), c = a.find(x => x.id === 'a_ax'), keep = c.limit; c.limit = 100000; S.saveAccounts(a); const m1 = App.Cards.info('a_ax').minTotal; c.limit = 100001; S.saveAccounts(a); const m2 = App.Cards.info('a_ax').minTotal; c.limit = keep; S.saveAccounts(a); return [m1, m2]; }), [1720, 3440]);
@@ -87,7 +97,7 @@ srv.listen(0, async () => {
 
   // 7) Özet: kart borcuna dokununca kartlarım
   await closeModals();
-  await page.evaluate(() => { App.UI.nav('ozet'); document.querySelector('.chip-btn').click(); }); await page.waitForTimeout(150);
+  await page.evaluate(() => { App.UI.nav('ozet'); document.querySelector('button.hero-tile').click(); }); await page.waitForTimeout(150);
   eq('hero card-debt chip opens all cards', await page.evaluate(() => [...document.querySelectorAll('#cardsHolder .cc-ov-top b')].map(b => b.textContent)), ['💳 Yapı Kredi World …2947', '💳 Akbank Axess …7777']);
   if (OUT) await page.screenshot({ path: OUT + '/cards-overview.png' });
   await closeModals();
@@ -122,7 +132,7 @@ srv.listen(0, async () => {
   await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); if (m && m.querySelector('[data-act="ok"]')) m.querySelector('[data-act="ok"]').click(); }); await page.waitForTimeout(200);
   eq('"Birini Sil": one payment removed, money back in the bank, warning gone', await page.evaluate(b => [S.txns().filter(t => t.amount === 750 && t.accountId === 'a_ax').length, App.Accounts.get('a_bank').balance - b, document.querySelectorAll('#ozet-cards .cc-alert').length && [...document.querySelectorAll('#ozet-cards .cc-alert')].some(x => /iki kez/.test(x.textContent))], bankBefore), [1, 750, false]);
   // Fazla ödeme (alacak) görünür
-  eq('card in credit shows a clear warning', await page.evaluate(() => { const a = S.accounts(), c = a.find(x => x.id === 'a_cash'); const x = { id: 'a_tmp', name: 'Deneme Kart', type: 'card', owner: 'shared', balance: 1200, openingBalance: 1200, ts: 99 }; a.push(x); S.saveAccounts(a); const h = App.Cards.mini(App.Accounts.get('a_tmp')); const hero = (App.Accounts.renderSummary(), document.getElementById('heroCard').textContent); S.saveAccounts(S.accounts().filter(y => y.id !== 'a_tmp')); App.Accounts.renderSummary(); return [/fazla ödeme \(alacak\)/.test(h), /kartta alacak ₺1\.200,00/.test(hero)]; }), [true, true]);
+  eq('card in credit shows a clear warning', await page.evaluate(() => { const a = S.accounts(), c = a.find(x => x.id === 'a_cash'); const x = { id: 'a_tmp', name: 'Deneme Kart', type: 'card', owner: 'shared', balance: 1200, openingBalance: 1200, ts: 99 }; a.push(x); S.saveAccounts(a); const h = App.Cards.mini(App.Accounts.get('a_tmp')); const hero = (App.Accounts.renderSummary(), document.getElementById('heroCardNote').textContent); S.saveAccounts(S.accounts().filter(y => y.id !== 'a_tmp')); App.Accounts.renderSummary(); return [/fazla ödeme \(alacak\)/.test(h), /kartta alacak ₺1\.200,00/.test(hero)]; }), [true, true]);
   // Son ödeme tarihi elle: kesimden 12 gün sonra olan banka
   await page.evaluate(() => App.Accounts.edit('a_world')); await page.waitForTimeout(150);
   const dd = await page.evaluate(() => { const c = App.Cards.info('a_world').cut, d = new Date(c + 'T12:00:00'); d.setDate(d.getDate() + 12); const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="dueDate"]').value = iso; m.querySelector('[data-act="ok"]').click(); return iso; });

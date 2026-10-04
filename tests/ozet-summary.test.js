@@ -33,7 +33,7 @@ srv.listen(0, async () => {
   await page.reload(); await page.waitForTimeout(500);
   await page.evaluate(() => App.UI.nav('ozet'));
   const hero = await page.evaluate(() => ['heroNet', 'heroCard', 'heroAfter', 'heroAcc'].map(id => document.getElementById(id).textContent).concat(document.querySelector('.hero-lbl').textContent));
-  eq('hero: bank money stays 6.000; card debt and net after card debt separate', hero, ['₺6.000,00', '💳 Kart borcu ₺115,00', 'Kart borcu düşünce ₺5.885,00', '3 Hesap', 'Hesaplarımdaki Para']);
+  eq('hero: bank money stays 6.000; card debt and net after card debt separate', hero, ['₺6.000,00', '₺115,00', '₺5.885,00', '3 Hesap', 'Hesaplarımdaki Para']);
   eq('net worth = 5.885 with clear breakdown', await page.evaluate(() => [document.getElementById('nwVal').textContent, document.getElementById('nwFoot').innerText.replace(/\s+/g, ' ').trim().split(' 💎')[0]]), ['₺5.885,00', '🏦 ₺6.000,00 Hesaplardaki para 💳 −₺115,00 Kart borcu']);
   eq('no fake drop from old snapshots of deleted accounts (history starts when accounts were opened)', await page.evaluate(() => document.getElementById('nwDelta').textContent), 'İlk kayıt');
   eq('Ortak Cüzdan shows money in shared accounts, card debt in the note', await page.evaluate(() => { const r = document.querySelector('#ozet-family .wallet-row'); return [r.querySelector('.wr-bal').textContent, r.querySelector('.wr-cap').textContent, /kart borcu ₺115,00/.test(r.querySelector('.wr-meta').textContent)]; }), ['₺6.000,00', 'hesaplarda', true]);
@@ -51,7 +51,7 @@ srv.listen(0, async () => {
 
   // Kart borcu yokken
   await page.evaluate(() => { const a = S.accounts(); a.find(x => x.id === 'a_hb').balance = 0; S.saveAccounts(a); App.Accounts.renderSummary(); });
-  eq('no card debt', await page.evaluate(() => document.getElementById('heroCard').textContent), '💳 Kart borcu yok');
+  eq('no card debt', await page.evaluate(() => document.getElementById('heroCard').textContent), 'Yok ✓');
   // Hız: genel yenileme yalnız açık sayfayı çizer; gizli sayfa açılınca güncel veriyle çizilir
   const perf = await page.evaluate(() => {
     const t = S.txns(), base = Date.now();
