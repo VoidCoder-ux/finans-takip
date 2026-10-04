@@ -949,9 +949,12 @@ function parseMoney(v,opt){
   opt=opt||{};var min=opt.min!=null?opt.min:(opt.allowZero?0:.01),max=opt.max||MAX_MONEY,n;
   if(typeof v==='number')n=v;
   else{
-    var s=String(v==null?'':v).trim();
+    // Kopyalanan tutarlardaki boşluk, ₺ / TL işareti atılır (girişteki ipucu da böyle okur)
+    var s=String(v==null?'':v).replace(/[\s\u00a0\u202f]+/g,'').replace(/^(₺|TL|TRY)|(₺|TL|TRY)$/gi,'');
     if(!s||/[eE]/.test(s)||/^(nan|infinity|-infinity)$/i.test(s))return null;
-    if(s.indexOf(',')>=0){
+    // İngilizce yazım "1,234.56": virgül binlik, nokta ondalık (iki ayraç da varsa anlam kesindir)
+    if(/^-?\d{1,3}(,\d{3})+\.\d{1,2}$/.test(s))n=Number(s.replace(/,/g,''));
+    else if(s.indexOf(',')>=0){
       if(!/^-?\d{1,3}(\.\d{3})*(,\d+)?$|^-?\d+(,\d+)?$/.test(s))return null;
       n=Number(s.replace(/\./g,'').replace(',','.'));
     }else if(!opt.dotDecimal&&/^-?[1-9]\d{0,2}(\.\d{3})+$/.test(s)){
@@ -1585,7 +1588,10 @@ App.Accounts=(function(){
     var recs=S.recurring(),rtouched=0;
     recs.forEach(function(r){if(r.accountId===id){r.accountId='';rtouched++}});
     if(rtouched)S.saveRecurring(recs);
-    S.saveAccounts(S.accounts().filter(function(a){return a.id!==id}));
+    // Ortak limitin ana kartı silinirse limit kalan ilk karta geçer; öbür kartlar ona bağlanır (limit kaybolmasın)
+    var rest=S.accounts().filter(function(a){return a.id!==id}),kids=rest.filter(function(a){return a.limitWith===id});
+    if(kids.length){var heir=kids[0];delete heir.limitWith;if(acc.limit&&!heir.limit)heir.limit=acc.limit;kids.slice(1).forEach(function(k){k.limitWith=heir.id})}
+    S.saveAccounts(rest);
     App.UI.refreshAccSelects();renderAll();renderSummary();
     if(touched||rtouched){App.Transactions.renderList();App.Transactions.renderRecent();App.Recurring.renderList();App.Recurring.renderOzet();App.UI.toast('Hesap silindi. '+touched+' işlem, '+rtouched+' tekrarlayan hesapsız bırakıldı.','info')}
     else App.UI.toast('Hesap silindi.');
@@ -1678,7 +1684,8 @@ App.Transactions=(function(){
     var txns=S.txns(),x=txns.find(function(y){return y.id===id});if(!x)return false;
     var today=td();_unapply(x,today);Object.keys(fields).forEach(function(k){x[k]=fields[k]});_apply(x,today);S.saveTxns(txns);return true;
   }
-  function _clearForm(){document.getElementById('txnAmt').value='';document.getElementById('txnNote').value='';document.getElementById('txnInst').value='';document.getElementById('txnInstStart').value='';var u=document.getElementById('txnUser');if(u&&App.Users.get(S.settings().activeUser))u.value=S.settings().activeUser}
+  // Geçmiş tarih bir sonraki kayıt için kalır (aynı günün fişleri); ileri tarih kalmaz: bugünkü harcama sessizce "planlı" olmasın
+  function _clearForm(){var dEl=document.getElementById('txnDate');if(dEl&&dEl.value>td())dEl.value=td();document.getElementById('txnAmt').value='';document.getElementById('txnNote').value='';document.getElementById('txnInst').value='';document.getElementById('txnInstStart').value='';var u=document.getElementById('txnUser');if(u&&App.Users.get(S.settings().activeUser))u.value=S.settings().activeUser}
   function _signed(t){return t.type==='income'?t.amount:-t.amount}
   function _unapply(t,today){if(t.accountId&&isBalanceApplied(t,today))App.Accounts.adjustBalance(t.accountId,-_signed(t))}
   function _apply(t,today){t.balanceApplied=t.date<=today;if(t.installment)t.installment.balanceApplied=t.balanceApplied;if(t.accountId&&t.balanceApplied)App.Accounts.adjustBalance(t.accountId,_signed(t))}
@@ -1752,7 +1759,7 @@ App.Transactions=(function(){
       if(accId&&applied)App.Accounts.adjustBalance(accId,type==='income'?amt:-amt);
       if(newTxn._ruleApplied&&newTxn.category!==origCat)App.UI.toast('İşlem eklendi. Kural uygulandı: '+origCat+' → '+newTxn.category,'info');
       else if(type==='expense'&&newTxn.category==='Kredi Kartı Ödemesi'&&S.accounts().some(function(a){return a.type==='card'}))App.UI.toast('İşlem eklendi. Kartınız hesap olarak kayıtlıysa kart ödemesini "↔ Transfer" ile girin; yoksa harcama iki kez gider sayılır.','info');
-      else App.UI.toast('İşlem eklendi.');
+      else App.UI.toast(applied?'İşlem eklendi.':'İşlem '+fd(date)+' için planlandı; bakiyeye o gün işlenir.',applied?undefined:'info');
     }
     App.UI.rememberAcc(userId,type,accId);_clearForm();_refresh();
   }
@@ -5186,10 +5193,12 @@ App.Cards=(function(){
     if(typeof a==='string')a=App.Accounts.get(a);
     if(!a||a.type!=='card')return null;
     var debt=Math.max(0,roundMoney(-(a.balance||0))),r=root(a),g=group(a),limit=r.limit>0?r.limit:0;
-    var gDebt=roundMoney(g.reduce(function(s,c){return s+Math.max(0,-(c.balance||0))},0));
-    var o={id:a.id,credit:Math.max(0,roundMoney(a.balance||0)),debt:debt,limit:limit,avail:limit?roundMoney(limit-gDebt):null,used:limit?gDebt/limit:null,hasCut:!!a.statementDay,groupDebt:gDebt,
+    var gDebt=roundMoney(g.reduce(function(s,c){return s+Math.max(0,-(c.balance||0))},0)),today=td(),gids={};g.forEach(function(c){gids[c.id]=1});
+    // Banka taksitli alışverişin tamamını alışveriş günü limitten düşer: gelecek taksitler kalan limitten ayrılır
+    var blocked=roundMoney(S.txns().reduce(function(s,t){return s+(gids[t.accountId]&&t.installment&&t.type==='expense'&&!isBalanceApplied(t,today)?t.amount:0)},0));
+    var o={id:a.id,credit:Math.max(0,roundMoney(a.balance||0)),debt:debt,limit:limit,avail:limit?roundMoney(limit-gDebt-blocked):null,used:limit?(gDebt+blocked)/limit:null,blocked:blocked,hasCut:!!a.statementDay,groupDebt:gDebt,
       shared:g.length>1?g.filter(function(c){return c.id!==a.id}).map(function(c){return c.name}):[],rootId:r.id};
-    var today=td(),txns=S.txns().filter(function(t){return t.accountId===a.id});
+    var txns=S.txns().filter(function(t){return t.accountId===a.id});
     // Gelecek aylara yazılacak taksitler (henüz bakiyeye işlenmemiş)
     var inst={};txns.forEach(function(t){if(t.installment&&t.balanceApplied===false&&t.date>today){var m=t.date.slice(0,7);inst[m]=roundMoney((inst[m]||0)+t.amount)}});
     o.installments=Object.keys(inst).sort().slice(0,6).map(function(m){return{month:m,amount:inst[m]}});
@@ -5219,7 +5228,7 @@ App.Cards=(function(){
   // Hesap kartı ve listelerde kısa görünüm
   function mini(a){
     var i=info(a);if(!i)return'';var h='';
-    if(i.limit)h+='<div class="cc-limit"><div class="cc-bar"><span class="'+_barCls(i)+'" style="width:'+_pct(i)+'%"></span></div><div class="cc-lim-txt">'+(i.shared.length?'Ortak limit':'Limit')+' '+fmt(i.limit)+' · '+(i.avail<0?'<b class="neg">Limit '+fmt(-i.avail)+' aşıldı</b>':'<b>Kalan '+fmt(i.avail)+'</b>')+'</div></div>';
+    if(i.limit)h+='<div class="cc-limit"><div class="cc-bar"><span class="'+_barCls(i)+'" style="width:'+_pct(i)+'%"></span></div><div class="cc-lim-txt">'+(i.shared.length?'Ortak limit':'Limit')+' '+fmt(i.limit)+' · '+(i.avail<0?'<b class="neg">Limit '+fmt(-i.avail)+' aşıldı</b>':'<b>Kalan '+fmt(i.avail)+'</b>')+(i.blocked>0.009?' · taksitlere ayrılan '+fmt(i.blocked):'')+'</div></div>';
     if(i.minPaid)h+='<div class="cc-due ok">✓ Asgari ödendi · kalan dönem borcu <b>'+fmt(i.stmtLeft)+'</b>'+(i.overdue?' (faizle sonraki ekstreye geçer)':' · son ödeme '+fd(i.due))+'</div>';
     else if(i.hasCut&&i.stmtLeft>0.009)h+='<div class="cc-due'+(i.overdue?' red':i.daysToDue<=3?' yellow':'')+'">'+(i.overdue?'⚠️ Son ödeme geçti: ':'Son ödeme '+fd(i.due)+': ')+'<b>'+fmt(i.stmtLeft)+'</b>'+(i.minLeft>0.009?' · asgari '+fmt(i.minLeft):'')+'</div>';
     else if(i.upcoming&&i.debt>0.009)h+='<div class="cc-due">Ekstre '+fd(i.nextCut)+' kesilecek · son ödeme '+fd(i.nextDue)+' · şu anki borç <b>'+fmt(i.debt)+'</b></div>';
@@ -5227,7 +5236,7 @@ App.Cards=(function(){
     else if(!i.hasCut)h+='<div class="cc-due">Kesim günü girilirse dönem borcu ve son ödeme görünür</div>';
     if(i.shared.length)h+='<div class="cc-due">🔗 Limit ortak: '+esc(i.shared.join(', '))+'</div>';
     if(i.credit>0.009)h+='<div class="cc-due yellow">⚠️ Kartta fazla ödeme (alacak): <b>'+fmt(i.credit)+'</b> — ödeme iki kez girilmiş ya da borç eksik girilmiş olabilir</div>';
-    return h+'<div class="cc-acts"><button class="btn btn-sm btn-ghost" onclick="event.stopPropagation();App.Cards.detail(\''+a.id+'\')">Detay</button>'+(i.debt>0.009?'<button class="btn btn-sm btn-primary" onclick="event.stopPropagation();App.Cards.pay(\''+a.id+'\')">💳 Borcu Öde</button>':'')+'</div>';
+    return h+'<div class="cc-acts"><button class="btn btn-sm btn-ghost" onclick="event.stopPropagation();App.Cards.detail(\''+a.id+'\')">Detay</button>'+(i.debt>0.009?'<button class="btn btn-sm btn-primary" onclick="event.stopPropagation();App.Cards.pay(\''+a.id+'\')">💳 Ödeme Gir</button>':'')+'</div>';
   }
   function _mount(id,title,body,actions,focus){
     var div=document.createElement('div');div.id=id;
@@ -5238,7 +5247,7 @@ App.Cards=(function(){
   function detail(id){
     var a=App.Accounts.get(id),i=info(a);if(!i)return;App.UI.closeModal('cardDetailHolder');
     var b='<div class="cc-box">'+(i.credit>0.009?_row('Fazla ödeme (alacak)',fmt(i.credit),'pos')+'<div class="cc-warn">Kart borcu eksiye düşmüş: aynı ödeme iki kez girilmiş ya da kartın borcu eksik girilmiş olabilir. Hareketleri kontrol edin; gerekirse kartı düzenleyip bankadaki güncel borcu girin.</div>':_row('Toplam borç',fmt(i.debt),'neg'));
-    if(i.limit)b+=(i.shared.length?_row('Ortak limit',fmt(i.limit))+_row('Ortak limitli kartlar',esc(i.shared.join(', ')))+_row('Kartların toplam borcu',fmt(i.groupDebt),'neg'):_row('Limit',fmt(i.limit)))+(i.avail<0?_row('Limit aşımı',fmt(-i.avail),'neg'):_row('Kalan limit',fmt(i.avail),'pos'))+'<div class="cc-bar big"><span class="'+_barCls(i)+'" style="width:'+_pct(i)+'%"></span></div><div class="cc-sub">Limitin %'+_pct(i)+'\'i kullanılıyor</div>';
+    if(i.limit)b+=(i.shared.length?_row('Ortak limit',fmt(i.limit))+_row('Ortak limitli kartlar',esc(i.shared.join(', ')))+_row('Kartların toplam borcu',fmt(i.groupDebt),'neg'):_row('Limit',fmt(i.limit)))+(i.blocked>0.009?_row('Gelecek taksitlere ayrılan',fmt(i.blocked)):'')+(i.avail<0?_row('Limit aşımı',fmt(-i.avail),'neg'):_row('Kalan limit',fmt(i.avail),'pos'))+'<div class="cc-bar big"><span class="'+_barCls(i)+'" style="width:'+_pct(i)+'%"></span></div><div class="cc-sub">Limitin %'+_pct(i)+'\'i kullanılıyor</div>';
     else b+='<div class="cc-sub">Limit girilirse kalan limit ve doluluk görünür.</div>';
     b+='</div>';
     if(i.upcoming){
@@ -5253,7 +5262,7 @@ App.Cards=(function(){
     if(i.installments.length)b+='<div class="cc-h">🧾 Gelecek aylara taksitler</div><div class="cc-box">'+i.installments.map(function(x){var p=x.month.split('-');return _row(MF[+p[1]-1]+' '+p[0],fmt(x.amount))}).join('')+'</div>';
     var last=S.txns().filter(function(t){return t.accountId===id}).sort(function(x,y){return x.date<y.date?1:x.date>y.date?-1:0}).slice(0,8);
     if(last.length)b+='<div class="cc-h">Son hareketler</div><div class="cc-box">'+last.map(function(t){return _row(esc((t.note||t.category))+' <span class="cc-sub">'+fd(t.date)+'</span>',(t.type==='income'?'+':'−')+fmt(t.amount),t.type==='income'?'pos':'')}).join('')+'</div>';
-    _mount('cardDetailHolder','💳 '+esc(accLabel(a)),b,'<button class="btn btn-ghost" onclick="App.UI.closeModal(\'cardDetailHolder\');App.Accounts.edit(\''+id+'\')">✎ Düzenle</button>'+(i.debt>0.009?'<button class="btn btn-primary" id="cardPayBtn" onclick="App.UI.closeModal(\'cardDetailHolder\');App.Cards.pay(\''+id+'\')">💳 Borcu Öde</button>':'<button class="btn btn-primary" onclick="App.UI.closeModal(\'cardDetailHolder\')">Kapat</button>'),i.debt>0.009?'#cardPayBtn':null);
+    _mount('cardDetailHolder','💳 '+esc(accLabel(a)),b,'<button class="btn btn-ghost" onclick="App.UI.closeModal(\'cardDetailHolder\');App.Accounts.edit(\''+id+'\')">✎ Düzenle</button>'+(i.debt>0.009?'<button class="btn btn-primary" id="cardPayBtn" onclick="App.UI.closeModal(\'cardDetailHolder\');App.Cards.pay(\''+id+'\')">💳 Ödeme Gir</button>':'<button class="btn btn-primary" onclick="App.UI.closeModal(\'cardDetailHolder\')">Kapat</button>'),i.debt>0.009?'#cardPayBtn':null);
   }
   // Ödemenin yapılacağı hesap: son kullanılan, yoksa en çok parası olan banka hesabı
   function _payFrom(a){var src=S.accounts().filter(function(x){return x.type!=='card'});var p=a.payFrom&&src.find(function(x){return x.id===a.payFrom});if(p)return p.id;src.sort(function(x,y){return(y.type==='bank')-(x.type==='bank')||(y.balance||0)-(x.balance||0)});return src[0]?src[0].id:''}
@@ -5262,12 +5271,12 @@ App.Cards=(function(){
     var src=S.accounts().filter(function(x){return x.type!=='card'});if(!src.length){App.UI.toast('Önce ödemenin yapılacağı banka hesabını ekleyin.','err');return}
     var opts=[];if(i.hasCut&&i.stmtLeft>0.009)opts.push(['stmt','Dönem borcu',i.stmtLeft]);if(i.hasCut&&i.minLeft>0.009&&i.minLeft<i.stmtLeft)opts.push(['min','Asgari',i.minLeft]);if(i.debt>0.009)opts.push(['all','Tüm borç',i.debt]);
     var def=opts[0]?opts[0][2]:0,from=_payFrom(a);
-    var b='<div class="set-sub" style="margin-bottom:10px">Ödeme seçtiğiniz hesaptan düşer, kart borcundan silinir. Gider sayılmaz (kendi hesaplarınız arası).</div>'+
+    var b='<div class="set-sub" style="margin-bottom:10px">Bu ekran bankada ödeme yapmaz: bankanızdan yaptığınız ödemeyi kaydeder. Tutar seçtiğiniz hesaptan düşer, kart borcundan silinir; gider sayılmaz (kendi hesaplarınız arası).</div>'+
       '<div class="cc-opts" id="ccOpts">'+opts.map(function(o,k){return'<button type="button" class="cc-opt'+(k===0?' on':'')+'" data-amt="'+o[2]+'" onclick="App.Cards.pick(this)">'+o[1]+'<b>'+fmt(o[2])+'</b></button>'}).join('')+'<button type="button" class="cc-opt" data-amt="" onclick="App.Cards.pick(this)">Başka tutar</button></div>'+
       '<div class="f"><label for="ccAmt">Tutar (₺)</label><input type="text" inputmode="decimal" id="ccAmt" value="'+(def?String(def).replace('.',','):'')+'" autocomplete="off"/></div>'+
       '<div class="f"><label for="ccFrom">Hangi hesaptan</label><select id="ccFrom">'+src.map(function(x){return'<option value="'+escAttr(x.id)+'"'+(x.id===from?' selected':'')+'>'+(AM[x.type]||{i:''}).i+' '+esc(accLabel(x))+' · '+fmt(x.balance||0)+'</option>'}).join('')+'</select></div>'+
       '<div class="f"><label for="ccDate">Tarih</label><input type="date" id="ccDate" value="'+td()+'"/></div>';
-    _mount('cardPayHolder','💳 '+esc(accLabel(a))+' — Borç Öde',b,'<button class="btn btn-ghost" onclick="App.UI.closeModal(\'cardPayHolder\')">Vazgeç</button><button class="btn btn-primary" id="ccPayOk" onclick="App.Cards.confirmPay(\''+id+'\')">Öde</button>','#ccAmt');
+    _mount('cardPayHolder','💳 '+esc(accLabel(a))+' — Ödeme Kaydı',b,'<button class="btn btn-ghost" onclick="App.UI.closeModal(\'cardPayHolder\')">Vazgeç</button><button class="btn btn-primary" id="ccPayOk" onclick="App.Cards.confirmPay(\''+id+'\')">Kaydet</button>','#ccAmt');
   }
   function pick(btn){document.querySelectorAll('#ccOpts .cc-opt').forEach(function(b){b.classList.toggle('on',b===btn)});var v=btn.getAttribute('data-amt'),el=document.getElementById('ccAmt');el.value=v?String(v).replace('.',','):'';if(!v)el.focus()}
   // Aynı kartta ±3 gün içinde aynı tutarlı ödeme (bankanın mesajıyla kendiliğinden eklenmiş olabilir)
@@ -5282,7 +5291,7 @@ App.Cards=(function(){
     if(!ok.over&&amt>i.debt+0.009){App.UI.confirmModal({title:'Ödeme borçtan fazla',text:'Kartın uygulamadaki borcu '+fmt(i.debt)+', ödeme '+fmt(amt)+'. Fark ('+fmt(amt-i.debt)+') kartta alacak olarak görünür.\n\nBankadaki borç daha yüksekse önce kartı düzenleyip güncel borcu girin.',okLabel:'Yine de Öde'},function(){confirmPay(id,{dup:1,over:1})});return}
     App.Transactions.createTransfer({from:from,to:id,amount:amt,date:date,note:'Kart borcu ödemesi: '+a.name,userId:S.settings().activeUser});
     var accs=S.accounts(),c=accs.find(function(x){return x.id===id});if(c){c.payFrom=from;S.saveAccounts(accs)}
-    App.UI.closeModal('cardPayHolder');renderAllViews();App.UI.toast(fmt(amt)+' ödendi: '+src.name+' → '+a.name+(date>td()?' ('+fd(date)+' için planlandı)':''),'ok');
+    App.UI.closeModal('cardPayHolder');renderAllViews();App.UI.toast(fmt(amt)+' ödeme kaydedildi: '+src.name+' → '+a.name+(date>td()?' ('+fd(date)+' için planlandı)':''),'ok');
   }
   // Özet: kart borcuna dokununca tüm kartlar
   function overview(){
@@ -5317,7 +5326,7 @@ App.Cards=(function(){
     renderBars();var el=document.getElementById('ozet-cards');if(!el)return;
     var rows=cards().map(function(a){return{a:a,i:info(a)}}).filter(function(x){return x.i.hasCut&&x.i.minLeft>0.009&&(x.i.overdue||x.i.daysToDue<=3)});
     var dupHtml=payDups().map(function(d){return'<div class="card cc-alert red"><div class="cc-alert-txt"><b>⚠️ Aynı kart ödemesi iki kez kaydedilmiş olabilir</b><div>'+esc(accLabel(d.a))+': '+fmt(d.y.amount)+' · '+fd(d.x.date)+(d.x.date!==d.y.date?' ve '+fd(d.y.date):' (aynı gün)')+'. Mükerrerse biri silinmeli; yoksa banka hesabından iki kez düşmüş, kart alacaklı görünür.</div></div><div class="cc-alert-acts"><button class="btn btn-sm btn-primary" onclick="App.Cards.fixDup(\''+d.y.id+'\')">Birini Sil</button><button class="btn btn-sm btn-ghost" onclick="App.Cards.dismissDup(\''+d.x.id+'|'+d.y.id+'\')">İkisi de Doğru</button></div></div>'}).join('');
-    el.innerHTML=dupHtml+rows.map(function(x){var i=x.i,red=i.overdue;return'<div class="card cc-alert'+(red?' red':'')+'"><div class="cc-alert-txt"><b>'+(red?'⚠️ Son ödeme günü geçti':'⏰ Kart son ödemesi '+(i.daysToDue===0?'bugün':i.daysToDue+' gün sonra'))+'</b><div>'+esc(accLabel(x.a))+': '+fmt(i.stmtLeft)+(i.minLeft>0.009?' (asgari '+fmt(i.minLeft)+')':'')+(red&&i.minMissed?' · asgari ödenmedi, faiz işleyebilir':'')+'</div></div><button class="btn btn-sm btn-primary" onclick="App.Cards.pay(\''+x.a.id+'\')">💳 Öde</button></div>'}).join('');
+    el.innerHTML=dupHtml+rows.map(function(x){var i=x.i,red=i.overdue;return'<div class="card cc-alert'+(red?' red':'')+'"><div class="cc-alert-txt"><b>'+(red?'⚠️ Son ödeme günü geçti':'⏰ Kart son ödemesi '+(i.daysToDue===0?'bugün':i.daysToDue+' gün sonra'))+'</b><div>'+esc(accLabel(x.a))+': '+fmt(i.stmtLeft)+(i.minLeft>0.009?' (asgari '+fmt(i.minLeft)+')':'')+(red&&i.minMissed?' · asgari ödenmedi, faiz işleyebilir':'')+'</div></div><button class="btn btn-sm btn-primary" onclick="App.Cards.pay(\''+x.a.id+'\')">💳 Ödeme Gir</button></div>'}).join('');
   }
   // Özet: her kart için borç ve kullanılabilir limit çubuğu (ortak limitte kullanılabilir tutar ortaktır)
   function renderBars(){
