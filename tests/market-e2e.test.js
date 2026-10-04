@@ -81,6 +81,11 @@ const mock = http.createServer((q, s) => {
     eq('new fund by code gets name and price', [added && added.label.slice(0, 10), added && added.currentPrice], ['AK PORTFÖY', 0.412398]);
     await page.evaluate(() => App.UI.nav('ayarlar'));
     const card = await page.textContent('#setMarketCard');
+    // "Az önce alındı" kaydı var ama önbellek boş (yazılamamış): uygulama 30 dk beklemeden yeniden alır (CI'da yakalanan durum)
+    await page.evaluate(() => { localStorage.setItem('ft_market', JSON.stringify({ serverOrigin: location.origin, fetched: Date.now(), fundCount: 2 })); const p = S.portfolio(); p[0].currentPrice = 0; p[0].priceSource = ''; S.savePortfolio(p); return new Promise(r => { const q = indexedDB.open('finanstakip', 1); q.onsuccess = () => { const t = q.result.transaction('kv', 'readwrite'); t.objectStore('kv').delete('market'); t.oncomplete = () => { q.result.close(); r(); }; }; }); });
+    await page.reload();
+    await page.waitForFunction(() => window.App && App.Market && S.portfolio()[0].priceSource === 'TEFAS', null, { timeout: 15000 }).catch(() => {});
+    eq('fresh-looking state but empty cache → data fetched again and applied', await page.evaluate(() => [S.portfolio()[0].priceSource, S.portfolio()[0].currentPrice]), ['TEFAS', 1.184523]);
     eq('settings shows source status', [/Kur \/ altın: \d/.test(card) || /Kur \/ altın: .*TCMB/.test(card), /2 fon/.test(card), /TÜFE/.test(card)], [true, true, true]);
     await browser.close();
   }

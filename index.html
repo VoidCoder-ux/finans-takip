@@ -910,7 +910,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.04.7</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.04.8</div>
 </section>
 
 </main>
@@ -4617,7 +4617,8 @@ App.Market=(function(){
     opts=opts||{};var b=base(),st=_state();
     if(!b)return _cache();
     if(_busy)return _busy;
-    if(!opts.force&&st.fetched&&Date.now()-st.fetched<30*60e3&&!st.lastError)return _cache().then(function(d){apply();return d});
+    // Son 30 dk'da alındıysa önbellek kullanılır; önbellek boşsa (yazılamamış / silinmiş) beklemeden yeniden alınır
+    if(!opts.force&&!opts.skipFresh&&st.fetched&&Date.now()-st.fetched<30*60e3&&!st.lastError)return _cache().then(function(d){if(d){apply();return d}return refresh({skipFresh:true})});
     _busy=fetch(b+'/v1/market'+(opts.force?'?refresh=1':''),{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).then(function(d){
       _data=d;st={serverOrigin:st.serverOrigin,fetched:Date.now(),status:{rates:d.ratesStatus,funds:d.fundsStatus,cpi:d.cpiStatus},fundCount:d.funds?d.funds.count:0,fundDate:d.funds?d.funds.date:'',cpiLast:d.cpi&&d.cpi.monthly?Object.keys(d.cpi.monthly).sort().pop():''};_saveState(st);
       return IDB.set('market',d).catch(function(){}).then(function(){apply();renderCard();return d});

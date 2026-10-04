@@ -2,7 +2,7 @@
 
 **Tarih:** 2026-10-04
 **Başlangıç:** `main` 131a317, sürüm 2026.10.04.5
-**Sonuç:** `claude/lucid-edison-e0skrj` (PR #61), sürüm 2026.10.04.7
+**Sonuç:** `claude/lucid-edison-e0skrj` (PR #61), sürüm 2026.10.04.8
 **Değişiklik:** 8 commit (rapor dahil 9), 38 dosya, +925 / −106 satır
 **Karar:** **Şu koşullarla hazır** (bkz. §9)
 
@@ -91,6 +91,7 @@ Test verileri tamamen kurmacadır. Canlı kasaya, bankaya, Gmail'e ya da üretim
 | F20 | P2 | Görsel | Yatay telefonda düğmeler 25–31 px'ti. | Dokunmatik ekranda ≥40 px. | qc-visual |
 | F21 | P2 | Görsel | 320 px + en büyük yazıda tutarlar sayının ortasından bölünüyordu (₺92.020,0│0), kart adı harf ortasından bölünüyordu, düzenle düğmesi simgenin üstüne biniyordu. | Tutarlar bölünmez; dar ekranda kutucuklar alt alta, hesap kartları tek sütun. | T (önce/sonra), qc-visual |
 | F23 | P2 | Yayın hattı | Otomatik yükleme yalnız 2 küçük testi (tarih, piyasa) çalıştırıyordu. Banka, kart ve eşitleme yayından önce hiç sınanmıyordu. | `test.yml`: her PR'da ve yüklemeden önce ~780 kontrollük tam paket, yerel sunucu dahil. Test geçmezse yükleme yapılmaz. | GitHub Actions |
+| F25 | P2 | Piyasa verisi | GitHub'daki başka bir çalıştırmada market-e2e testinde 5 kontrol başarısız oldu. Kök neden: telefon "veri az önce alındı" kaydını tutuyor ama verinin kendisi (önbellek) yazılamamış ya da silinmişse, uygulama 30 dakika boyunca kur, fon ve TÜFE verisi kullanmıyor ve yeniden de istemiyordu. | Önbellek boşsa beklemeden yeniden alınır. CI'daki 5 hata aynen yeniden üretildi; düzeltmeden sonra geçiyor. | market-e2e (yeni kontrol) |
 | F24 | P3 | Kurulum hatırlatması / test | GitHub'daki bir test çalıştırması bir kez zaman aşımına uğradı. Haftalık "Kurulum Kontrolü" penceresi açılıştan 500 ms sonra çıkıyor ve o an açık olan pencerenin (CSV onayı) üstüne biniyordu. Ayrıca yedek geri yükleme testi sayfa yenilenmesini sabit 900 ms bekliyordu. | Hatırlatma açık bir pencere varken çıkmaz. Test yenilemenin kendisini bekler. "Rastgele hata" sayılmadı: 8–10 kat yavaşlatılmış tarayıcıda yeniden üretildi, düzeltmeden sonra 3/3 geçti. | browser-behavior (yavaşlatılmış) |
 | F13, F17, F22 | P3 | Portföy / yedek / onay metni | Kur alınamayınca uyarı yoktu; yedekte eşitleme birleştirmesi anlatılmıyordu; seçenek metni kesiliyordu. | Uyarı ve açıklamalar eklendi. | T |
 
@@ -130,7 +131,7 @@ Test verileri tamamen kurmacadır. Canlı kasaya, bankaya, Gmail'e ya da üretim
 | **yeni** receipt-quota | — | 3 |
 | ui-scan, xss-scan | temiz | temiz |
 | **yeni** qc-visual | — | temiz (72 ekran + ilk açılış) |
-| **Toplam** | **689** | **778**, hepsi geçti |
+| **Toplam** | **689** | **779**, hepsi geçti |
 
 Hepsini tek komutla çalıştırmak için: `START_SERVER=1 REQUIRE_SERVER=1 bash tests/run-all.sh`
 
@@ -161,7 +162,7 @@ Hepsini tek komutla çalıştırmak için: `START_SERVER=1 REQUIRE_SERVER=1 bash
 ## 6. Aile kabul testi (ilk kurulumdan, ~20 dakika)
 
 1. **Yedek alın:** Ayarlar > Yedek / Geri Yükle > **Yedek İndir**. Dosyayı saklayın.
-2. Güncellemeden sonra Ayarlar'ın en altında **2026.10.04.7** yazdığını görün.
+2. Güncellemeden sonra Ayarlar'ın en altında **2026.10.04.8** yazdığını görün.
 3. **Bankadan kart ödemesi:** İşlem > Gider > kartı seçin > 100 TL ekleyin. Hesaplar'da kart borcu 100 artar, banka değişmez. Kart > **💳 Ödeme Gir** > 100 > Kaydet. Banka 100 azalır, kart borcu 0, "Bu ay gider" yalnız 100 artmıştır.
 4. **Eşin telefonu:** Aynı kayıtlar 1 dakika içinde görünür. Eşin eklediği bir kayıt sizin telefonunuza da gelir.
 5. **Taksit:** Kartla 3 taksit 300 TL girin. Kart borcu 100 artar; kart detayında "Gelecek taksitlere ayrılan ₺200" ve kalan limit 300 azalmış görünür.
@@ -175,7 +176,7 @@ Hepsini tek komutla çalıştırmak için: `START_SERVER=1 REQUIRE_SERVER=1 bash
 - **Veri yapısı değişmedi.** Geçiş gerekmez. Eski kayıtlar olduğu gibi okunur.
 - **Yeni alanlar yalnız SMS'ten gelen taksit planında:** `src: 'sms'` ve sabit kimlik. Eski sürüm bu kayıtları sıradan taksit olarak okur.
 - **Yayından önce** her telefonda **Yedek İndir**.
-- **Yayın sonrası kontrol:** sürüm 2026.10.04.7 · Özet açılıyor · bir harcama ekle/sil · eşitleme "son eşitleme: az önce" · Ayarlar > SMS bağlantısı "açık".
+- **Yayın sonrası kontrol:** sürüm 2026.10.04.8 · Özet açılıyor · bir harcama ekle/sil · eşitleme "son eşitleme: az önce" · Ayarlar > SMS bağlantısı "açık".
 - **Geri dönüş:**
   1. GitHub > Pull requests > birleştirilen PR > **Revert**.
   2. Açılan geri alma PR'ını birleştirin; otomatik yükleme eski sürümü geri koyar.
@@ -196,7 +197,7 @@ Hepsini tek komutla çalıştırmak için: `START_SERVER=1 REQUIRE_SERVER=1 bash
 
 **Gerekçe:**
 - Bulunan 8 P1 sorunun hepsi düzeltildi ve testlerle korunuyor. Açık P0 ya da P1 yok.
-- 778 otomatik kontrol ve 144 ekranlık görsel tarama (ui-scan 72 + qc-visual 72) temiz.
+- 779 otomatik kontrol ve 144 ekranlık görsel tarama (ui-scan 72 + qc-visual 72) temiz.
 - Para akışının tamamı (harcama → ödeme → düzenleme → silme → yenileme → iki/üç cihaz eşitlemesi) bağımsız beklenen değerlerle doğrulandı.
 
 **Koşullar:**
