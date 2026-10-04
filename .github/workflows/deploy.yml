@@ -21,7 +21,12 @@ permissions:
   contents: read
 
 jobs:
+  # Yüklemeden önce tam test paketi (banka, kart, eşitleme dahil); biri başarısızsa yükleme yapılmaz
+  test:
+    uses: ./.github/workflows/test.yml
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
     # Ham secret'lar S_ önekiyle gelir; temizlenip denetlenen hâlleri asıl adlarla sonraki adımlara verilir
     env:
@@ -70,10 +75,6 @@ jobs:
         if: steps.check.outputs.ok == 'true'
         working-directory: worker
         run: npm ci
-
-      - name: Hızlı testler
-        if: steps.check.outputs.ok == 'true'
-        run: node tests/date-math.test.js && node tests/market-parsers.test.js
 
       - name: Ayarları yaz (database_id, VAPID_SUBJECT)
         if: steps.check.outputs.ok == 'true'

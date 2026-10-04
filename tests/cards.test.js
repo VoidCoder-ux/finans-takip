@@ -42,18 +42,18 @@ srv.listen(0, async () => {
 
   // 1) Hesaplama
   const i1 = await page.evaluate(() => { const i = App.Cards.info('a_world'); return [i.debt, i.limit, i.avail, Math.round(i.used * 100), i.stmtTotal, i.stmtLeft, i.minTotal, i.minLeft, i.nextStmt, i.daysToDue, i.overdue, i.installments]; });
-  eq('World: debt, limit, available, statement debt, minimum (%20), next statement, due in 5 days, installments', i1, [12000, 50000, 38000, 24, 10000, 10000, 2000, 2000, 2000, 5, false, [{ month: futMonth.slice(0, 7), amount: 500 }]]);
+  eq('World: debt, limit, available (limit − debt − future installment 500, as the bank blocks it), statement debt, minimum (%20), next statement, due in 5 days, installments', i1, [12000, 50000, 37500, 25, 10000, 10000, 2000, 2000, 2000, 5, false, [{ month: futMonth.slice(0, 7), amount: 500 }]]);
   eq('limit stored and kept after reload (storage/sync)', await page.evaluate(() => App.Accounts.get('a_world').limit), 50000);
 
   // 2) Hesap sayfası
   const accCard = await page.evaluate(() => { App.UI.nav('hesaplar'); const c = [...document.querySelectorAll('#accGrid .acc-card')].find(x => x.textContent.includes('World')); return [c.querySelector('.cc-lim-txt').textContent, c.querySelector('.cc-due').textContent, [...c.querySelectorAll('.cc-acts button')].map(b => b.textContent)]; });
-  eq('account card: limit/available, due line, buttons', [accCard[0], /^Son ödeme .+: ₺10\.000,00 · asgari ₺2\.000,00$/.test(accCard[1]), accCard[2]], ['Limit ₺50.000,00 · Kalan ₺38.000,00', true, ['Detay', '💳 Borcu Öde']]);
+  eq('account card: limit/available, due line, buttons', [accCard[0], /^Son ödeme .+: ₺10\.000,00 · asgari ₺2\.000,00$/.test(accCard[1]), accCard[2]], ['Limit ₺50.000,00 · Kalan ₺37.500,00 · taksitlere ayrılan ₺500,00', true, ['Detay', '💳 Ödeme Gir']]);
   if (OUT) await page.locator('#accGrid').screenshot({ path: OUT + '/cards-accounts.png' });
 
   // 3) Detay
   await page.evaluate(() => App.Cards.detail('a_world')); await page.waitForTimeout(150);
   const det = await page.evaluate(() => [...document.querySelectorAll('#cardDetailHolder .cc-row')].map(r => r.textContent.replace(/\s+/g, ' ').trim()).slice(0, 10));
-  eq('detail rows', det.slice(0, 7), ['Toplam borç₺12.000,00', 'Limit₺50.000,00', 'Kalan limit₺38.000,00', 'Dönem borcu₺10.000,00', 'Kalan dönem borcu₺10.000,00', 'Asgari ödeme (kalan)₺2.000,00', det[6]]);
+  eq('detail rows', det.slice(0, 7), ['Toplam borç₺12.000,00', 'Limit₺50.000,00', 'Gelecek taksitlere ayrılan₺500,00', 'Kalan limit₺37.500,00', 'Dönem borcu₺10.000,00', 'Kalan dönem borcu₺10.000,00', 'Asgari ödeme (kalan)₺2.000,00']);
   eq('detail shows next statement and installments', await page.evaluate(() => { const t = document.getElementById('cardDetailHolder').textContent; return [/Kesimden sonraki harcamalar₺2\.000,00/.test(t), /Gelecek aylara taksitler/.test(t), /₺500,00/.test(t)]; }), [true, true, true]);
   if (OUT) await page.screenshot({ path: OUT + '/cards-detail.png' });
   await closeModals();
@@ -74,7 +74,7 @@ srv.listen(0, async () => {
   // 5) Gecikme ve limit uyarıları (Akbank: son ödeme 5 gün önce geçti, limitin %86'sı dolu)
   const ax = await page.evaluate(() => { const i = App.Cards.info('a_ax'); return [i.overdue, i.minMissed, i.stmtLeft, i.minLeft, i.daysToDue]; });
   eq('Akbank: overdue, minimum not paid', ax, [true, true, 8600, 1720, -5]);
-  eq('Özet shows red overdue alert with pay button', await page.evaluate(() => { App.UI.nav('ozet'); return [...document.querySelectorAll('#ozet-cards .cc-alert')].map(x => [x.classList.contains('red'), x.querySelector('b').textContent, x.querySelector('button').textContent]); }), [[true, '⚠️ Son ödeme günü geçti', '💳 Öde']]);
+  eq('Özet shows red overdue alert with pay button', await page.evaluate(() => { App.UI.nav('ozet'); return [...document.querySelectorAll('#ozet-cards .cc-alert')].map(x => [x.classList.contains('red'), x.querySelector('b').textContent, x.querySelector('button').textContent]); }), [[true, '⚠️ Son ödeme günü geçti', '💳 Ödeme Gir']]);
   eq('Stats warnings: limit almost full and overdue', await page.evaluate(() => App.Insights.compute(tm()).warnings.filter(w => /Akbank/.test(w.title)).map(w => w.level + ':' + w.title).sort()), ['red:Akbank Axess …7777 son ödeme geçti', 'yellow:Akbank Axess …7777 limiti dolmak üzere']);
   // Asgari son ödemeden önce ödendiyse: Özet uyarısı, hatırlatma ve kırmızı uyarı kalkar
   eq('Akbank minimum paid: no Özet alert, no reminder, no overdue warning; bars say paid', await page.evaluate(() => {
@@ -172,7 +172,7 @@ srv.listen(0, async () => {
   eq('edit dialog offers "limit shared with" other cards', await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); return [...m.querySelector('[data-pkey="limitWith"]').options].map(o => o.textContent); }), ['— Hayır, kendi limiti var —', '🔗 Yapı Kredi World …2947', '🔗 Akbank Axess …7777', '🔗 Garanti Bonus', '🔗 İş Bankası Maximum']);
   await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="limitWith"]').value = 'a_world'; m.querySelector('[data-act="ok"]').click(); }); await page.waitForTimeout(150);
   const sh = await page.evaluate(() => { const w = App.Cards.info('a_world'), h = App.Cards.info('a_hb'); return { hbLimitField: App.Accounts.get('a_hb').limit, wDebt: w.debt, hDebt: h.debt, wAvail: w.avail, hAvail: h.avail, limit: h.limit, shared: [w.shared, h.shared] }; });
-  eq('shared limit: one limit (World), available = limit − both debts, debts separate', [sh.hbLimitField, sh.limit, sh.wAvail, sh.hAvail, sh.hDebt, sh.shared], [undefined, 50000, 50000 - sh.wDebt - 3000, 50000 - sh.wDebt - 3000, 3000, [['Yapı Kredi Hepsiburada'], ['Yapı Kredi World']]]);
+  eq('shared limit: one limit (World), available = limit − both debts − future installment of World 500, debts separate', [sh.hbLimitField, sh.limit, sh.wAvail, sh.hAvail, sh.hDebt, sh.shared], [undefined, 50000, 50000 - sh.wDebt - 3000 - 500, 50000 - sh.wDebt - 3000 - 500, 3000, [['Yapı Kredi Hepsiburada'], ['Yapı Kredi World']]]);
   eq('account cards say "Ortak limit" and name the other card', await page.evaluate(() => { App.UI.nav('hesaplar'); const c = [...document.querySelectorAll('#accGrid .acc-card')].find(x => x.querySelector('.acc-name').textContent.includes('Hepsiburada')); return [/^Ortak limit ₺50\.000,00/.test(c.querySelector('.cc-lim-txt').textContent), /🔗 Limit ortak: Yapı Kredi World/.test(c.textContent)]; }), [true, true]);
   eq('over-limit check uses the shared limit', await page.evaluate(() => { const i = App.Cards.info('a_hb'); return [!!App.Cards.overLimit('a_hb', i.avail + 1), !App.Cards.overLimit('a_hb', i.avail - 1)]; }), [true, true]);
   await page.evaluate(() => App.Cards.detail('a_hb')); await page.waitForTimeout(100);

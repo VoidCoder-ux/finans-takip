@@ -183,7 +183,7 @@ ok('CSV dedup sig includes userId', /acc\.id,uid\|\|''\]\.join\('\|'\)/.test(ind
 ok('csvSafe escapes tab and CR prefixes', /\^\[\\t\\r=\+\\-@\]/.test(indexHtml));
 
 // FIX: installment + CSV loop ids are collision-free within the same millisecond
-ok('installment txn ids carry loop index', /id:gid\('t'\)\+'_'\+i/.test(indexHtml));
+ok('installment txn ids carry loop index', /id:\(o\.idBase\?o\.idBase:gid\('t'\)\)\+'_'\+i/.test(indexHtml));
 ok('CSV import txn ids carry row index', /id:gid\('t'\)\+'_'\+added/.test(indexHtml));
 
 // FIX: backup restore rolls back on quota failure
