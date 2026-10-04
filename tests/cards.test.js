@@ -109,6 +109,22 @@ srv.listen(0, async () => {
   eq('quick add card with limit and statement day', await page.evaluate(() => { const a = S.accounts().find(x => x.name === 'Garanti Bonus'); return [a.type, a.limit, a.statementDay]; }), ['card', 30000, 20]);
   await page.evaluate(() => { App.UI.nav('hesaplar'); document.getElementById('accName').value = 'İş Bankası Maximum'; document.getElementById('accType').value = 'card'; App.Accounts.onTypeChange(); document.getElementById('accLimit').value = '40.000'; App.Accounts.add(); });
   eq('add form saves limit', await page.evaluate(() => (S.accounts().find(a => a.name === 'İş Bankası Maximum') || {}).limit), 40000);
+  // 10) Ortak limit: aynı bankanın iki kartı tek limit; borç ve ekstre kart kart ayrı
+  await closeModals();
+  await page.evaluate(() => { const a = S.accounts(); a.push({ id: 'a_hb', name: 'Yapı Kredi Hepsiburada', type: 'card', owner: 'shared', last4: '8191', balance: -3000, openingBalance: -3000, limit: 20000, ts: 9 }); S.saveAccounts(a); App.Accounts.edit('a_hb'); });
+  await page.waitForTimeout(150);
+  eq('edit dialog offers "limit shared with" other cards', await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); return [...m.querySelector('[data-pkey="limitWith"]').options].map(o => o.textContent); }), ['— Hayır, kendi limiti var —', '🔗 Yapı Kredi World …2947', '🔗 Akbank Axess …7777', '🔗 Garanti Bonus', '🔗 İş Bankası Maximum']);
+  await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="limitWith"]').value = 'a_world'; m.querySelector('[data-act="ok"]').click(); }); await page.waitForTimeout(150);
+  const sh = await page.evaluate(() => { const w = App.Cards.info('a_world'), h = App.Cards.info('a_hb'); return { hbLimitField: App.Accounts.get('a_hb').limit, wDebt: w.debt, hDebt: h.debt, wAvail: w.avail, hAvail: h.avail, limit: h.limit, shared: [w.shared, h.shared] }; });
+  eq('shared limit: one limit (World), available = limit − both debts, debts separate', [sh.hbLimitField, sh.limit, sh.wAvail, sh.hAvail, sh.hDebt, sh.shared], [undefined, 50000, 50000 - sh.wDebt - 3000, 50000 - sh.wDebt - 3000, 3000, [['Yapı Kredi Hepsiburada'], ['Yapı Kredi World']]]);
+  eq('account cards say "Ortak limit" and name the other card', await page.evaluate(() => { App.UI.nav('hesaplar'); const c = [...document.querySelectorAll('#accGrid .acc-card')].find(x => x.querySelector('.acc-name').textContent.includes('Hepsiburada')); return [/^Ortak limit ₺50\.000,00/.test(c.querySelector('.cc-lim-txt').textContent), /🔗 Limit ortak: Yapı Kredi World/.test(c.textContent)]; }), [true, true]);
+  eq('over-limit check uses the shared limit', await page.evaluate(() => { const i = App.Cards.info('a_hb'); return [!!App.Cards.overLimit('a_hb', i.avail + 1), !App.Cards.overLimit('a_hb', i.avail - 1)]; }), [true, true]);
+  await page.evaluate(() => App.Cards.detail('a_hb')); await page.waitForTimeout(100);
+  eq('detail shows shared limit and total debt of the cards', await page.evaluate(() => { const t = document.getElementById('cardDetailHolder').textContent; return [/Ortak limit₺50\.000,00/.test(t), /Ortak limitli kartlarYapı Kredi World/.test(t), /Kartların toplam borcu/.test(t)]; }), [true, true, true]);
+  await closeModals();
+  eq('limit warning once per shared limit (on the main card)', await page.evaluate(() => { const a = S.accounts(); a.find(x => x.id === 'a_hb').balance = -46000; S.saveAccounts(a); const w = App.Insights.compute(tm()).warnings.filter(x => /Yapı Kredi .*limiti/.test(x.title)).map(x => x.title); a.find(x => x.id === 'a_hb').balance = -3000; S.saveAccounts(a); return w; }), ['Yapı Kredi World …2947 ve ortak kartların limiti dolmak üzere']);
+  await page.evaluate(() => App.Accounts.reconcileAccountBalances(true));
+
   await page.reload(); await page.waitForTimeout(300);
   eq('after reload: limits and last payment account kept', await page.evaluate(() => [App.Accounts.get('a_ax').limit, App.Accounts.get('a_world').payFrom]), [25000, 'a_bank']);
   eq('balances consistent with history', await page.evaluate(() => App.Accounts.reconcileAccountBalances(true)), false);
