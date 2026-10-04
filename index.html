@@ -146,11 +146,32 @@ input[type="checkbox"]{width:22px;height:22px;min-width:22px;accent-color:var(--
 .stats-action-btn{min-height:44px}
 #statMonth{min-height:44px}
 .fs-pick{display:flex;gap:8px;flex-wrap:wrap}
+/* Özet: sade düzen — para kutusu, bu ay, hızlı düğmeler */
+.hero-top{display:flex;align-items:center;justify-content:space-between;gap:10px;position:relative;z-index:1}
+.hero-acc{font-size:.82rem;font-weight:700;background:rgba(0,0,0,.2);border-radius:99px;padding:4px 10px;white-space:nowrap}
+.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;position:relative;z-index:1}
+.hero-tile{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.14);border-radius:var(--r2);padding:12px 14px;color:#fff;font:inherit;min-width:0}
+button.hero-tile{cursor:pointer}button.hero-tile:hover{background:rgba(0,0,0,.28)}
+.hero-tile .ht-lbl{font-size:.82rem;font-weight:600;opacity:.92}.hero-tile b{font-size:clamp(1rem,4.4vw,1.3rem);font-weight:800;letter-spacing:-.02em;overflow-wrap:anywhere}
+.hero-tile .ht-note{font-size:.82rem;opacity:.9}
+.month-card{margin-bottom:14px}.month-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}.month-count{font-size:.86rem;color:var(--txt2)}.month-count b{color:var(--txt)}
+.month-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.mg{display:flex;flex-direction:column;gap:2px;min-width:0}.mg-lbl{font-size:.82rem;color:var(--txt2);font-weight:600}.mg b{font-size:clamp(.92rem,3.6vw,1.15rem);font-weight:800;letter-spacing:-.02em;overflow-wrap:anywhere}
+.month-card .pos{color:var(--green)}.month-card .neg{color:var(--red)}
+.month-bar{height:8px;border-radius:99px;background:var(--bg3);overflow:hidden;margin-top:12px}.month-bar span{display:block;height:100%;border-radius:99px;background:var(--green);transition:width .3s}
+.month-bar span.yellow{background:var(--yellow)}.month-bar span.red{background:var(--red)}
+.month-foot{font-size:.86rem;color:var(--txt2);margin-top:7px}
+#page-ozet .quick-row{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:14px}
+#page-ozet .quick-btn{flex-direction:column;gap:4px;padding:12px 4px;font-size:.86rem;min-height:64px}
+#page-ozet .quick-btn.qrcp{grid-column:auto;padding:12px 4px}
+.quick-btn.qrep{border-color:var(--border2);color:var(--txt);background:var(--bg2)}
+#page-ozet .quick-btn.qrcp:hover,#page-ozet .quick-btn.qrep:hover{border-color:var(--teal);color:var(--teal)}
+#page-ozet .hero-bal{margin-bottom:8px}
 .chip-btn{border:none;cursor:pointer;font:inherit;color:inherit;min-height:36px}
 .cc-limit{margin-top:8px}.cc-bar{height:8px;border-radius:99px;background:var(--bg4);overflow:hidden}.cc-bar.big{height:10px;margin:8px 0 4px}
 .cc-bar span{display:block;height:100%;border-radius:99px;background:var(--green)}.cc-bar span.yellow{background:var(--yellow)}.cc-bar span.red{background:var(--red)}
 .cc-lim-txt .neg{color:var(--red)}.cc-lim-txt,.cc-due,.cc-sub{font-size:.86rem;color:var(--txt2);margin-top:5px;line-height:1.4}.cc-due b{color:var(--txt)}
-.cc-due.yellow{color:var(--yellow)}.cc-due.red{color:var(--red);font-weight:700}
+.cc-due.yellow{color:var(--yellow)}.cc-due.red{color:var(--red);font-weight:700}.cc-due.ok,.ccb-sub.ok{color:var(--green)}
 .cc-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .cc-h{font-size:.86rem;font-weight:800;color:var(--txt2);text-transform:uppercase;letter-spacing:.04em;margin:14px 0 6px}.cc-h span{text-transform:none;font-weight:600}
 .cc-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px}
@@ -542,29 +563,46 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
   <div id="ozet-cards"></div>
   <div id="ozet-uncat"></div>
   <div class="hero">
-    <div class="hero-lbl">Hesaplarımdaki Para</div>
+    <div class="hero-top"><div class="hero-lbl">Hesaplarımdaki Para</div><span class="hero-acc" id="heroAcc">0 Hesap</span></div>
     <div class="hero-bal" id="heroNet">₺0,00</div>
     <div class="hero-sub" id="heroSub">Banka, nakit ve birikim hesaplarınızın toplamı</div>
-    <div class="hero-chips">
-      <button type="button" class="chip chip-btn" onclick="App.Cards.overview()" aria-label="Kredi kartlarım"><span class="dot r"></span><span id="heroCard">Kart borcu yok</span> ›</button>
-      <div class="chip" title="Hesaplardaki para − kredi kartı borçları"><span class="dot g"></span><span id="heroAfter">Kart borcu düşünce ₺0</span></div>
-      <div class="chip"><span class="dot b"></span><span id="heroAcc">0 Hesap</span></div>
+    <div class="hero-grid">
+      <button type="button" class="hero-tile" onclick="App.Cards.overview()" aria-label="Kredi kartlarım"><span class="ht-lbl">💳 Kart borcu ›</span><b id="heroCard">Yok</b><span class="ht-note" id="heroCardNote"></span></button>
+      <div class="hero-tile" title="Hesaplardaki para − kredi kartı borçları"><span class="ht-lbl">Kart borcu düşünce</span><b id="heroAfter">₺0</b><span class="ht-note">elinizde kalan</span></div>
     </div>
   </div>
-  <div id="ozet-cardbars"></div>
+  <div class="card month-card">
+    <div class="month-head"><span class="sh-title">📅 Bu Ay</span><span class="month-count"><b id="mCount">0</b> işlem</span></div>
+    <div class="month-grid">
+      <div class="mg"><span class="mg-lbl">Gelir</span><b id="mInc" class="pos">₺0</b></div>
+      <div class="mg"><span class="mg-lbl">Gider</span><b id="mExp" class="neg">₺0</b></div>
+      <div class="mg"><span class="mg-lbl">Fark</span><b id="mNet">₺0</b></div>
+    </div>
+    <div class="month-bar" aria-hidden="true"><span id="mBar"></span></div>
+    <div class="month-foot" id="mFoot"></div>
+  </div>
   <div class="quick-row">
-    <button class="quick-btn qinc" onclick="App.UI.quickAdd('income')"><span class="qi">＋</span><span>Hızlı Gelir</span></button>
-    <button class="quick-btn qexp" onclick="App.UI.quickAdd('expense')"><span class="qi">−</span><span>Hızlı Gider</span></button>
+    <button class="quick-btn qinc" onclick="App.UI.quickAdd('income')"><span class="qi">＋</span><span>Gelir</span></button>
+    <button class="quick-btn qexp" onclick="App.UI.quickAdd('expense')"><span class="qi">−</span><span>Gider</span></button>
     <button class="quick-btn qrcp" onclick="App.Receipt.open()"><span class="qi">📷</span><span>Fiş Okut</span></button>
+    <button class="quick-btn qrep" onclick="App.Report.open()"><span class="qi">📄</span><span>Rapor</span></button>
   </div>
   <input type="file" id="receiptFile" accept="image/*,application/pdf,.pdf" style="display:none" aria-label="Fiş fotoğrafı" onchange="App.Receipt.onFile(this)"/>
-  <div class="report-btn-row">
-    <button class="report-btn" onclick="App.Report.open()"><span class="ri">📄</span><span>Aylık Detaylı Rapor (PDF)</span></button>
-  </div>
+  <div id="ozet-cardbars"></div>
+  <div class="sh" data-sec="cashflowMini"><div class="sh-title">⏳ Yaklaşan Ödemeler</div><div class="sh-link" onclick="App.Cashflow.open()">Detay →</div></div>
+  <div id="cashflowMini"></div>
+  <div class="sh" data-sec="ozet-txns"><div class="sh-title">🧾 Son İşlemler</div><div class="sh-link" onclick="App.UI.nav('islemler')">Tümü →</div></div>
+  <div class="txn-list" id="ozet-txns"></div>
+  <div class="sh" data-sec="ozet-rec"><div class="sh-title">🔁 Bu Ay Tekrarlayan</div><div class="sh-link" onclick="App.UI.nav('tekrarlayan')">Tümü →</div></div>
+  <div id="ozet-rec"></div>
+  <div class="sh" data-sec="ozet-week"><div class="sh-title">📊 Bu Hafta Para Nereye Gitti?</div></div>
+  <div id="ozet-week"></div>
+  <div class="sh" data-sec="ozet-family"><div class="sh-title">👨‍👩‍👧 Aile Paneli</div><div class="sh-link" onclick="App.UI.nav('aile')">Yönet →</div></div>
+  <div id="ozet-family"></div>
+  <div class="sh" data-sec="nwCard"><div class="sh-title">💎 Net Servet</div></div>
   <div class="nw-card" id="nwCard">
     <div class="nw-head">
       <div style="min-width:0;flex:1">
-        <div class="nw-lbl">Net Servet</div>
         <div class="nw-val" id="nwVal">₺0,00</div>
         <div class="nw-sub" id="nwSub">Hesaplar + Portföy − Kalan Borçlar</div>
       </div>
@@ -574,21 +612,6 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="nw-chart-wrap"><canvas id="nwChart"></canvas></div>
     <div class="nw-foot" id="nwFoot"></div>
   </div>
-  <div class="metrics">
-    <div class="mc"><div class="mc-icon cc-green">💵</div><div class="mc-val" id="mInc" style="color:var(--green)">₺0</div><div class="mc-lbl">Bu Ay Gelir</div></div>
-    <div class="mc"><div class="mc-icon cc-red">💸</div><div class="mc-val" id="mExp" style="color:var(--red)">₺0</div><div class="mc-lbl">Bu Ay Gider</div></div>
-    <div class="mc"><div class="mc-icon cc-teal">📦</div><div class="mc-val" id="mCount">0</div><div class="mc-lbl">İşlem Sayısı</div></div>
-  </div>
-  <div class="sh" data-sec="ozet-family"><div class="sh-title">Aile Paneli</div><div class="sh-link" onclick="App.UI.nav('aile')">Yönet →</div></div>
-  <div id="ozet-family"></div>
-  <div class="sh" data-sec="cashflowMini"><div class="sh-title">Yaklaşan Nakit Akışı</div><div class="sh-link" onclick="App.Cashflow.open()">Detay →</div></div>
-  <div id="cashflowMini"></div>
-  <div class="sh" data-sec="ozet-week"><div class="sh-title">Bu Hafta Para Nereye Gitti?</div></div>
-  <div id="ozet-week"></div>
-  <div class="sh" data-sec="ozet-rec"><div class="sh-title">Bu Ay Tekrarlayan</div><div class="sh-link" onclick="App.UI.nav('tekrarlayan')">Tümü →</div></div>
-  <div id="ozet-rec"></div>
-  <div class="sh" data-sec="ozet-txns"><div class="sh-title">Son İşlemler</div><div class="sh-link" onclick="App.UI.nav('islemler')">Tümü →</div></div>
-  <div class="txn-list" id="ozet-txns"></div>
 </section>
 
 <section class="page" id="page-hesaplar">
@@ -881,7 +904,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.04.4</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.04.5</div>
 </section>
 
 </main>
@@ -1622,8 +1645,9 @@ App.Accounts=(function(){
   function renderSummary(){
     var accs=S.accounts(),ms=moneySplit(accs),hasCard=accs.some(function(a){return a.type==='card'});
     document.getElementById('heroNet').textContent=fmt(ms.cash);document.getElementById('heroNet').style.color='#fff';
-    document.getElementById('heroCard').textContent=(ms.cardDebt?'💳 Kart borcu '+fmt(ms.cardDebt):hasCard?'💳 Kart borcu yok':'Kredi kartı eklenmedi')+(ms.cardCredit>0.009?' · ⚠️ kartta alacak '+fmt(ms.cardCredit):'');
-    document.getElementById('heroAfter').textContent='Kart borcu düşünce '+fmt(ms.net);
+    document.getElementById('heroCard').textContent=ms.cardDebt?fmt(ms.cardDebt):hasCard?'Yok ✓':'Kart eklenmedi';
+    document.getElementById('heroCardNote').textContent=ms.cardCredit>0.009?'⚠️ kartta alacak '+fmt(ms.cardCredit):hasCard?'kartların toplamı':'Hesaplar\'dan ekleyin';
+    document.getElementById('heroAfter').textContent=fmt(ms.net);
     document.getElementById('heroAcc').textContent=accs.length+' Hesap';
   }
   return{add,edit,remove,adjustBalance,reconcileAccountBalances,getName,get,sharedAccount,renderAll,renderSummary,onTypeChange,onOwnerChange}
@@ -1881,7 +1905,11 @@ App.Transactions=(function(){
   function _offsetMonth(m,n){var p=m.split('-'),y=+p[0],mo=+p[1]-1+n;if(mo<0){y--;mo=12+mo}if(mo>=12){y++;mo=mo-12}return y+'-'+String(mo+1).padStart(2,'0')}
   // Gerçekleşenler: ileri tarihli taksit/planlı kayıtlar günü gelince sayılır (bakiyeyle tutarlı)
   function allTimeTotals(){var income=0,expense=0,today=td();S.txns().forEach(function(t){if(isTransfer(t)||!isBalanceApplied(t,today))return;if(t.type==='income')income+=t.amount;else expense+=t.amount});return{income,expense,net:income-expense}}
-  function renderSummaryMetrics(){var t=monthTotals(tm());document.getElementById('mInc').textContent=fmt(t.income);document.getElementById('mExp').textContent=fmt(t.expense);document.getElementById('mCount').textContent=t.count}
+  function renderSummaryMetrics(){var t=monthTotals(tm()),d=roundMoney(t.income-t.expense),n=document.getElementById('mNet'),bar=document.getElementById('mBar'),f=document.getElementById('mFoot');document.getElementById('mInc').textContent=fmt(t.income);document.getElementById('mExp').textContent=fmt(t.expense);document.getElementById('mCount').textContent=t.count;
+    if(!n)return;n.textContent=(d>0?'+':'')+fmt(d);n.className=d<0?'neg':d>0?'pos':'';
+    // Gelirin ne kadarı harcandı: çubuk ve tek cümlelik açıklama
+    var p=t.income>0?Math.round(t.expense/t.income*100):t.expense>0?100:0;bar.style.width=Math.min(100,p)+'%';bar.className=p>=100?'red':p>=80?'yellow':'green';
+    f.textContent=!t.count?'Bu ay henüz işlem yok.':t.income>0?'Gelirin %'+p+'\'i harcandı'+(d<0?'; gider gelirden '+fmt(-d)+' fazla.':'.'):'Bu ay gelir girilmedi.'}
   // Transfer çiftlerini tek satırda göstermek için liste girdileri: {t, pair}
   function _entries(){
     var all=S.txns(),legs={},out=[];
@@ -4445,7 +4473,7 @@ App.Insights=(function(){
       if(ms.cardDebt>0)warn(ms.cardDebt>ms.cash?'red':'info','💳','Kredi kartı borcu',fmt(ms.cardDebt)+' kart borcu var; hesaplarda '+fmt(ms.cash)+'.'+(ms.cardDebt>ms.cash?' Borç, hesaplardaki paradan fazla.':' Ödemeyi "↔ Transfer" ile girin, gider iki kez sayılmasın.'));
       App.Cards.cards().forEach(function(a){var i=App.Cards.info(a);
         if(i.limit&&i.used>=0.8&&i.rootId===a.id)warn(i.used>=0.9?'red':'yellow','💳',(i.shared.length?accLabel(a)+' ve ortak kartların limiti ':accLabel(a)+' limiti ')+(i.used>=1?'doldu':'dolmak üzere'),'Limitin %'+Math.round(i.used*100)+'\'i kullanılıyor; kalan '+fmt(i.avail)+'.');
-        if(i.overdue)warn('red','⚠️',accLabel(a)+' son ödeme geçti',fmt(i.stmtLeft)+' dönem borcu ödenmedi'+(i.minMissed?' (asgari '+fmt(i.minLeft)+' bile ödenmedi)':'')+'; gecikme faizi işleyebilir.')});
+        if(i.minMissed)warn('red','⚠️',accLabel(a)+' son ödeme geçti',fmt(i.stmtLeft)+' dönem borcu ödenmedi (asgari '+fmt(i.minLeft)+' bile ödenmedi); gecikme faizi işleyebilir.')});
       var cf=App.Cashflow.summary(30);if(cf.min<0)warn('red','⏳','Bakiye eksiye düşebilir','Önümüzdeki 30 günün ödemeleriyle en düşük bakiye '+fmt(cf.min)+' olabilir.');
       var q=S.smsQueue().length;if(q)warn('info','🏦','Onay bekleyen banka hareketi',q+' hareket Özet\'te onay bekliyor; eklenmeden istatistiğe girmez.')}
     // 7) Abonelikler
@@ -5135,7 +5163,7 @@ App.Notifications=(function(){
   function cardDues(daysAhead){
     var out=[],t0=new Date();t0=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate());
     App.Cards.cards().forEach(function(a){var i=App.Cards.info(a);if(!i||!i.hasCut)return;
-      if(i.stmtLeft>0.009&&i.daysToDue>=0&&i.daysToDue<=daysAhead)out.push({kind:'card',id:a.id+'_'+i.due,date:i.due,in:i.daysToDue,amount:i.stmtLeft,text:'💳 '+accLabel(a)+' son ödeme: '+fmt(i.stmtLeft)+(i.minLeft>0.009&&i.minLeft<i.stmtLeft?' (asgari '+fmt(i.minLeft)+')':'')});
+      if(i.minLeft>0.009&&i.daysToDue>=0&&i.daysToDue<=daysAhead)out.push({kind:'card',id:a.id+'_'+i.due,date:i.due,in:i.daysToDue,amount:i.stmtLeft,text:'💳 '+accLabel(a)+' son ödeme: '+fmt(i.stmtLeft)+(i.minLeft>0.009&&i.minLeft<i.stmtLeft?' (asgari '+fmt(i.minLeft)+')':'')});
       var nd=Math.round((new Date(i.nextDue+'T00:00:00')-t0)/864e5);
       if(i.nextStmt>0.009&&nd>=0&&nd<=daysAhead)out.push({kind:'card',id:a.id+'_'+i.nextDue,date:i.nextDue,in:nd,amount:i.nextStmt,text:'💳 '+accLabel(a)+' son ödeme: yaklaşık '+fmt(i.nextStmt)});
     });
@@ -5176,9 +5204,11 @@ App.Cards=(function(){
     o.stmtTotal=stmtTotal;o.stmtLeft=stmtLeft;o.minTotal=minTotal;o.minLeft=Math.min(minLeft,stmtLeft);o.paid=roundMoney(paid);
     o.nextStmt=Math.max(0,roundMoney(debt-stmtLeft));o.nextDue=_iso(new Date(next.getFullYear(),next.getMonth(),next.getDate()+off));
     o.overdue=o.daysToDue<0&&stmtLeft>0.009;o.minMissed=o.overdue&&o.minLeft>0.009;
+    // Asgari ödendiyse uyarı/hatırlatma yok: kalan dönem borcu faizle sonraki ekstreye geçer
+    o.minPaid=stmtLeft>0.009&&o.minLeft<=0.009;
     if(a.cutAnchor&&a.cutAnchor>cutIso){
       var anc=new Date(a.cutAnchor+'T12:00:00'),ad=new Date(anc.getFullYear(),anc.getMonth(),anc.getDate()+off);
-      o.upcoming=true;o.stmtTotal=0;o.stmtLeft=0;o.minTotal=0;o.minLeft=0;o.overdue=false;o.minMissed=false;
+      o.upcoming=true;o.stmtTotal=0;o.stmtLeft=0;o.minTotal=0;o.minLeft=0;o.overdue=false;o.minMissed=false;o.minPaid=false;
       o.nextCut=a.cutAnchor;o.nextDue=_iso(ad);o.nextStmt=debt;o.daysToNextDue=Math.round((ad-t0)/864e5);
     }
     return o;
@@ -5190,7 +5220,8 @@ App.Cards=(function(){
   function mini(a){
     var i=info(a);if(!i)return'';var h='';
     if(i.limit)h+='<div class="cc-limit"><div class="cc-bar"><span class="'+_barCls(i)+'" style="width:'+_pct(i)+'%"></span></div><div class="cc-lim-txt">'+(i.shared.length?'Ortak limit':'Limit')+' '+fmt(i.limit)+' · '+(i.avail<0?'<b class="neg">Limit '+fmt(-i.avail)+' aşıldı</b>':'<b>Kalan '+fmt(i.avail)+'</b>')+'</div></div>';
-    if(i.hasCut&&i.stmtLeft>0.009)h+='<div class="cc-due'+(i.overdue?' red':i.daysToDue<=3?' yellow':'')+'">'+(i.overdue?'⚠️ Son ödeme geçti: ':'Son ödeme '+fd(i.due)+': ')+'<b>'+fmt(i.stmtLeft)+'</b>'+(i.minLeft>0.009?' · asgari '+fmt(i.minLeft):'')+'</div>';
+    if(i.minPaid)h+='<div class="cc-due ok">✓ Asgari ödendi · kalan dönem borcu <b>'+fmt(i.stmtLeft)+'</b>'+(i.overdue?' (faizle sonraki ekstreye geçer)':' · son ödeme '+fd(i.due))+'</div>';
+    else if(i.hasCut&&i.stmtLeft>0.009)h+='<div class="cc-due'+(i.overdue?' red':i.daysToDue<=3?' yellow':'')+'">'+(i.overdue?'⚠️ Son ödeme geçti: ':'Son ödeme '+fd(i.due)+': ')+'<b>'+fmt(i.stmtLeft)+'</b>'+(i.minLeft>0.009?' · asgari '+fmt(i.minLeft):'')+'</div>';
     else if(i.upcoming&&i.debt>0.009)h+='<div class="cc-due">Ekstre '+fd(i.nextCut)+' kesilecek · son ödeme '+fd(i.nextDue)+' · şu anki borç <b>'+fmt(i.debt)+'</b></div>';
     else if(i.hasCut&&i.debt>0.009)h+='<div class="cc-due">Dönem borcu ödendi ✓ · sonraki ekstreye '+fmt(i.nextStmt)+'</div>';
     else if(!i.hasCut)h+='<div class="cc-due">Kesim günü girilirse dönem borcu ve son ödeme görünür</div>';
@@ -5216,7 +5247,7 @@ App.Cards=(function(){
       b+='<div class="cc-h">📄 Bu dönemin ekstresi <span>(kesim '+fd(i.cut)+')</span></div><div class="cc-box">'+_row('Dönem borcu',fmt(i.stmtTotal))+(i.paid>0.009?_row('Kesimden sonra ödenen',fmt(i.paid),'pos'):'')+
         _row('Kalan dönem borcu',fmt(i.stmtLeft),i.stmtLeft>0.009?'neg':'pos')+_row('Asgari ödeme (kalan)',fmt(i.minLeft))+
         _row('Son ödeme',fd(i.due)+(i.overdue?' · <span class="neg">geçti</span>':i.daysToDue===0?' · bugün':' · '+i.daysToDue+' gün')) +
-        (i.minMissed?'<div class="cc-warn">⚠️ Asgari tutar ödenmedi: gecikme faizi işleyebilir. Hemen ödeme yapın.</div>':i.overdue?'<div class="cc-warn">⚠️ Son ödeme günü geçti; kalan dönem borcuna faiz işleyebilir.</div>':'')+'</div>'+
+        (i.minMissed?'<div class="cc-warn">⚠️ Asgari tutar ödenmedi: gecikme faizi işleyebilir. Hemen ödeme yapın.</div>':i.minPaid?'<div class="cc-sub">✓ Asgari ödeme yapıldı; uyarı ve hatırlatma gösterilmez. Kalan dönem borcu'+(i.overdue?'':' son ödeme gününe kadar ödenmezse')+' faiziyle sonraki ekstreye eklenir.</div>':'')+'</div>'+
         '<div class="cc-h">🗓️ Gelecek ekstreye yazılacak</div><div class="cc-box">'+_row('Kesimden sonraki harcamalar',fmt(i.nextStmt))+_row('Sonraki kesim / son ödeme',fd(i.nextCut)+' / '+fd(i.nextDue))+'</div>';
     }else b+='<div class="cc-box"><div class="cc-sub">Ekstre kesim günü girilmemiş. Girilirse dönem borcu, asgari ödeme ve son ödeme günü hesaplanır, son ödemeden önce hatırlatılır.</div></div>';
     if(i.installments.length)b+='<div class="cc-h">🧾 Gelecek aylara taksitler</div><div class="cc-box">'+i.installments.map(function(x){var p=x.month.split('-');return _row(MF[+p[1]-1]+' '+p[0],fmt(x.amount))}).join('')+'</div>';
@@ -5284,7 +5315,7 @@ App.Cards=(function(){
   // Özet uyarısı: son ödemesi geçmiş ya da 3 gün içinde olan dönem borçları
   function renderAlerts(){
     renderBars();var el=document.getElementById('ozet-cards');if(!el)return;
-    var rows=cards().map(function(a){return{a:a,i:info(a)}}).filter(function(x){return x.i.hasCut&&x.i.stmtLeft>0.009&&(x.i.overdue||x.i.daysToDue<=3)});
+    var rows=cards().map(function(a){return{a:a,i:info(a)}}).filter(function(x){return x.i.hasCut&&x.i.minLeft>0.009&&(x.i.overdue||x.i.daysToDue<=3)});
     var dupHtml=payDups().map(function(d){return'<div class="card cc-alert red"><div class="cc-alert-txt"><b>⚠️ Aynı kart ödemesi iki kez kaydedilmiş olabilir</b><div>'+esc(accLabel(d.a))+': '+fmt(d.y.amount)+' · '+fd(d.x.date)+(d.x.date!==d.y.date?' ve '+fd(d.y.date):' (aynı gün)')+'. Mükerrerse biri silinmeli; yoksa banka hesabından iki kez düşmüş, kart alacaklı görünür.</div></div><div class="cc-alert-acts"><button class="btn btn-sm btn-primary" onclick="App.Cards.fixDup(\''+d.y.id+'\')">Birini Sil</button><button class="btn btn-sm btn-ghost" onclick="App.Cards.dismissDup(\''+d.x.id+'|'+d.y.id+'\')">İkisi de Doğru</button></div></div>'}).join('');
     el.innerHTML=dupHtml+rows.map(function(x){var i=x.i,red=i.overdue;return'<div class="card cc-alert'+(red?' red':'')+'"><div class="cc-alert-txt"><b>'+(red?'⚠️ Son ödeme günü geçti':'⏰ Kart son ödemesi '+(i.daysToDue===0?'bugün':i.daysToDue+' gün sonra'))+'</b><div>'+esc(accLabel(x.a))+': '+fmt(i.stmtLeft)+(i.minLeft>0.009?' (asgari '+fmt(i.minLeft)+')':'')+(red&&i.minMissed?' · asgari ödenmedi, faiz işleyebilir':'')+'</div></div><button class="btn btn-sm btn-primary" onclick="App.Cards.pay(\''+x.a.id+'\')">💳 Öde</button></div>'}).join('');
   }
@@ -5295,7 +5326,7 @@ App.Cards=(function(){
     el.innerHTML='<div class="card ccb-card"><div class="ccb-head"><span class="sh-title">💳 Kartlarım</span><button type="button" class="sh-link" onclick="App.Cards.overview()">Tümü →</button></div>'+l.map(function(a){var i=info(a),p=_pct(i);
       return'<button type="button" class="ccb" onclick="App.Cards.detail(\''+a.id+'\')"><span class="ccb-top"><b>'+esc(accLabel(a))+'</b><span class="ccb-debt">'+(i.credit>0.009?'<span class="pos">alacak '+fmt(i.credit)+'</span>':'Borç '+fmt(i.debt))+'</span></span>'+
         (i.limit?'<span class="cc-bar"><span class="'+_barCls(i)+'" style="width:'+p+'%"></span></span><span class="ccb-sub">'+(i.avail<0?'<b class="neg">Limit '+fmt(-i.avail)+' aşıldı</b>':'Kullanılabilir <b>'+fmt(i.avail)+'</b>')+' / '+(i.shared.length?'ortak limit ':'limit ')+fmt(i.limit)+'</span>':'<span class="ccb-sub">Limit girilmedi · kartı düzenleyip limit girin</span>')+
-        (i.overdue?'<span class="ccb-sub neg">⚠️ Son ödeme geçti: '+fmt(i.stmtLeft)+'</span>':i.hasCut&&i.stmtLeft>0.009?'<span class="ccb-sub">Son ödeme '+fd(i.due)+': '+fmt(i.stmtLeft)+'</span>':i.upcoming&&i.debt>0.009?'<span class="ccb-sub">Kesim '+fd(i.nextCut)+' · son ödeme '+fd(i.nextDue)+'</span>':'')+'</button>'}).join('')+'</div>';
+        (i.minPaid?'<span class="ccb-sub ok">✓ Asgari ödendi · kalan dönem borcu '+fmt(i.stmtLeft)+'</span>':i.overdue?'<span class="ccb-sub neg">⚠️ Son ödeme geçti: '+fmt(i.stmtLeft)+'</span>':i.hasCut&&i.stmtLeft>0.009?'<span class="ccb-sub">Son ödeme '+fd(i.due)+': '+fmt(i.stmtLeft)+'</span>':i.upcoming&&i.debt>0.009?'<span class="ccb-sub">Kesim '+fd(i.nextCut)+' · son ödeme '+fd(i.nextDue)+'</span>':'')+'</button>'}).join('')+'</div>';
   }
   // Elle harcamada limit kontrolü: kalan limiti aşıyor mu
   function overLimit(accId,amount){var i=info(accId);return i&&i.limit&&amount>i.avail+0.009?i:null}
