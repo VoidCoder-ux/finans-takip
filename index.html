@@ -5132,8 +5132,9 @@ App.Notifications=(function(){
 
 // ---- Kredi kartları: limit, dönem borcu, asgari ödeme, gelecek ekstre ve taksitler, tek dokunuşla borç ödeme ----
 // Dönem borcu kesim gününe göre hesaplanır: kesimden sonraki harcamalar gelecek ekstreye yazılır.
-// Son ödeme = kesim + 10 gün; asgari ödeme dönem borcunun %20'si (limit 50.000 TL üstünde %40).
+// Son ödeme = kesim + 10 gün; asgari ödeme dönem borcunun %20'si, limit 100.000 TL'yi aşan kartlarda %40.
 App.Cards=(function(){
+  var MIN_PAY_LIMIT=100000;   // bu limiti aşan kartlarda asgari ödeme oranı %40
   function _iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
   function _cut(y,m,sd){var last=new Date(y,m+1,0).getDate();return new Date(y,m,Math.min(sd,last))}
   function info(a){
@@ -5150,7 +5151,7 @@ App.Cards=(function(){
     var cut=_cut(now.getFullYear(),now.getMonth(),a.statementDay);if(cut>t0)cut=_cut(now.getFullYear(),now.getMonth()-1,a.statementDay);
     var next=_cut(cut.getFullYear(),cut.getMonth()+1,a.statementDay),cutIso=_iso(cut),spent=0,paid=0;
     txns.forEach(function(t){if(t.date<=cutIso||!isBalanceApplied(t,today))return;if(t.type==='income')paid+=t.amount;else spent+=t.amount});
-    var stmtTotal=Math.max(0,roundMoney(debt-spent+paid)),stmtLeft=Math.max(0,roundMoney(debt-spent)),rate=limit>50000?0.4:0.2;
+    var stmtTotal=Math.max(0,roundMoney(debt-spent+paid)),stmtLeft=Math.max(0,roundMoney(debt-spent)),rate=limit>MIN_PAY_LIMIT?0.4:0.2;
     var minTotal=roundMoney(stmtTotal*rate),minLeft=Math.max(0,roundMoney(minTotal-paid)),due=new Date(cut.getFullYear(),cut.getMonth(),cut.getDate()+10);
     o.cut=cutIso;o.nextCut=_iso(next);o.due=_iso(due);o.daysToDue=Math.round((due-t0)/864e5);
     o.stmtTotal=stmtTotal;o.stmtLeft=stmtLeft;o.minTotal=minTotal;o.minLeft=Math.min(minLeft,stmtLeft);o.paid=roundMoney(paid);

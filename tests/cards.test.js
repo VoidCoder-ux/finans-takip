@@ -76,6 +76,9 @@ srv.listen(0, async () => {
   eq('Özet shows red overdue alert with pay button', await page.evaluate(() => { App.UI.nav('ozet'); return [...document.querySelectorAll('#ozet-cards .cc-alert')].map(x => [x.classList.contains('red'), x.querySelector('b').textContent, x.querySelector('button').textContent]); }), [[true, '⚠️ Son ödeme günü geçti', '💳 Öde']]);
   eq('Stats warnings: limit almost full and overdue', await page.evaluate(() => App.Insights.compute(tm()).warnings.filter(w => /Akbank/.test(w.title)).map(w => w.level + ':' + w.title).sort()), ['red:Akbank Axess …7777 son ödeme geçti', 'yellow:Akbank Axess …7777 limiti dolmak üzere']);
 
+  // Asgari oran: limit 100.000 TL'ye kadar %20, aşarsa %40
+  eq('minimum rate: 100.000 limit → %20, 100.001 → %40', await page.evaluate(() => { const a = S.accounts(), c = a.find(x => x.id === 'a_ax'), keep = c.limit; c.limit = 100000; S.saveAccounts(a); const m1 = App.Cards.info('a_ax').minTotal; c.limit = 100001; S.saveAccounts(a); const m2 = App.Cards.info('a_ax').minTotal; c.limit = keep; S.saveAccounts(a); return [m1, m2]; }), [1720, 3440]);
+
   // 6) Elle harcama limiti aşıyorsa sor
   await page.evaluate(() => { App.UI.nav('islemler'); App.UI.setType('expense'); document.querySelector('#txnPayChips [data-acc="a_ax"]').click(); document.getElementById('txnAmt').value = '2000'; App.Transactions.add(); }); await page.waitForTimeout(150);
   eq('over-limit expense asks first', await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); return [!!m && /Kart limiti aşılıyor/.test(m.textContent), S.txns().filter(t => t.amount === 2000 && t.accountId === 'a_ax').length]; }), [true, 0]);
