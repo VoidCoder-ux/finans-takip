@@ -110,7 +110,7 @@ srv.listen(0, async () => {
     [false, 'MIGROS KADIKOY', '−₺245,50', 'Market'],
     [true, 'STARBUCKS BAGDAT CAD', '−₺145,00', 'Yiyecek'],
     [true, 'TRENDYOL.COM 2/6 TAKSIT', '−₺300,00', 'Diğer'],
-    [true, 'IADE - ZARA', '+₺899,90', 'Diğer']]);
+    [true, 'IADE - ZARA', '+₺899,90', 'İade']]);
   eq('pdf: SMS-added purchase marked as already recorded', r2.rows[1][1].endsWith('zaten kayıtlı'), true);
   // Kullanıcı düzeltmesi: tutara dokununca gelir/gider değişir, kategori seçilebilir
   await page.evaluate(() => { App.Statement.flip(4); App.Statement.setCat(4, 'Giyim'); });

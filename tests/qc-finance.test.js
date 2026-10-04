@@ -101,8 +101,13 @@ srv.listen(0, async () => {
   eq('E1 sayı biçimleri', await page.evaluate(() => ['1.234,56', '1,234.56', '229.00', '699,00', ' 1 234,56 ', '₺1.234,56', '1234.5', '12,5', '1.000', '0', '-5', 'abc', '', '1e3', '99999999999999'].map(s => parseMoney(s))), [1234.56, 1234.56, 229, 699, 1234.56, 1234.56, 1234.5, 12.5, 1000, null, null, null, null, null, null]);
 
   // ---- Senaryo F: iade ----
-  await addTx('income', '250', 'a_card', 'Diğer', 'İade: Mağaza');
-  eq('F1 karta 250 iade: kart borcu azalır', (await state()).card, -1033.83);
+  const f0 = await state();
+  await addTx('income', '250', 'a_card', 'İade', 'İade: Mağaza');
+  const f1 = await state();
+  eq('F1 karta 250 iade: kart borcu azalır', f1.card, -1033.83);
+  eq('F2 iade gelir sayılmaz, bu ayın giderinden düşer (gelir aynı, gider −250)', [f1.inc - f0.inc, Math.round((f1.exp - f0.exp) * 100) / 100], [0, -250]);
+  eq('F3 İstatistik ve PDF rapor aynı kuralla: iade gelir değil, rapor "İade (giderden düşüldü)" satırı', await page.evaluate(() => { const i = App.Insights.compute(tm()); window.print = () => {}; App.Report.generateMonth(tm()); const r = document.getElementById('printHolder').textContent; return [i.refunds, i.income === App.Transactions.monthTotals(tm()).income, i.expense === App.Transactions.monthTotals(tm()).expense, /İade \(giderden düşüldü\)/.test(r)]; }), [250, true, true, true]);
+  eq('F4 bankadan gelen eski iade kaydı (Diğer, "İade: …") yüklemede İade kategorisine geçer', await page.evaluate(() => { const t = S.txns(); t.push({ id: 't_oldref', type: 'income', amount: 10, category: 'Diğer', date: td(), note: 'İade: Eski', accountId: 'a_cash', userId: 'u_a', ts: 1, balanceApplied: false, src: 'sms' }); S.saveTxns(t); S.load(); const x = S.txns().find(y => y.id === 't_oldref'); const r = x.category; App.Transactions.purge('t_oldref'); return r; }), 'İade');
 
   // ---- Senaryo G: çift dokunma ----
   const before = await page.evaluate(() => S.txns().length);
