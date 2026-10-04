@@ -82,6 +82,7 @@ srv.listen(0, async () => {
     eq('12 taksit: tarihler ay sonuna uyar (31.01, 28.02, 31.03), toplam 12.000', await page.evaluate(() => { const l = S.txns().filter(t => t.installment && t.installment.name === 'Telefon').sort((a, b) => a.date < b.date ? -1 : 1); return [l.slice(0, 3).map(t => t.date), Math.round(l.reduce((s, t) => s + t.amount, 0) * 100) / 100, l.length]; }), [['2027-01-31', '2027-02-28', '2027-03-31'], 12000, 12]);
     eq('kart borcu yalnız ilk taksit (1.000); kalan limit = 20.000 − (1.000+1.000 ortak) − 11.000 gelecek taksit = 7.000', await page.evaluate(() => { const i = App.Cards.info('c'); return [i.debt, i.blocked, i.avail, App.Cards.info('c2').avail]; }), [1000, 11000, 7000, 7000]);
     eq('7.000 üstü yeni harcama limit uyarısı verir', await page.evaluate(() => [!!App.Cards.overLimit('c', 7000.01), !!App.Cards.overLimit('c2', 7000)]), [true, false]);
+    eq('net servet: gelecek 11 taksit (11.000) borç olarak düşülür: −2.000 kart − 11.000 = −13.000', await page.evaluate(() => { const n = App.NetWorth.compute(); return [n.inst, n.total]; }), [11000, -13000]);
     eq('aylık gider yalnız bu ayın taksiti (1.000), toplam 12.000 değil', await page.evaluate(() => App.Transactions.monthTotals('2027-01').expense), 1000);
     // Ortak limitin ana kartı silinince limit ek karta geçer
     await page.evaluate(() => { App.Accounts.remove('c'); [...document.querySelectorAll('.modal-bd.show')].pop().querySelector('[data-act="ok"]').click(); });

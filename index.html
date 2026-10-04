@@ -1767,6 +1767,14 @@ App.Transactions=(function(){
   function remove(id){
     var t=S.txns().find(function(x){return x.id===id});
     if(!t)return;
+    // Borç kaydına bağlı hareket: yalnız hareketi silmek borcu açık bırakır (para hesaba döner, alacak da durur → net servet şişer).
+    // Borcun kendisi ya da ödemesi silinir; ikisi birlikte geri alınır
+    var debt=S.debts().find(function(d){return d.txnId===id||d.payments.some(function(p){return p.txnId===id})});
+    if(debt){var pay=debt.payments.find(function(p){return p.txnId===id});
+      if(pay){App.UI.confirmModal({title:'Borç Ödemesini Sil',text:'Bu hareket "'+debt.person+'" borcunun '+fmt(pay.amount)+' tutarlı ödemesi. Ödeme borç kaydından da silinecek; kalan borç yeniden artar.',okLabel:'Ödemeyi Sil',danger:true},function(){App.Debts.removePayment(debt.id,pay.id);_refresh()})}
+      else App.Debts.remove(debt.id);
+      return}
+    if(isTransfer(t)&&!t.transferId&&/^(Varlık alımı|Varlık satışı)/.test(t.note||'')){App.UI.confirmModal({title:'Portföy Hareketini Sil',text:'Bu hareket portföy alım/satımından geldi. Silerseniz yalnız hesap bakiyesi geri alınır; varlık kaydı Portföy sayfasında olduğu gibi kalır (net servet iki kez sayabilir). Varlığı da düzeltmeyi unutmayın.',okLabel:'Yine de Sil',danger:true},function(){_doRemove(id)});return}
     if(t.installment){
       var planCount=S.txns().filter(function(x){return x.installment&&x.installment.planId===t.installment.planId}).length;
       App.UI.confirmModal({title:'Taksit Planını Sil',text:'"'+(t.installment.name||t.category)+'" planının tüm '+planCount+' taksiti silinecek. Devam edilsin mi?',okLabel:'Planı Sil',danger:true},function(){_doRemove(id)});
@@ -2882,7 +2890,7 @@ App.Portfolio=(function(){
       var chg='';if(a.cost&&rate){var diff=(rate-a.cost)*a.qty;var pct=a.cost>0?((rate-a.cost)/a.cost)*100:0;chg='<div class="port-chg" style="color:'+(diff>=0?'var(--green)':'var(--red)')+'">'+(diff>=0?'▲ ':'▼ ')+fmt(Math.abs(diff))+' ('+fmtPct(pct,1)+')</div>'}
       var sellBtn='<button class="btn btn-sm btn-ghost" style="margin-top:8px;padding:4px 10px;font-size:.82rem;margin-right:4px" onclick="App.Portfolio.sell(\''+a.id+'\')">Sat</button>';
       var priceBtn=a.type==='FUND'?'<button class="btn btn-sm btn-ghost" style="margin-top:8px;padding:4px 10px;font-size:.82rem" onclick="App.Portfolio.editPrice(\''+a.id+'\')">'+(a.currentPrice?'✎ Fiyat: '+fmtPrice(a.currentPrice)+(a.priceDate?' · '+fd(a.priceDate).split(' ').slice(0,2).join(' ')+(a.priceSource?' ('+a.priceSource+')':''):''):'✎ Güncel fiyat gir')+'</button>':'';
-      var priceWarn=a.type==='FUND'&&!a.currentPrice?'<div class="port-chg" style="color:var(--yellow)">⚠ Güncel fiyat girilmedi'+(a.cost?'; maliyet kullanılıyor':'')+'</div>':'';
+      var priceWarn=a.type==='FUND'&&!a.currentPrice?'<div class="port-chg" style="color:var(--yellow)">⚠ Güncel fiyat girilmedi'+(a.cost?'; maliyet kullanılıyor':'')+'</div>':a.type!=='FUND'&&!rateOf(a.type)?'<div class="port-chg" style="color:var(--yellow)">⚠ Güncel kur alınamadı'+(a.cost?'; değer maliyetle gösteriliyor':'')+' · kura dokunup elle girin</div>':'';
       return'<div class="port-card"><div class="port-del ti-actions"><button class="btn-del" title="Düzenle" aria-label="Varlığı düzenle" onclick="App.Portfolio.edit(\''+a.id+'\')">✎</button><button class="btn-del" title="Sil" aria-label="Varlığı sil" onclick="App.Portfolio.remove(\''+a.id+'\')">✕</button></div><span class="port-ico">'+m.i+'</span><div class="port-type">'+m.l+(a.code?' · '+esc(a.code):'')+(a.label?' · '+esc(a.label):'')+'</div><div class="port-qty">'+fmtQty(a.qty)+' birim</div><div class="port-val">'+fmt(val)+'</div>'+chg+priceWarn+sellBtn+priceBtn+'</div>';
     }).join('');
     document.getElementById('portTotal').textContent=fmt(total);
@@ -3045,8 +3053,12 @@ App.NetWorth=(function(){
     S.portfolio().forEach(function(p){port+=(p.qty||0)*App.Portfolio.priceOf(p)});
     var debts=S.debts().filter(function(d){return!d.settled}),lent=0,borrowed=0;
     debts.forEach(function(d){var paid=d.payments.reduce(function(s,p){return s+p.amount},0);var rem=Math.max(d.amount-paid,0);if(d.direction==='lent')lent+=rem;else borrowed+=rem});
-    return{accounts:accTotal,cash:ms.cash,cardDebt:ms.cardDebt,cardCredit:ms.cardCredit,portfolio:port,lent:lent,borrowed:borrowed,total:accTotal+port+lent-borrowed};
+    // Taksitli alışverişin henüz borca yazılmamış taksitleri de borçtur (12 taksitli telefonun 11 taksiti)
+    var inst=_instDue(td());
+    return{accounts:accTotal,cash:ms.cash,cardDebt:ms.cardDebt,cardCredit:ms.cardCredit,portfolio:port,lent:lent,borrowed:borrowed,inst:inst,total:roundMoney(accTotal+port+lent-borrowed-inst)};
   }
+  // Belirli bir günde: alışverişi yapılmış ama taksiti o günden sonraya düşen tutar
+  function _instDue(day){var today=td();return roundMoney(S.txns().reduce(function(s,t){return s+(t.installment&&t.type==='expense'&&t.date>day&&(t.installment.startDate||t.date)<=day&&!(day===today&&isBalanceApplied(t,today))?t.amount:0)},0))}
   function snapshot(){
     var hist=S.netWorthHistory()||[],m=tm(),nw=compute();
     var idx=hist.findIndex(function(h){return h.month===m});
@@ -3068,7 +3080,7 @@ App.NetWorth=(function(){
       var acc=nw.accounts;
       S.txns().forEach(function(t){if(t.accountId&&t.date>end&&isBalanceApplied(t,today))acc-=t.type==='income'?t.amount:-t.amount});
       accs.forEach(function(a){if(known&&a.ts>=endTs)acc-=a.openingBalance||0});
-      return{month:h.month,total:roundMoney(acc+(h.portfolio||0)+(h.lent||0)-(h.borrowed||0))};
+      return{month:h.month,total:roundMoney(acc+(h.portfolio||0)+(h.lent||0)-(h.borrowed||0)-_instDue(end))};
     });
   }
   function render(){
@@ -3079,7 +3091,7 @@ App.NetWorth=(function(){
     document.getElementById('nwVal').style.color=curTotal<0?'var(--red)':'var(--txt)';
     var lm=App.Inflation.latestMonth(),lp=lm.split('-');
     var cpiWarn=mode==='real'&&App.Inflation.isStale()?' · ⚠️ TÜFE verisi '+MF[+lp[1]-1]+' '+lp[0]+' sonrası için eksik; sonraki aylar son endeksle değerleniyor, güncelleyin':'';
-    document.getElementById('nwSub').textContent=(mode==='real'?'Reel (TÜFE ayarlı, '+MF[+lp[1]-1]+' '+lp[0]+' fiyatlarıyla)':'Hesaplardaki para − kart borçları + portföy ± borç/alacak')+cpiWarn;
+    document.getElementById('nwSub').textContent=(mode==='real'?'Reel (TÜFE ayarlı, '+MF[+lp[1]-1]+' '+lp[0]+' fiyatlarıyla)':'Hesaplardaki para − kart borçları ve gelecek taksitler + portföy ± borç/alacak')+cpiWarn;
     var hist=_history(snapshot(),nw,curM);
     var adjHist=hist.map(function(h){return{month:h.month,total:mode==='real'?App.Inflation.adjust(h.total,h.month):h.total}});
     var prev=adjHist.length>=2?adjHist[adjHist.length-2]:null;
@@ -3089,6 +3101,7 @@ App.NetWorth=(function(){
     var foot=document.getElementById('nwFoot');
     foot.innerHTML='<span>🏦 <b>'+fmt(nw.cash)+'</b> Hesaplardaki para</span>'+
       (nw.cardDebt?'<span>💳 <b>−'+fmt(nw.cardDebt)+'</b> Kart borcu</span>':'')+
+      (nw.inst?'<span>🧾 <b>−'+fmt(nw.inst)+'</b> Gelecek taksitler</span>':'')+
       (nw.cardCredit?'<span>💳 <b>'+fmt(nw.cardCredit)+'</b> Kartta artı bakiye</span>':'')+
       '<span>💎 <b>'+fmt(nw.portfolio)+'</b> Portföy</span>'+
       (nw.lent?'<span>⬆️ <b>'+fmt(nw.lent)+'</b> Alacak</span>':'')+
