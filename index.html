@@ -641,6 +641,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
   <div class="card">
     <div class="sh-title" style="margin-bottom:14px">Aktif Profil</div>
     <div id="activeProfileCard"></div>
+    <div class="set-sub" style="margin-top:10px">ℹ️ Profil, kaydı kimin girdiğini ve "kişisel" hesabın kime ait olduğunu gösterir; gizlilik sağlamaz. Aynı eşitleme koduyla bağlı her telefonda tüm aile kayıtları görünür.</div>
   </div>
   <div class="sh"><div class="sh-title">Aile Üyeleri</div></div>
   <div id="familyMembers"></div>
@@ -3969,7 +3970,10 @@ App.BankSms=(function(){
   function disable(){
     var st=_st(),c=App.Sync.cfg();
     App.UI.confirmModal({title:'Banka SMS Bağlantısını Kapat',text:'Bu telefondaki Kestirme artık SMS gönderemez (bağlantı geçersiz olur). Kestirmeler uygulamasındaki otomasyonu da silebilirsiniz.',okLabel:'Kapat'},function(){
-      (st&&c?App.Sync.api(c,'DELETE','/sms-key/'+encodeURIComponent(st.label)):Promise.resolve()).catch(function(){}).then(function(){_save(null);renderCard();App.UI.toast('Banka SMS bağlantısı kapatıldı.','info')});
+      // Sunucu onaylamadan "kapatıldı" denmez: bağlantı sunucuda geçerli kalırsa Kestirme göndermeyi sürdürür
+      (st&&c?App.Sync.api(c,'DELETE','/sms-key/'+encodeURIComponent(st.label)):Promise.resolve({status:200})).then(function(r){
+        if(!r||r.status!==200)throw new Error();_save(null);renderCard();App.UI.toast('Banka SMS bağlantısı kapatıldı.','info');
+      }).catch(function(){App.UI.toast('Bağlantı kapatılamadı: sunucuya ulaşılamadı. İnternet bağlantısını kontrol edip yeniden deneyin; bağlantı şu an hâlâ açık.','err')});
     });
   }
   function test(){
@@ -4174,8 +4178,10 @@ App.BankSms=(function(){
   function mailDisable(){
     var c=App.Sync.cfg(),label=_mlabel();if(!c)return;
     App.UI.confirmModal({title:'Gmail Bağlantısını Kapat',text:'Google\'daki betik artık e-posta gönderemez (bağlantı geçersiz olur). script.google.com\'daki "Aile Kasası" projesini de silebilirsiniz.',okLabel:'Kapat'},function(){
-      App.Sync.api(c,'DELETE','/sms-key/'+encodeURIComponent(label)).catch(function(){}).then(function(){
-        _kAt=Date.now();if(_mine())_msave(null);var ks=_keys();if(ks)_ksave(ks.filter(function(k){return k.label!==label}));renderCard();App.UI.toast('Gmail bağlantısı kapatıldı.','info')});
+      App.Sync.api(c,'DELETE','/sms-key/'+encodeURIComponent(label)).then(function(r){
+        if(!r||r.status!==200)throw new Error();
+        _kAt=Date.now();if(_mine())_msave(null);var ks=_keys();if(ks)_ksave(ks.filter(function(k){return k.label!==label}));renderCard();App.UI.toast('Gmail bağlantısı kapatıldı.','info')
+      }).catch(function(){App.UI.toast('Gmail bağlantısı kapatılamadı: sunucuya ulaşılamadı. İnternet bağlantısını kontrol edip yeniden deneyin; bağlantı şu an hâlâ açık.','err')});
     });
   }
   function _copyText(t,ok,id){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){App.UI.toast(ok,'ok')},function(){var el=document.getElementById(id);if(el){el.focus();el.select()}App.UI.toast('Kopyalanamadı; kutudaki metni elle seçip kopyalayın.','info')})}

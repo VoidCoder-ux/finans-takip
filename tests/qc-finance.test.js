@@ -114,6 +114,20 @@ srv.listen(0, async () => {
   for (const bad of ['0', '-10', 'abc', '']) await addTx('expense', bad, 'a_cash', 'Market', 'Bozuk');
   eq('H1 0 / eksi / harf / boş tutar eklenmez', await page.evaluate(n => S.txns().length - n, n0), 0);
 
+  // ---- Senaryo I: borca bağlı hareketi İşlemler'den silmek borcu da kaldırır ----
+  const bI = (await state()).bank;
+  await page.evaluate(() => { App.UI.nav('borclar'); document.getElementById('debtDir').value = 'lent'; document.getElementById('debtPerson').value = 'Komşu'; document.getElementById('debtAmt').value = '1000'; document.getElementById('debtDate').value = td(); const s = document.getElementById('debtAccount'); if (s) s.value = 'a_bank'; App.Debts.add(); });
+  eq('I1 1.000 borç verildi: banka −1.000, alacak 1.000, gider değil', await page.evaluate(b => [App.Accounts.get('a_bank').balance - b, App.NetWorth.compute().lent, App.Transactions.monthTotals(tm()).expense], bI), [-1000, 1000, (await state()).exp]);
+  await page.evaluate(() => { const d = S.debts()[0]; App.Transactions.remove(d.txnId); }); await okTop(); await page.waitForTimeout(150);
+  eq('I2 hareket silinince borç da silinir: banka eski haline, alacak 0', await page.evaluate(b => [App.Accounts.get('a_bank').balance - b, App.NetWorth.compute().lent, S.debts().length], bI), [0, 0, 0]);
+
+  // ---- Senaryo J: otomatik tekrarlayan uzun süre açılmayınca her ay bir kez ----
+  const nJ = await page.evaluate(() => {
+    const m3 = shiftMonth(tm(), -3); const r = S.recurring(); r.push({ id: 'r_kira', type: 'expense', amount: 500, category: 'Faturalar', day: 1, note: 'Kira', accountId: 'a_bank', userId: 'u_a', isSubscription: false, active: true, autoLog: true, autoFrom: m3, autoDone: m3, ts: Date.now() - 100 * 864e5 }); S.saveRecurring(r);
+    const a = App.Recurring.autoRun(), b = App.Recurring.autoRun(); return [a, b, S.txns().filter(t => t.recurringId === 'r_kira').map(t => t.date.slice(0, 7)).sort()];
+  });
+  eq('J1 3 ay açılmadı: eksik 3 ay bir kez yazılır, ikinci çalışmada 0', nJ, [3, 0, await page.evaluate(() => [shiftMonth(tm(), -2), shiftMonth(tm(), -1), tm()])]);
+
   eq('sayfa hatası yok', errors, []);
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
   await browser.close(); srv.close(); process.exit(fail ? 1 : 0);
