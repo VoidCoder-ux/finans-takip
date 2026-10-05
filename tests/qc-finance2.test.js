@@ -1,6 +1,7 @@
 // Usage: node tests/qc-finance2.test.js
 // Denetim #5 para senaryoları (beklenen değerler elle): işlemin hesabını / türünü / tarihini düzenleme, taksit planında tek taksidi
-// düzenleme ve planı silme, gün geçince taksitlerin bakiyeye bir kez işlenmesi, transferin tarihini ileri alma, hesap ve üye silme.
+// düzenleme ve planı silme, gün geçince taksitlerin bakiyeye bir kez işlenmesi, transferin tarihini ileri alma, hesap ve üye silme,
+// bütçe limitinin geçmiş aylara uygulanması.
 // Kurmaca veri, sunucu gerekmez.
 const http = require('http'), fs = require('fs'), path = require('path');
 function loadPlaywright() { try { return require('playwright'); } catch (e) {} try { return require(path.join(require('child_process').execSync('npm root -g', { encoding: 'utf8' }).trim(), 'playwright')); } catch (e) { return null; } }
@@ -104,6 +105,20 @@ srv.listen(0, async () => {
     await page.waitForTimeout(100);
     eq('üye silindi: cüzdan ortak, kayıt kişisiz, gider ve bakiye aynı', await page.evaluate(() => { const a = App.Accounts.get('k'); return [a.owner, !S.txns()[0].userId, App.Transactions.monthTotals('2027-03').expense, a.balance]; }), ['shared', true, 80, 420]);
     await ctx.close();
+  }
+  // 6) Bütçe geçmiş ay: yeni konan limit geçmiş aya uygulanmaz; değişen limit geçmiş ayda o ayın limitiyle değerlendirilir
+  {
+    const feb = { id: 'f1', type: 'expense', amount: 1500, category: 'Market', date: '2027-02-10', note: 'Market', accountId: 'b', userId: 'u_a', ts: 1, balanceApplied: true };
+    const setLimit = (p, cat, v) => p.evaluate(({ cat, v }) => { App.UI.nav('butce'); document.getElementById('bCat').value = cat; document.getElementById('bLimit').value = v; App.Budget.save(); }, { cat, v });
+    const febWarn = p => p.evaluate(() => App.Insights.compute('2027-02').warnings.filter(w => /Market bütçesi/.test(w.title)).map(w => w.title));
+    const { page, ctx } = await open('2027-03-15', { pf_t: [feb] });
+    await setLimit(page, 'Market', '1000');
+    eq('mart ayında ilk kez konan 1.000 limit: şubatın 1.500 harcaması "aşıldı" sayılmaz', [await febWarn(page), await page.evaluate(() => [App.Budget.limitFor('Market', '2027-02'), App.Budget.limitFor('Market', '2027-03')])], [[], [0, 1000]]);
+    await ctx.close();
+    const two = await open('2027-03-15', { pf_t: [feb], pf_b: { Market: 2000 } });
+    await setLimit(two.page, 'Market', '1000');
+    eq('limit 2.000 → 1.000 (mart): şubat 2.000 ile değerlendirilir, uyarı yok; mart 1.000', [await febWarn(two.page), await two.page.evaluate(() => [App.Budget.limitFor('Market', '2027-02'), App.Budget.limitFor('Market', '2027-03')])], [[], [2000, 1000]]);
+    await two.ctx.close();
   }
   eq('sayfa hatası yok', errors, []);
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
