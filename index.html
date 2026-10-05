@@ -910,7 +910,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.04.8</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.05.1</div>
 </section>
 
 </main>
@@ -3627,6 +3627,7 @@ App.Sync=(function(){
 
 // ---- Uygulama kapalıyken bildirim (Web Push) ----
 // Sunucuya yalnız bildirim günleri gider; ödeme metni cihazda IndexedDB'de kalır ve service worker oradan okur.
+var NOTIF_DENIED='Bildirim izni kapalı: telefonun Ayarlar > Uygulamalar > (tarayıcı ya da Aile Kasası) > Bildirimler bölümünden izin verin, sonra bu düğmeye yeniden basın.';
 App.Push=(function(){
   var _lastSent='';
   function supported(){return'serviceWorker'in navigator&&'PushManager'in window&&'Notification'in window}
@@ -3658,7 +3659,7 @@ App.Push=(function(){
     if(!App.Sync.configured()){App.UI.toast('Kapalıyken bildirim için önce eşitlemeyi açın.','info');return}
     var c=App.Sync.cfg();
     Notification.requestPermission().then(function(perm){
-      if(perm!=='granted')throw new Error('Bildirim izni verilmedi.');
+      if(perm!=='granted')throw new Error(perm==='denied'?NOTIF_DENIED:'Bildirim izni verilmedi.');
       return Promise.all([navigator.serviceWorker.ready,_vapid(c)]);
     }).then(function(r){return r[0].pushManager.getSubscription().then(function(s){return s||r[0].pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_key(r[1])})})})
       .then(function(){c=App.Sync.cfg();c.push=true;localStorage.setItem('ft_sync',JSON.stringify(c));return refresh(true)})
@@ -5230,13 +5231,16 @@ App.Notifications=(function(){
     if(!supported()){btn.hidden=true;say('Bu tarayıcı bildirim desteklemiyor. iPhone\'da uygulamayı ana ekrana ekleyip oradan açın.');return}
     if(App.Push&&App.Push.enabled()){btn.hidden=true;say('✓ Açık: ödemelerden önce bildirim gelir, uygulama kapalıyken de.');return}
     if(Notification.permission==='granted'){var po=_pushOk();btn.hidden=!po;btn.textContent='📲 Kapalıyken de bildir';btn.classList.add('granted');say('Uygulama açıkken 3 gün içindeki ödemeler hatırlatılıyor.'+(po?'':' Kapalıyken de bildirim için Cihazlar Arası Eşitleme\'yi açın.'));return}
-    btn.hidden=false;btn.disabled=false;btn.textContent='🔔 Bildirimleri Aç';btn.classList.remove('granted');say('Kira, fatura, taksit ve borç ödemelerinden önce haber verir.');
+    btn.hidden=false;btn.disabled=false;btn.textContent='🔔 Bildirimleri Aç';btn.classList.remove('granted');
+    // İzin daha önce reddedildiyse tarayıcı bir daha sormaz: düğme sessizce çalışmıyor görünmesin
+    say(Notification.permission==='denied'?NOTIF_DENIED:'Kira, fatura, taksit ve borç ödemelerinden önce haber verir.');
   }
   function toggle(){
     if(!supported()){App.UI.toast('Tarayıcı bildirim desteklemiyor.','err');return}
     if(_pushOk()&&!App.Push.enabled()){App.Push.enable();return}
     if(Notification.permission==='granted'){App.UI.toast('Bildirim zaten açık.','info');checkDueBills(true);return}
-    Notification.requestPermission().then(function(p){syncBtn();if(p==='granted'){App.UI.toast('Bildirim açıldı.');checkDueBills(true)}}).catch(function(){syncBtn();App.UI.toast('Bildirim izni alınamadı.','err')});
+    if(Notification.permission==='denied'){App.UI.toast(NOTIF_DENIED,'info');return}
+    Notification.requestPermission().then(function(p){syncBtn();if(p==='granted'){App.UI.toast('Bildirim açıldı.');checkDueBills(true)}else if(p==='denied')App.UI.toast(NOTIF_DENIED,'info')}).catch(function(){syncBtn();App.UI.toast('Bildirim izni alınamadı.','err')});
   }
   function upcomingBills(daysAhead){
     var today=new Date(),tday=today.getDate(),out=[];
