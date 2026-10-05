@@ -33,7 +33,7 @@ function seed() {
     pf_a: [{ id: 'a_bank', name: 'Yapıkredi TLCARD', type: 'bank', owner: 'shared', last4: '4359', balance: 20000, openingBalance: 0, ts: 1 }, { id: 'a_card', name: 'Yapıkredi World', type: 'card', owner: 'shared', last4: '2947', balance: -25000, openingBalance: 0, ts: 2 }],
     pf_t: t, pf_b: { Market: 8000, Yiyecek: 3000 },
     pf_r: [{ id: 'r_nf', type: 'expense', amount: 229.99, category: 'Eğlence', day: 12, note: 'Netflix', accountId: 'a_card', userId: 'u_self', isSubscription: true, active: true, ts: 1 }],
-    pf_s: { onboarded: true, users: [{ id: 'u_self', name: 'Osman', emoji: '🙋', color: '#14b8a6' }, { id: 'u_partner', name: 'Ayşe', emoji: '👩', color: '#ec4899' }], activeUser: 'u_self', lastBackupAt: Date.now() }
+    pf_s: { onboarded: true, users: [{ id: 'u_self', name: 'Deniz', emoji: '🙋', color: '#14b8a6' }, { id: 'u_partner', name: 'Ayşe', emoji: '👩', color: '#ec4899' }], activeUser: 'u_self', lastBackupAt: Date.now() }
   };
 }
 
@@ -56,8 +56,8 @@ srv.listen(0, async () => {
     titles.includes('red:Market bütçesi aşıldı'), titles.includes('info:Kredi kartı borcu'), titles.includes('info:Abonelikler'), titles.includes('green:İyi gidiyor')], [true, true, true, true, true, true, true]);
   eq('warnings sorted red → yellow → info → green', a.warnings.map(w => w.level).join(',').replace(/(\w+)(,\1)+/g, '$1'), 'red,yellow,info,green');
   eq('no false alarm: Yiyecek went down', titles.some(t => /Yiyecek/.test(t)), false);
-  eq('where it went: categories, places (brand names), people, cards', [a.categories.map(x => x.key), a.places.slice(0, 3).map(x => x.key + ' ' + x.amount), a.byUser.map(x => x.key + ' ' + x.amount), a.byAccount.map(x => x.key)], [['Market', 'Giyim', 'Yiyecek'], ['Migros 5000', 'BİM 4000', 'Zara 4000'], ['Osman 9000', 'Ayşe 5000'], ['Yapıkredi World …2947']]);
-  eq('where it came from', [a.incomeCategories.map(x => x.key + ' ' + x.amount), a.incomeByUser.map(x => x.key), a.incomeByAccount.map(x => x.key)], [['Maaş 50000', 'Freelance 5000'], ['Osman', 'Ayşe'], ['Yapıkredi TLCARD …4359']]);
+  eq('where it went: categories, places (brand names), people, cards', [a.categories.map(x => x.key), a.places.slice(0, 3).map(x => x.key + ' ' + x.amount), a.byUser.map(x => x.key + ' ' + x.amount), a.byAccount.map(x => x.key)], [['Market', 'Giyim', 'Yiyecek'], ['Migros 5000', 'BİM 4000', 'Zara 4000'], ['Deniz 9000', 'Ayşe 5000'], ['Yapıkredi World …2947']]);
+  eq('where it came from', [a.incomeCategories.map(x => x.key + ' ' + x.amount), a.incomeByUser.map(x => x.key), a.incomeByAccount.map(x => x.key)], [['Maaş 50000', 'Freelance 5000'], ['Deniz', 'Ayşe'], ['Yapıkredi TLCARD …4359']]);
 
   // İstatistikler sayfası
   await page.evaluate(() => App.UI.nav('istatistikler')); await page.waitForTimeout(600);

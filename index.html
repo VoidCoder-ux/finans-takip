@@ -3765,10 +3765,16 @@ App.BankSms=(function(){
     var inc=/(hesabiniza|hesabina|kartiniza|lehinize|adiniza)/.test(f)||/(yatirildi|yatirilmistir|yatmistir|gelmistir|gelen (eft|fast|havale|para)|alacak(landirildi| kaydedil))/.test(f)||o.salary||o.refund;
     var exp=/(harcama|alisveris|odemeniz|odeme yapil|cekilmistir|cekildi|cekim|tahsil edil|borclandiril|hesabinizdan|kartinizdan|kartinizla|kartiniz ile|kart ile|giden (eft|fast|havale)|gonderilmistir|gonderildi|satin al|otomatik odeme)/.test(f);
     if(o.refund)exp=false;
+    // Banka ücreti / faiz / aidat "kartınıza … yansıtılmıştır" diye gelir ama borçtur (gider), gelir değil
+    var fee=/(faiz|aidat|ucret|masraf|komisyon|bsmv|kkdf)/.test(f)&&/(yansitil|tahakkuk|tahsil edil|borclandiril|kesil)/.test(f)&&!o.refund;
+    if(fee){inc=false;exp=true}
     if(/hesabinizdan/.test(f)&&/(gonderil|aktarildi|virman|odeme)/.test(f))inc=false;
     if(/hesabiniza/.test(f)&&!/(hesabinizdan|kartinizdan|kartinizla|kartiniz ile|harcama|alisveris)/.test(f))exp=false;
     o.accHint=/kart/.test(f)&&!/hesabiniz/.test(f)?'card':/hesab/.test(f)?'bank':'';
     if(/(kredi karti|kart(i|inizin)?|ekstre) ?(borc\w*|ekstre\w*)\b.{0,40}odeme|kart(iniz)?(a|in)? borcuna|kart borcunuz|ekstre borcunuza|kartiniza .{0,60}odeme|kart(i|iniz)? (borc )?odemeniz|kredi karti odemesi|kart odemesi|kartiniza .{0,40}(yatiril|aktaril)/.test(f)||(/kart/.test(f)&&!/fatura|kartinizdan|kartinizla/.test(f)&&/odemeniz (alin|tahsil|kabul|gerceklest)/.test(f))){o.kind='review';o.reason='Kredi kartı borç ödemesi (hesaplar arası aktarım olabilir)';o.type='expense';o.party=_party(t,f);return o}
+    // Provizyon (ön onay, otel/akaryakıt): kesin harcama tutarı farklı olabilir; iptali harcama/iade değildir
+    if(/provizyon/.test(f)){if(/(iptal|cozul|serbest|kaldiril)/.test(f)){o.kind='ignore';o.reason='Provizyon iptali (harcama değil)';return o}
+      o.kind='review';o.reason='Provizyon (ön onay): kesin tutar farklı olabilir; harcama kesinleşince Ekle, mesaj gelirse Yoksay';o.type='expense';o.merchant=_merchant(t,f);return o}
     if(/\batm\b|nakit cek|para cek/.test(f)&&!/yatir/.test(f)){o.kind='review';o.reason='ATM nakit çekimi (nakit hesabına aktarım olabilir)';o.type='expense';return o}
     if(inc===exp){o.kind='review';o.reason='Gelir mi gider mi anlaşılamadı';o.type=inc?'income':'expense';o.merchant=_merchant(t,f);return o}
     o.type=inc?'income':'expense';o.kind=o.type;
@@ -3915,7 +3921,8 @@ App.BankSms=(function(){
       if(p.kind!=='review'&&!accId){p.kind='review';p.reason=p.last4?'…'+p.last4+' ile biten kart/hesap hangi hesabınız? Bir kez seçin, sonrakiler otomatik işlenir.':'Hangi hesaba ait olduğu bulunamadı'}
       if(p.kind!=='review'){
         var sal=_salaryTxn(p,userId);
-        if(sal){var ch={};if(Math.abs(sal.amount-p.amount)>0.009)ch.amount=p.amount;if(sal.date!==p.date)ch.date=p.date;if(!sal.accountId)ch.accountId=accId;if(Object.keys(ch).length){App.Transactions.patch(sal.id,ch);res.updated++}else res.dupes++;return}
+        // Planlı maaş bir kez bankadaki gerçek maaşla eşleşir (src:'sms'); aynı ay gelen ikinci "maaş" mesajı (ikramiye, ek ödeme) onu ezmez, ayrı kayıt olur
+        if(sal){var ch={},changed=Math.abs(sal.amount-p.amount)>0.009||sal.date!==p.date||!sal.accountId;if(Math.abs(sal.amount-p.amount)>0.009)ch.amount=p.amount;if(sal.date!==p.date)ch.date=p.date;if(!sal.accountId)ch.accountId=accId;ch.src='sms';if(p.via==='email')ch.via='email';App.Transactions.patch(sal.id,ch);if(changed)res.updated++;else res.dupes++;return}
         var dp=_dupe(p,accId);
         if(dp&&_sure(dp,p,note)){res.dupes++;return}
         if(dp){p.kind='review';p.reason='Aynı tutarda elle girilmiş kayıt var ("'+String(dp.note).slice(0,40)+'", '+fd(dp.date)+'). Aynı harcamaysa Yoksay, ayrı harcamaysa Ekle.'}

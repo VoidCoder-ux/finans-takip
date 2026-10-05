@@ -35,7 +35,7 @@ function seed() {
   t.push({ id: 't1700000000000_tri', type: 'income', amount: 10000, category: 'Transfer', date: iso(now), note: 'Kart ödemesi', accountId: C, userId: 'u_self', ts: 1000, balanceApplied: true, transferId: 'tr1700000000000_aaaa' });
   return {
     pf_a: accs, pf_t: t,
-    pf_s: { onboarded: true, theme: 'dark', rates: { USD: 41.2, EUR: 48.1, GBP: 55.3, GOLD_GRAM: 4350, GOLD_QUARTER: 7100, GOLD_FULL: 28300, FUND: 1, updated: Date.now(), provider: 'Test' }, portfolioTargets: { USD: 30, GOLD_GRAM: 50, FUND: 20 }, users: [{ id: 'u_self', name: 'Osman', emoji: '🙋', color: '#14b8a6' }, { id: 'u_partner', name: 'Ayşe', emoji: '👩‍👧', color: '#ec4899' }], activeUser: 'u_self', lastBackupAt: Date.now() },
+    pf_s: { onboarded: true, theme: 'dark', rates: { USD: 41.2, EUR: 48.1, GBP: 55.3, GOLD_GRAM: 4350, GOLD_QUARTER: 7100, GOLD_FULL: 28300, FUND: 1, updated: Date.now(), provider: 'Test' }, portfolioTargets: { USD: 30, GOLD_GRAM: 50, FUND: 20 }, users: [{ id: 'u_self', name: 'Deniz', emoji: '🙋', color: '#14b8a6' }, { id: 'u_partner', name: 'Ayşe', emoji: '👩‍👧', color: '#ec4899' }], activeUser: 'u_self', lastBackupAt: Date.now() },
     pf_b: { Market: 12000, Yiyecek: 5000, Eğlence: 1500, Faturalar: 4000 },
     pf_bm: { Eğlence: { carryOver: true, carryStart: iso(new Date(now.getFullYear(), now.getMonth() - 3, 1)).slice(0, 7) } },
     pf_r: [

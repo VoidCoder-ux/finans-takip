@@ -28,7 +28,7 @@ function seed() {
     pf_r: [{ id: 'r_sal', type: 'income', amount: 45000, category: 'Maaş', day: 1, note: 'Maaşım', accountId: 'a_ykb', userId: 'u_self', active: true, ts: 1 },
       { id: 'r_sal2', type: 'income', amount: 38000, category: 'Maaş', day: 15, note: 'Eşimin maaşı', accountId: 'a_akb', userId: 'u_partner', active: true, ts: 2 }],
     pf_ru: [{ id: 'ru1', field: 'note', value: 'trendyol', category: 'Giyim', active: true, ts: 1 }],
-    pf_s: { onboarded: true, theme: 'dark', users: [{ id: 'u_self', name: 'Osman', emoji: '🙋', color: '#14b8a6' }, { id: 'u_partner', name: 'Ayşe', emoji: '👩', color: '#ec4899' }], activeUser: 'u_self', lastBackupAt: Date.now() }
+    pf_s: { onboarded: true, theme: 'dark', users: [{ id: 'u_self', name: 'Deniz', emoji: '🙋', color: '#14b8a6' }, { id: 'u_partner', name: 'Ayşe', emoji: '👩', color: '#ec4899' }], activeUser: 'u_self', lastBackupAt: Date.now() }
   };
 }
 const L = 'abcd1234_u_self', LP = 'efgh5678_u_partner';
@@ -161,7 +161,8 @@ srv.listen(0, async () => {
     eq('outgoing + incoming same amount between own accounts → paired as transfer', [r3.transfers, await page.evaluate(() => S.txns().filter(t => t.amount === 3000).map(t => [t.type, t.category, !!t.transferId, t.accountId]).sort())], [1, [['expense', 'Transfer', true, 'a_ykb'], ['income', 'Transfer', true, 'a_akb']]]);
     eq('transfer does not change month income/expense totals', await page.evaluate(() => App.Transactions.monthTotals ? JSON.stringify(App.Transactions.monthTotals(tm())) : ''), incBefore);
     // İkramiyeli maaş: planlı 38.000 yerine 52.000 gelirse yine aynı kayıt güncellenir
-    await page.evaluate(() => { const t = S.txns(); const x = t.find(y => y.id === 'tr_r_sal2'); App.Transactions.patch(x.id, { amount: 38000, date: tm() + '-15' }); });
+    // Kayıt yeniden "bankayla henüz eşleşmemiş planlı maaş" durumuna getirilir (eşleşmiş maaş ikinci kez eşleşmez)
+    await page.evaluate(() => { const t = S.txns(); const x = t.find(y => y.id === 'tr_r_sal2'); App.Transactions.patch(x.id, { amount: 38000, date: tm() + '-15' }); const t2 = S.txns(); delete t2.find(y => y.id === 'tr_r_sal2').src; S.saveTxns(t2); });
     const r4 = await page.evaluate(i => App.BankSms.ingest([i]), item('Maas odemeniz 52.000,00 TL olarak hesabiniza yatirilmistir. Akbank', LP));
     eq('salary with bonus (+37%) updates the planned salary, no second salary', [r4.added, r4.updated, await page.evaluate(() => S.txns().filter(t => t.type === 'income' && t.category === 'Maaş' && t.userId === 'u_partner').length)], [0, 1, 1]);
     // Maaş SMS'i tekrarlayana bağlanamadıysa (tutar farklı), Özet'te "Kaydet" ikinci maaş açmaz: eşleştirir
