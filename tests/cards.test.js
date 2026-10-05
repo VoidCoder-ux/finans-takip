@@ -26,7 +26,7 @@ function seed() {
     pf_t: [
       { id: 't1', type: 'expense', amount: 2000, category: 'Market', date: day(-2), note: 'Migros', accountId: 'a_world', userId: 'u_self', ts: 1, balanceApplied: true },
       { id: 't_inst', type: 'expense', amount: 500, category: 'Giyim', date: futMonth, note: 'Zara (2/3)', accountId: 'a_world', userId: 'u_self', ts: 2, balanceApplied: false, installment: { planId: 'p1', index: 2, total: 3, totalAmount: 1500, name: 'Zara', startDate: day(-30), balanceApplied: false } }],
-    pf_s: { onboarded: true, users: [{ id: 'u_self', name: 'Osman', emoji: '🙋', color: '#14b8a6' }], activeUser: 'u_self', lastBackupAt: Date.now() }
+    pf_s: { onboarded: true, users: [{ id: 'u_self', name: 'Deniz', emoji: '🙋', color: '#14b8a6' }], activeUser: 'u_self', lastBackupAt: Date.now() }
   };
 }
 

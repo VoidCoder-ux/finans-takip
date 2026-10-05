@@ -854,7 +854,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
   <div class="goals-grid" id="goalsGrid"></div>
   </div>
   <div class="sub-pane" data-pane="fund">
-    <div class="set-sub" style="margin-bottom:10px">Yılda bir ödenen giderler (MTV, kasko, okul kaydı…): uygulama her ay ne kadar ayırmanız gerektiğini hesaplar.</div>
+    <div class="set-sub" style="margin-bottom:10px">Yılda bir ödenen giderler (MTV, kasko, okul kaydı…): uygulama her ay ne kadar ayırmanız gerektiğini hesaplar. Katkılar yalnız takip içindir: para hesabınızdan çıkmaz, net servet değişmez. Ödediğinizde "Ödendi" ile gider olarak kaydedin.</div>
     <div class="metrics" style="grid-template-columns:1fr 1fr">
       <div class="mc"><div class="mc-icon cc-orange">📅</div><div class="mc-val" id="fundMonthly" style="color:var(--orange)">₺0</div><div class="mc-lbl">Aylık Ayrılacak</div></div>
       <div class="mc"><div class="mc-icon cc-yellow">💰</div><div class="mc-val" id="fundYearly">₺0</div><div class="mc-lbl">Yıllık Toplam</div></div>
@@ -910,7 +910,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.04.8</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.05.1</div>
 </section>
 
 </main>
@@ -2300,7 +2300,8 @@ App.Budget=(function(){
     var bm=S.budgetMeta();bm[cat]=bm[cat]||{};
     // Limit geçmişi: devir hesabı geçmiş aylara o ayın limitini uygular ('0000-00' = kayıt öncesi limit)
     var hist=bm[cat].history=bm[cat].history&&typeof bm[cat].history==='object'?bm[cat].history:{};
-    if(!Object.keys(hist).length&&typeof old==='number'&&old!==lim)hist['0000-00']=old;
+    // Geçmiş kaydı yokken mevcut eski limit kayıt öncesi aylara aittir; hiç limit yoksa geçmiş aylar limitsiz kalır
+    if(!Object.keys(hist).length&&typeof old==='number')hist['0000-00']=old;
     hist[tm()]=lim;if(carry&&!bm[cat].carryOver)bm[cat].carryStart=tm();if(!carry)delete bm[cat].carryStart;bm[cat].carryOver=carry;S.saveBudgetMeta(bm);
     document.getElementById('bLimit').value='';syncCarry();
     renderAll();App.UI.toast('Limit kaydedildi.');
@@ -2327,7 +2328,8 @@ App.Budget=(function(){
   function limitFor(cat,month){
     var cur=S.budgets()[cat]||0,meta=S.budgetMeta()[cat],h=meta&&meta.history;if(!h)return cur;
     var keys=Object.keys(h).filter(function(k){return k<=month}).sort();
-    return keys.length?toNum(h[keys[keys.length-1]],cur):cur;
+    // O ay henüz limit konmamıştı: bugünkü limit geçmiş aya uygulanmaz
+    return keys.length?toNum(h[keys[keys.length-1]],cur):0;
   }
   function effectiveLimit(cat){var base=S.budgets()[cat]||0;return base+rolloverBalance(cat)}
   function renderZBB(){
@@ -2686,7 +2688,7 @@ App.Charts=(function(){
     var b=S.budgets(),el=document.getElementById('statsTable'),keys=Object.keys(cats);
     if(!keys.length){el.innerHTML='<div class="empty"><span class="empty-ico">📊</span><div class="empty-t">Bu dönem veri yok</div></div>';return}
     keys.sort(function(a,b_){return cats[b_]-cats[a]});
-    var rows=keys.map(function(cat){var spent=cats[cat],has=b[cat]!=null,lim=has?_limitOf(cat,month):0;var s='<span style="color:var(--txt3)">—</span>';if(has){var pct=lim>0?(spent/lim)*100:(spent>0?100:0);s=pct>=100?'<span style="color:var(--red)">⚠ Aşıldı</span>':pct>=75?'<span style="color:var(--yellow)">⚠ '+fmtPct(pct)+'</span>':'<span style="color:var(--green)">✓ '+fmtPct(pct)+'</span>'}return'<tr><td>'+ci(cat).i+' <strong>'+esc(cat)+'</strong></td><td style="color:var(--red);font-weight:700">'+fmt(spent)+'</td><td>'+(has?fmt(lim):'—')+'</td><td>'+s+'</td></tr>'}).join('');
+    var rows=keys.map(function(cat){var spent=cats[cat],has=b[cat]!=null&&(month===tm()||_limitOf(cat,month)>0),lim=has?_limitOf(cat,month):0;var s='<span style="color:var(--txt3)">—</span>';if(has){var pct=lim>0?(spent/lim)*100:(spent>0?100:0);s=pct>=100?'<span style="color:var(--red)">⚠ Aşıldı</span>':pct>=75?'<span style="color:var(--yellow)">⚠ '+fmtPct(pct)+'</span>':'<span style="color:var(--green)">✓ '+fmtPct(pct)+'</span>'}return'<tr><td>'+ci(cat).i+' <strong>'+esc(cat)+'</strong></td><td style="color:var(--red);font-weight:700">'+fmt(spent)+'</td><td>'+(has?fmt(lim):'—')+'</td><td>'+s+'</td></tr>'}).join('');
     el.innerHTML='<div class="stats-table-wrap"><table class="stats-table"><thead><tr><th>Kategori</th><th>Harcama</th><th>Limit</th><th>Durum</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
   return{refresh,report}
@@ -3625,6 +3627,7 @@ App.Sync=(function(){
 
 // ---- Uygulama kapalıyken bildirim (Web Push) ----
 // Sunucuya yalnız bildirim günleri gider; ödeme metni cihazda IndexedDB'de kalır ve service worker oradan okur.
+var NOTIF_DENIED='Bildirim izni kapalı: telefonun Ayarlar > Uygulamalar > (tarayıcı ya da Aile Kasası) > Bildirimler bölümünden izin verin, sonra bu düğmeye yeniden basın.';
 App.Push=(function(){
   var _lastSent='';
   function supported(){return'serviceWorker'in navigator&&'PushManager'in window&&'Notification'in window}
@@ -3656,7 +3659,7 @@ App.Push=(function(){
     if(!App.Sync.configured()){App.UI.toast('Kapalıyken bildirim için önce eşitlemeyi açın.','info');return}
     var c=App.Sync.cfg();
     Notification.requestPermission().then(function(perm){
-      if(perm!=='granted')throw new Error('Bildirim izni verilmedi.');
+      if(perm!=='granted')throw new Error(perm==='denied'?NOTIF_DENIED:'Bildirim izni verilmedi.');
       return Promise.all([navigator.serviceWorker.ready,_vapid(c)]);
     }).then(function(r){return r[0].pushManager.getSubscription().then(function(s){return s||r[0].pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_key(r[1])})})})
       .then(function(){c=App.Sync.cfg();c.push=true;localStorage.setItem('ft_sync',JSON.stringify(c));return refresh(true)})
@@ -3727,7 +3730,7 @@ App.BankSms=(function(){
   }
   function _party(t,f){
     var m=/(?:gonderen|alici|gonderici)\s*(?:adi)?\s*[:-]\s*([^,;\n]{3,40}?)(?=\s*(?:,|;|\.\s|\btarih|\btutar|\biban|\d|$))/.exec(f)||/(?:^|[\s:,.])([a-z][a-z .]{2,40}?)\s+(?:tarafindan|adina|isimli|adli|hesabina)\b/.exec(f);
-    if(!m)return'';var raw=t.substr(m.index+m[0].indexOf(m[1]),m[1].length).trim(),ws=raw.split(/\s+/).filter(function(w){return!NOISE.test(fold(w))&&!/^(hesabiniz|hesabinizdan|hesabiniza|tarafindan|sayin)$/.test(fold(w))});
+    if(!m)return'';var raw=t.substr(m.index+m[0].indexOf(m[1]),m[1].length).trim(),ws=raw.split(/\s+/).filter(function(w){return!NOISE.test(fold(w))&&!/^(hesabiniz|hesabinizdan|hesabiniza|tarafindan|sayin|eft|fast|havale|ile)$/.test(fold(w))});
     return ws.slice(-4).join(' ');
   }
   function _bank(f){
@@ -3765,10 +3768,19 @@ App.BankSms=(function(){
     var inc=/(hesabiniza|hesabina|kartiniza|lehinize|adiniza)/.test(f)||/(yatirildi|yatirilmistir|yatmistir|gelmistir|gelen (eft|fast|havale|para)|alacak(landirildi| kaydedil))/.test(f)||o.salary||o.refund;
     var exp=/(harcama|alisveris|odemeniz|odeme yapil|cekilmistir|cekildi|cekim|tahsil edil|borclandiril|hesabinizdan|kartinizdan|kartinizla|kartiniz ile|kart ile|giden (eft|fast|havale)|gonderilmistir|gonderildi|satin al|otomatik odeme)/.test(f);
     if(o.refund)exp=false;
+    // Banka ücreti / faiz / aidat "kartınıza … yansıtılmıştır" diye gelir ama borçtur (gider), gelir değil
+    var fee=/(faiz|aidat|ucret|masraf|komisyon|bsmv|kkdf)/.test(f)&&/(yansitil|tahakkuk|tahsil edil|borclandiril|kesil)/.test(f)&&!o.refund;
+    if(fee){inc=false;exp=true}
     if(/hesabinizdan/.test(f)&&/(gonderil|aktarildi|virman|odeme)/.test(f))inc=false;
     if(/hesabiniza/.test(f)&&!/(hesabinizdan|kartinizdan|kartinizla|kartiniz ile|harcama|alisveris)/.test(f))exp=false;
     o.accHint=/kart/.test(f)&&!/hesabiniz/.test(f)?'card':/hesab/.test(f)?'bank':'';
     if(/(kredi karti|kart(i|inizin)?|ekstre) ?(borc\w*|ekstre\w*)\b.{0,40}odeme|kart(iniz)?(a|in)? borcuna|kart borcunuz|ekstre borcunuza|kartiniza .{0,60}odeme|kart(i|iniz)? (borc )?odemeniz|kredi karti odemesi|kart odemesi|kartiniza .{0,40}(yatiril|aktaril)/.test(f)||(/kart/.test(f)&&!/fatura|kartinizdan|kartinizla/.test(f)&&/odemeniz (alin|tahsil|kabul|gerceklest)/.test(f))){o.kind='review';o.reason='Kredi kartı borç ödemesi (hesaplar arası aktarım olabilir)';o.type='expense';o.party=_party(t,f);return o}
+    // Provizyon (ön onay, otel/akaryakıt): kesin harcama tutarı farklı olabilir; iptali harcama/iade değildir
+    if(/provizyon/.test(f)){if(/(iptal|cozul|serbest|kaldiril)/.test(f)){o.kind='ignore';o.reason='Provizyon iptali (harcama değil)';return o}
+      o.kind='review';o.reason='Provizyon (ön onay): kesin tutar farklı olabilir; harcama kesinleşince Ekle, mesaj gelirse Yoksay';o.type='expense';o.merchant=_merchant(t,f);return o}
+    // Kendi hesaplarınız arası ("vadesiz hesabınızdan vadeli hesabınıza"): tek SMS iki tarafı birden anlatır; gider değil aktarım.
+    // Tek taraflı giden/gelen mesajlar eskisi gibi işlenir (ikizi gelince transfere çevrilir)
+    if(/hesabinizdan/.test(f)&&/hesabiniza\b/.test(f)){o.kind='review';o.reason='Kendi hesaplarınız arası aktarım (virman): gider değil';o.type='expense';o.transfer=true;return o}
     if(/\batm\b|nakit cek|para cek/.test(f)&&!/yatir/.test(f)){o.kind='review';o.reason='ATM nakit çekimi (nakit hesabına aktarım olabilir)';o.type='expense';return o}
     if(inc===exp){o.kind='review';o.reason='Gelir mi gider mi anlaşılamadı';o.type=inc?'income':'expense';o.merchant=_merchant(t,f);return o}
     o.type=inc?'income':'expense';o.kind=o.type;
@@ -3915,7 +3927,8 @@ App.BankSms=(function(){
       if(p.kind!=='review'&&!accId){p.kind='review';p.reason=p.last4?'…'+p.last4+' ile biten kart/hesap hangi hesabınız? Bir kez seçin, sonrakiler otomatik işlenir.':'Hangi hesaba ait olduğu bulunamadı'}
       if(p.kind!=='review'){
         var sal=_salaryTxn(p,userId);
-        if(sal){var ch={};if(Math.abs(sal.amount-p.amount)>0.009)ch.amount=p.amount;if(sal.date!==p.date)ch.date=p.date;if(!sal.accountId)ch.accountId=accId;if(Object.keys(ch).length){App.Transactions.patch(sal.id,ch);res.updated++}else res.dupes++;return}
+        // Planlı maaş bir kez bankadaki gerçek maaşla eşleşir (src:'sms'); aynı ay gelen ikinci "maaş" mesajı (ikramiye, ek ödeme) onu ezmez, ayrı kayıt olur
+        if(sal){var ch={},changed=Math.abs(sal.amount-p.amount)>0.009||sal.date!==p.date||!sal.accountId;if(Math.abs(sal.amount-p.amount)>0.009)ch.amount=p.amount;if(sal.date!==p.date)ch.date=p.date;if(!sal.accountId)ch.accountId=accId;ch.src='sms';if(p.via==='email')ch.via='email';App.Transactions.patch(sal.id,ch);if(changed)res.updated++;else res.dupes++;return}
         var dp=_dupe(p,accId);
         if(dp&&_sure(dp,p,note)){res.dupes++;return}
         if(dp){p.kind='review';p.reason='Aynı tutarda elle girilmiş kayıt var ("'+String(dp.note).slice(0,40)+'", '+fd(dp.date)+'). Aynı harcamaysa Yoksay, ayrı harcamaysa Ekle.'}
@@ -4121,7 +4134,13 @@ App.BankSms=(function(){
       'function kontrolEt() {',
       '  var ayar = PropertiesService.getScriptProperties();',
       '  var gonderilen = JSON.parse(ayar.getProperty(\'gonderilen\') || \'[]\');',
-      '  var liste = Gmail.Users.Messages.list(\'me\', { q: ARAMA, maxResults: 50 }).messages || [];',
+      '  // 50\'den çok e-posta varsa sonraki sayfalar da okunur; bir çalışmada en çok 100 yeni e-posta, kalanı 5 dakika sonra',
+      '  var liste = [], sayfa = \'\', n = 0;',
+      '  do {',
+      '    var y = Gmail.Users.Messages.list(\'me\', sayfa ? { q: ARAMA, maxResults: 50, pageToken: sayfa } : { q: ARAMA, maxResults: 50 });',
+      '    (y.messages || []).forEach(function (x) { if (gonderilen.indexOf(x.id) < 0 && liste.length < 100) liste.push(x); });',
+      '    sayfa = y.nextPageToken || \'\'; n++;',
+      '  } while (sayfa && n < 10 && liste.length < 100);',
       '  var yeni = 0, hata = 0;',
       '  liste.forEach(function (x) {',
       '    if (gonderilen.indexOf(x.id) >= 0) return;',
@@ -4132,7 +4151,7 @@ App.BankSms=(function(){
       '      if (r === 200) { gonderilen.push(x.id); yeni++; } else hata++;',
       '    } catch (e) { hata++; console.warn(\'Gönderilemedi: \' + e); }',
       '  });',
-      '  ayar.setProperty(\'gonderilen\', JSON.stringify(gonderilen.slice(-300)));',
+      '  ayar.setProperty(\'gonderilen\', JSON.stringify(gonderilen.slice(-500)));',
       '  console.log(yeni + \' yeni e-posta gönderildi\' + (hata ? \', \' + hata + \' hata (5 dakika sonra yeniden denenecek)\' : \'\'));',
       '}',
       '',
@@ -4545,7 +4564,7 @@ App.Insights=(function(){
     var spikes=Object.keys(cats).map(function(k){var a=avgCats[k]||0;return{k:k,cur:cats[k],avg:a,diff:cats[k]-a}}).filter(function(x){return hist.length&&(x.avg>0?x.cur>x.avg*1.3&&x.diff>=Math.max(300,avgExp*0.05):x.cur>=Math.max(1000,avgExp*0.1))}).sort(function(a,b){return b.diff-a.diff}).slice(0,3);
     spikes.forEach(function(x){warn('yellow',ci(x.k).i,x.k+(x.avg>0?' harcaması arttı':' bu ay yeni'),x.avg>0?fmt(x.cur)+' · son '+hist.length+' ay ortalaması '+fmt(x.avg)+' (+'+fmt(x.diff)+')':fmt(x.cur)+' · önceki aylarda bu kategoride harcama yoktu.')});
     // 4) Bütçeler
-    var b=S.budgets(),bud=[];Object.keys(b).forEach(function(k){var lim=isCur?App.Budget.effectiveLimit(k):App.Budget.limitFor(k,month),sp=cats[k]||0;if(!(b[k]>0))return;var pct=lim>0?sp/lim*100:(sp>0?999:0);bud.push({k:k,limit:lim,spent:sp,pct:pct});
+    var b=S.budgets(),bud=[];Object.keys(b).forEach(function(k){var lim=isCur?App.Budget.effectiveLimit(k):App.Budget.limitFor(k,month),sp=cats[k]||0;if(!(b[k]>0)||(!isCur&&!(lim>0)))return;var pct=lim>0?sp/lim*100:(sp>0?999:0);bud.push({k:k,limit:lim,spent:sp,pct:pct});
       if(pct>=100)warn('red',ci(k).i,k+' bütçesi aşıldı',fmt(sp)+' / '+fmt(lim)+(lim>0?' (%'+Math.round(pct)+')':''));else if(pct>=80)warn('yellow',ci(k).i,k+' bütçesi dolmak üzere',fmt(sp)+' / '+fmt(lim)+' (%'+Math.round(pct)+')')});
     // 5) Büyük tek harcama
     if(big&&exp>0&&big.amount>=Math.max(1000,exp*0.2))warn('info','🧾','En büyük tek harcama',fmt(big.amount)+' · '+(big.note||big.category)+' · '+fd(big.date)+' · ayın giderindeki payı %'+Math.round(big.amount/exp*100)+'.');
@@ -5212,13 +5231,16 @@ App.Notifications=(function(){
     if(!supported()){btn.hidden=true;say('Bu tarayıcı bildirim desteklemiyor. iPhone\'da uygulamayı ana ekrana ekleyip oradan açın.');return}
     if(App.Push&&App.Push.enabled()){btn.hidden=true;say('✓ Açık: ödemelerden önce bildirim gelir, uygulama kapalıyken de.');return}
     if(Notification.permission==='granted'){var po=_pushOk();btn.hidden=!po;btn.textContent='📲 Kapalıyken de bildir';btn.classList.add('granted');say('Uygulama açıkken 3 gün içindeki ödemeler hatırlatılıyor.'+(po?'':' Kapalıyken de bildirim için Cihazlar Arası Eşitleme\'yi açın.'));return}
-    btn.hidden=false;btn.disabled=false;btn.textContent='🔔 Bildirimleri Aç';btn.classList.remove('granted');say('Kira, fatura, taksit ve borç ödemelerinden önce haber verir.');
+    btn.hidden=false;btn.disabled=false;btn.textContent='🔔 Bildirimleri Aç';btn.classList.remove('granted');
+    // İzin daha önce reddedildiyse tarayıcı bir daha sormaz: düğme sessizce çalışmıyor görünmesin
+    say(Notification.permission==='denied'?NOTIF_DENIED:'Kira, fatura, taksit ve borç ödemelerinden önce haber verir.');
   }
   function toggle(){
     if(!supported()){App.UI.toast('Tarayıcı bildirim desteklemiyor.','err');return}
     if(_pushOk()&&!App.Push.enabled()){App.Push.enable();return}
     if(Notification.permission==='granted'){App.UI.toast('Bildirim zaten açık.','info');checkDueBills(true);return}
-    Notification.requestPermission().then(function(p){syncBtn();if(p==='granted'){App.UI.toast('Bildirim açıldı.');checkDueBills(true)}}).catch(function(){syncBtn();App.UI.toast('Bildirim izni alınamadı.','err')});
+    if(Notification.permission==='denied'){App.UI.toast(NOTIF_DENIED,'info');return}
+    Notification.requestPermission().then(function(p){syncBtn();if(p==='granted'){App.UI.toast('Bildirim açıldı.');checkDueBills(true)}else if(p==='denied')App.UI.toast(NOTIF_DENIED,'info')}).catch(function(){syncBtn();App.UI.toast('Bildirim izni alınamadı.','err')});
   }
   function upcomingBills(daysAhead){
     var today=new Date(),tday=today.getDate(),out=[];

@@ -60,7 +60,7 @@ function google(fetchImpl) {
     },
     PropertiesService: { getScriptProperties: () => ({ getProperty: k => (k in st.props ? st.props[k] : null), setProperty: (k, v) => { st.props[k] = String(v); } }) },
     Gmail: { Users: { Messages: {
-      list: (u, o) => { st.queries.push([u, o.q, o.maxResults]); const m = st.inbox.map(id => ({ id, threadId: 't' + id })); return m.length ? { messages: m } : {}; },
+      list: (u, o) => { st.queries.push([u, o.q, o.maxResults]); const from = +(o.pageToken || 0), m = st.inbox.slice(from, from + o.maxResults).map(id => ({ id, threadId: 't' + id })); const r = m.length ? { messages: m } : {}; if (from + o.maxResults < st.inbox.length) r.nextPageToken = String(from + o.maxResults); return r; },
       get: (u, id, o) => { st.gets.push([id, o.format]); return JSON.parse(JSON.stringify(MSGS[id])); }
     } } },
     Utilities: {
@@ -126,9 +126,15 @@ srv.listen(0, async () => {
   vm.runInContext('kontrolEt()', g3.ctx);
   eq('one unreadable e-mail does not stop the others', JSON.parse(g3.st.props.gonderilen), ['m3']);
   // Hatırlanan kimlik listesi sınırlı
-  const g4 = google(ok); vm.runInContext(code, g4.ctx); g4.st.props.gonderilen = JSON.stringify(Array.from({ length: 300 }, (_, i) => 'eski' + i)); g4.st.inbox = ['m3'];
+  const g4 = google(ok); vm.runInContext(code, g4.ctx); g4.st.props.gonderilen = JSON.stringify(Array.from({ length: 500 }, (_, i) => 'eski' + i)); g4.st.inbox = ['m3'];
   vm.runInContext('kontrolEt()', g4.ctx);
-  eq('remembered ids capped at 300 (newest kept)', [JSON.parse(g4.st.props.gonderilen).length, JSON.parse(g4.st.props.gonderilen).pop()], [300, 'm3']);
+  eq('remembered ids capped at 500 (newest kept)', [JSON.parse(g4.st.props.gonderilen).length, JSON.parse(g4.st.props.gonderilen).pop()], [500, 'm3']);
+  // 2 günde 50'den çok e-posta: sonraki sayfalar da okunur; çalışma başına en çok 100 yeni, kalanı sonraki çalışmalarda (hiçbiri kaçmaz)
+  { const g6 = google(ok); vm.runInContext(code, g6.ctx); g6.st.inbox = Array.from({ length: 260 }, (_, i) => 'k' + i);
+    g6.ctx.Gmail.Users.Messages.get = () => JSON.parse(JSON.stringify(MSGS.m3));
+    const sent = () => JSON.parse(g6.st.props.gonderilen).length, runs = [];
+    for (let i = 0; i < 4; i++) { vm.runInContext('kontrolEt()', g6.ctx); runs.push(sent()); }
+    eq('260 e-mails in 2 days: 100 + 100 + 60 over three runs, none missed', [runs, new Set(JSON.parse(g6.st.props.gonderilen)).size], [[100, 200, 260, 260], 260]); }
   eq('empty search result is fine', (() => { const g5 = google(ok); vm.runInContext(code, g5.ctx); g5.st.inbox = []; vm.runInContext('kontrolEt()', g5.ctx); return [g5.st.posts.length, g5.st.props.gonderilen]; })(), [0, '[]']);
 
   // --- Gerçek sunucuya (wrangler dev) ---

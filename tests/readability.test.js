@@ -24,7 +24,7 @@ function seed() {
       { id: 't_akb', type: 'expense', amount: 1426.78, category: 'Diğer', date: day(-1), note: 'Akbank kart harcaması', accountId: 'a_ax', userId: 'u_self', ts: 3, balanceApplied: true, src: 'sms', via: 'email' },
       { id: 't_k1', type: 'expense', amount: 80, category: 'Diğer', date: day(-2), note: 'Kırtasiye Ali', accountId: 'a_ax', userId: 'u_self', ts: 2, balanceApplied: true },
       { id: 't_k2', type: 'expense', amount: 45, category: 'Diğer', date: day(-3), note: 'Kırtasiye Ali', accountId: 'a_ax', userId: 'u_self', ts: 1, balanceApplied: true }],
-    pf_s: { onboarded: true, users: [{ id: 'u_self', name: 'Osman', emoji: '🙋', color: '#14b8a6' }], activeUser: 'u_self', lastBackupAt: Date.now() }
+    pf_s: { onboarded: true, users: [{ id: 'u_self', name: 'Deniz', emoji: '🙋', color: '#14b8a6' }], activeUser: 'u_self', lastBackupAt: Date.now() }
   };
 }
 

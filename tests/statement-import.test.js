@@ -53,7 +53,7 @@ function seed() {
       { id: 'a_ortak', name: 'Ortak Hesap', type: 'bank', owner: 'shared', balance: 0, openingBalance: 0, ts: 3 }
     ],
     pf_t: [{ id: 't_sms', type: 'expense', amount: 245.5, category: 'Market', date: '2026-09-28', note: 'Migros', accountId: 'a_axess', userId: 'u_partner', ts: 1, balanceApplied: true, src: 'sms' }],
-    pf_s: { onboarded: true, users: [{ id: 'u_self', name: 'Osman', emoji: '🙋', color: '#14b8a6' }, { id: 'u_partner', name: 'Ayşe', emoji: '👩', color: '#ec4899' }], activeUser: 'u_self', lastBackupAt: Date.now() }
+    pf_s: { onboarded: true, users: [{ id: 'u_self', name: 'Deniz', emoji: '🙋', color: '#14b8a6' }, { id: 'u_partner', name: 'Ayşe', emoji: '👩', color: '#ec4899' }], activeUser: 'u_self', lastBackupAt: Date.now() }
   };
 }
 
