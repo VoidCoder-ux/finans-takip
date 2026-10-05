@@ -3729,7 +3729,7 @@ App.BankSms=(function(){
   }
   function _party(t,f){
     var m=/(?:gonderen|alici|gonderici)\s*(?:adi)?\s*[:-]\s*([^,;\n]{3,40}?)(?=\s*(?:,|;|\.\s|\btarih|\btutar|\biban|\d|$))/.exec(f)||/(?:^|[\s:,.])([a-z][a-z .]{2,40}?)\s+(?:tarafindan|adina|isimli|adli|hesabina)\b/.exec(f);
-    if(!m)return'';var raw=t.substr(m.index+m[0].indexOf(m[1]),m[1].length).trim(),ws=raw.split(/\s+/).filter(function(w){return!NOISE.test(fold(w))&&!/^(hesabiniz|hesabinizdan|hesabiniza|tarafindan|sayin)$/.test(fold(w))});
+    if(!m)return'';var raw=t.substr(m.index+m[0].indexOf(m[1]),m[1].length).trim(),ws=raw.split(/\s+/).filter(function(w){return!NOISE.test(fold(w))&&!/^(hesabiniz|hesabinizdan|hesabiniza|tarafindan|sayin|eft|fast|havale|ile)$/.test(fold(w))});
     return ws.slice(-4).join(' ');
   }
   function _bank(f){
@@ -3777,6 +3777,9 @@ App.BankSms=(function(){
     // Provizyon (ön onay, otel/akaryakıt): kesin harcama tutarı farklı olabilir; iptali harcama/iade değildir
     if(/provizyon/.test(f)){if(/(iptal|cozul|serbest|kaldiril)/.test(f)){o.kind='ignore';o.reason='Provizyon iptali (harcama değil)';return o}
       o.kind='review';o.reason='Provizyon (ön onay): kesin tutar farklı olabilir; harcama kesinleşince Ekle, mesaj gelirse Yoksay';o.type='expense';o.merchant=_merchant(t,f);return o}
+    // Kendi hesaplarınız arası ("vadesiz hesabınızdan vadeli hesabınıza"): tek SMS iki tarafı birden anlatır; gider değil aktarım.
+    // Tek taraflı giden/gelen mesajlar eskisi gibi işlenir (ikizi gelince transfere çevrilir)
+    if(/hesabinizdan/.test(f)&&/hesabiniza\b/.test(f)){o.kind='review';o.reason='Kendi hesaplarınız arası aktarım (virman): gider değil';o.type='expense';o.transfer=true;return o}
     if(/\batm\b|nakit cek|para cek/.test(f)&&!/yatir/.test(f)){o.kind='review';o.reason='ATM nakit çekimi (nakit hesabına aktarım olabilir)';o.type='expense';return o}
     if(inc===exp){o.kind='review';o.reason='Gelir mi gider mi anlaşılamadı';o.type=inc?'income':'expense';o.merchant=_merchant(t,f);return o}
     o.type=inc?'income':'expense';o.kind=o.type;
@@ -4130,7 +4133,13 @@ App.BankSms=(function(){
       'function kontrolEt() {',
       '  var ayar = PropertiesService.getScriptProperties();',
       '  var gonderilen = JSON.parse(ayar.getProperty(\'gonderilen\') || \'[]\');',
-      '  var liste = Gmail.Users.Messages.list(\'me\', { q: ARAMA, maxResults: 50 }).messages || [];',
+      '  // 50\'den çok e-posta varsa sonraki sayfalar da okunur; bir çalışmada en çok 100 yeni e-posta, kalanı 5 dakika sonra',
+      '  var liste = [], sayfa = \'\', n = 0;',
+      '  do {',
+      '    var y = Gmail.Users.Messages.list(\'me\', sayfa ? { q: ARAMA, maxResults: 50, pageToken: sayfa } : { q: ARAMA, maxResults: 50 });',
+      '    (y.messages || []).forEach(function (x) { if (gonderilen.indexOf(x.id) < 0 && liste.length < 100) liste.push(x); });',
+      '    sayfa = y.nextPageToken || \'\'; n++;',
+      '  } while (sayfa && n < 10 && liste.length < 100);',
       '  var yeni = 0, hata = 0;',
       '  liste.forEach(function (x) {',
       '    if (gonderilen.indexOf(x.id) >= 0) return;',
@@ -4141,7 +4150,7 @@ App.BankSms=(function(){
       '      if (r === 200) { gonderilen.push(x.id); yeni++; } else hata++;',
       '    } catch (e) { hata++; console.warn(\'Gönderilemedi: \' + e); }',
       '  });',
-      '  ayar.setProperty(\'gonderilen\', JSON.stringify(gonderilen.slice(-300)));',
+      '  ayar.setProperty(\'gonderilen\', JSON.stringify(gonderilen.slice(-500)));',
       '  console.log(yeni + \' yeni e-posta gönderildi\' + (hata ? \', \' + hata + \' hata (5 dakika sonra yeniden denenecek)\' : \'\'));',
       '}',
       '',

@@ -101,6 +101,16 @@ srv.listen(0, async () => {
   // 13) Ücret / faiz / aidat gider; provizyon onaya; provizyon iptali yoksayılır
   eq('faiz ve aidat gider (kartınıza … yansıtılmıştır), provizyon onaya, iptali yok sayılır', await page.evaluate(() => ['1111 ile biten kartiniza 120,50 TL gecikme faizi yansitilmistir.', 'Kartiniza 250,00 TL yillik kart aidati yansitilmistir. Akbank', 'Hesabinizdan 15,00 TL hesap isletim ucreti tahsil edilmistir.', '1111 ile biten kartinizdan OTEL ABC isyerinde 2.000,00 TL provizyon alinmistir.', 'OTEL ABC isyerinden alinan 2.000,00 TL provizyon iptal edilmistir.'].map(t => { const p = App.BankSms.parse(t, Date.now()); return p.kind + ':' + (p.type || ''); })), ['expense:expense', 'expense:expense', 'expense:expense', 'review:expense', 'ignore:']);
 
+  // 14) Döviz, ATM, tek mesajda kendi hesaplar arası virman, giden FAST alıcısı
+  eq('USD harcama ve ATM onaya; "vadesiz hesabınızdan vadeli hesabınıza" gider değil onaya (aktarım); FAST alıcı adı temiz', await page.evaluate(() => {
+    const P = t => App.BankSms.parse(t, Date.now());
+    const fx = P('Akbank: 1234 ile biten kartinizla AMAZON.COM isyerinde 25,99 USD tutarinda harcama yapilmistir.');
+    const atm = P('Akbank: Hesabinizdan ATM\'den 2.000,00 TL nakit cekilmistir.');
+    const vir = P('Yapi Kredi: Vadesiz hesabinizdan Vadeli hesabiniza 10.000,00 TL virman yapilmistir.');
+    const fast = P('Akbank: Hesabinizdan 750,00 TL tutarinda FAST ile ALI VELI hesabina gonderilmistir.');
+    return [[fx.kind, fx.currency, fx.amount], atm.kind, [vir.kind, /aktarım/.test(vir.reason)], [fast.kind, fast.party]];
+  }), [['review', 'USD', 25.99], 'review', ['review', true], ['expense', 'ALI VELI']]);
+
   eq('sayfa hatası yok', errors, []);
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
   await browser.close(); srv.close(); process.exit(fail ? 1 : 0);
