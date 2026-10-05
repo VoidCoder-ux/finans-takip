@@ -117,6 +117,22 @@ const TODAY = iso(new Date());
   const post = await fetch(smsUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: 'AILEKASASI-TEST 1,00 TL' }) });
   eq('çevrimiçi kapatma: uygulamada kapalı ve eski bağlantı sunucuda geçersiz (404)', [await A.page.evaluate(() => App.BankSms.url()), post.status], ['', 404]);
 
+  // 8) Kayıp telefon: kodu bilen eski cihaz (C) erişimini kaybetmeli. A sunucudaki kasayı siler, yeni kasa açar, B yeni kodla katılır
+  const cNotes = await notes(C.page);
+  await A.page.evaluate(() => App.Sync.destroy());
+  await A.page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="c"]').value = 'sil'; m.querySelector('[data-act="ok"]').click(); });
+  await A.page.waitForFunction(() => !App.Sync.configured(), null, { timeout: 5000 }).catch(() => {});
+  eq('A: "SİL" ile kasa silindi, A\'da eşitleme kapandı, veriler duruyor', [await A.page.evaluate(() => App.Sync.configured()), (await notes(A.page)).includes('Market (A)')], [false, true]);
+  eq('C (kayıp telefon): eşitleme başarısız, anlaşılır mesaj, verisi silinmez', [await sync(C.page), await C.page.evaluate(() => /bulunamadı/.test(App.Sync.cfg().lastError)), await notes(C.page)], [false, true, cNotes]);
+  await A.page.evaluate(u => App.Sync.start(u), BASE); await A.page.evaluate(() => App.UI.closeModal('syncCodeHolder'));
+  const code2 = await A.page.evaluate(() => App.Sync.codeOf(App.Sync.cfg()));
+  eq('yeni kasa yeni kod', code2 !== code, true);
+  eq('B yeni kodla yeniden katıldı', await B.page.evaluate(c => App.Sync.join(c), code2), true);
+  await add(A.page, '7', 'Yeni kasa (A)', BANK); await settle(A.page, B.page);
+  eq('B yeni kasadaki kaydı alır; C almaz ve eski kodla katılınamaz', [(await notes(B.page)).includes('Yeni kasa (A)'), await sync(C.page), (await notes(C.page)).includes('Yeni kasa (A)')], [true, false, false]);
+  const D = await device('D', { pf_s: { onboarded: true, users: USERS, activeUser: 'u_a' } });
+  eq('eski kodla yeni cihaz katılamaz', [await D.page.evaluate(c => App.Sync.join(c), code), await D.page.evaluate(() => App.Sync.configured())], [false, false]);
+
   // Temizlik: test kasası yerel sunucudan silinir
   await A.page.evaluate(() => { const c = App.Sync.cfg(); return App.Sync.api(c, 'DELETE', ''); });
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
