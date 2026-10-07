@@ -70,7 +70,7 @@ srv.listen(0, async () => {
 
   // PDF raporu
   const rep = await page.evaluate(() => { window.print = () => {}; App.Report.generateMonth(tm()); const h = document.getElementById('printHolder'); const sec = [...h.querySelectorAll('.pr-h2')].map(x => x.textContent.replace(/\s*\(\d+\)$/, '')); return { sec, warn: h.querySelectorAll('.pr-warn li').length, sum: h.querySelector('.pr-sum').innerText, planned: /planlı: günü gelmedi, toplamlara girmedi/.test(h.innerText), acc: /Yapıkredi World …2947/.test(h.innerText) }; });
-  eq('report sections', rep.sec, ['Özet', 'Dikkat Edilecekler', 'Önceki Aylarla Karşılaştırma', 'En Çok Harcanan Yerler', 'Bütçe Durumu', 'Gelir Kategorileri', 'Gider Kategorileri', 'Üyelere Göre', 'Hesap Hareketleri', 'Tüm İşlemler']);
+  eq('report sections (İstatistikler sayfasındaki son aylar ve kategori değişimi dahil)', rep.sec, ['Özet', 'Dikkat Edilecekler', 'Önceki Aylarla Karşılaştırma', 'Son 4 Ay (kayıtların başladığı aydan beri)', 'En Çok Harcanan Yerler', 'Bütçe Durumu', 'Gelir Kategorileri', 'Gider Kategorileri', 'Kategorilere Göre Değişim', 'Üyelere Göre', 'Hesap Hareketleri', 'Tüm İşlemler']);
   eq('report: same warnings as the stats page', rep.warn, a.warnings.length);
   eq('report totals match stats (planned rent counted separately)', [/Toplam Gider[^₺]*-₺14\.000,00/.test(rep.sum), /Aylık Net \(Gelir − Gider\)/.test(rep.sum), /Planlı[\s\S]*1 işlem/.test(rep.sum), rep.planned, rep.acc], [true, true, true, true, true]);
   eq('no page errors', errors, []);
