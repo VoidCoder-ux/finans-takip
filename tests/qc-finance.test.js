@@ -52,8 +52,8 @@ srv.listen(0, async () => {
   eq('A2 400 kart ödemesi: banka 9.600, kart borcu 600, gider yine 1.000, gelir 0', await state(), { bank: 9600, card: -600, cash: 0, inc: 0, exp: 1000 });
   const v = await views();
   eq('A3 Özet/İstatistik aynı sonuç', [v.heroNet, v.heroCard, v.mInc, v.mExp, v.insInc, v.insExp], ['₺9.600,00', '₺600,00', '₺0,00', '₺1.000,00', 0, 1000]);
-  eq('A4 PDF rapor: net −1.000 (ödeme gider sayılmaz, 1.400 hiç geçmez)', [/Aylık Net \(Gelir − Gider\) ?-₺1\.000,00/.test(v.report), /1\.400,00/.test(v.report)], [true, false]);
-  if (!/Aylık Net \(Gelir − Gider\) ?-₺1\.000,00/.test(v.report)) console.log(v.report.slice(0, 900));
+  eq('A4 PDF rapor: net −1.000 (ödeme gider sayılmaz, 1.400 hiç geçmez)', [/Aylık Net \(Gelir − Gider\)[^₺]*-₺1\.000,00/.test(v.report), /1\.400,00/.test(v.report)], [true, false]);
+  if (!/Aylık Net \(Gelir − Gider\)[^₺]*-₺1\.000,00/.test(v.report)) console.log(v.report.slice(0, 900));
   // Yenileme sonrası
   await page.reload(); await page.waitForTimeout(400);
   eq('A5 yenileme sonrası aynı', await state(), { bank: 9600, card: -600, cash: 0, inc: 0, exp: 1000 });
