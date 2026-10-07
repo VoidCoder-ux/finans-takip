@@ -16,7 +16,8 @@ let pass = 0, fail = 0;
 function eq(label, a, e) { const ok = JSON.stringify(a) === JSON.stringify(e); ok ? pass++ : fail++; console.log((ok ? '✓' : '✗') + ' ' + label + ' => ' + JSON.stringify(a) + (ok ? '' : ' (expected ' + JSON.stringify(e) + ')')); }
 
 // Mart 2027, bugün 20 Mart. Elle: gelir 30.000; gider 1.200 + 800 + 1.000 (1. taksit) − 200 iade = 2.800.
-// Market 2.000 / limit 1.500 → 500 aşıldı. Vadesiz 10.000 + 30.000 − 1.500 = 38.500. Kart −1.200 −800 +200 +1.500 −1.000 = −1.300.
+// Market 2.000 / limit 1.500 → 500 aşıldı. Vadesiz 10.000 + 25.000 (Mart 2026) − 1.600 (Şubat) + 30.000 − 1.500 = 61.900.
+// Kart −1.200 −800 +200 +1.500 −1.000 = −1.300. Günlük ortalama 2.800 / 20 gün = 140. Şubat gideri 1.600 → fark 1.200.
 const U = [{ id: 'u_a', name: 'Deniz', emoji: '🙋', color: '#14b8a6' }, { id: 'u_b', name: 'Ece', emoji: '💑', color: '#ec4899' }];
 const A = [{ id: 'b', name: 'Vadesiz', type: 'bank', owner: 'shared', balance: 0, openingBalance: 10000, ts: 1 }, { id: 'c', name: 'Kart', type: 'card', owner: 'shared', limit: 20000, balance: 0, openingBalance: 0, ts: 2 }];
 const T = [
@@ -27,6 +28,9 @@ const T = [
   { id: 't5', type: 'expense', amount: 1500, category: 'Transfer', date: '2027-03-15', note: 'Kart borcu ödemesi: Kart', accountId: 'b', userId: 'u_a', transferId: 'tr1' },
   { id: 't6', type: 'income', amount: 1500, category: 'Transfer', date: '2027-03-15', note: 'Kart borcu ödemesi: Kart', accountId: 'c', userId: 'u_a', transferId: 'tr1' },
   { id: 't7', type: 'expense', amount: 500, category: 'Sağlık', date: '2027-03-28', note: 'Diş kontrolü', accountId: 'b', userId: 'u_a', balanceApplied: false }
+,
+  { id: 'tf', type: 'expense', amount: 1600, category: 'Market', date: '2027-02-20', note: 'Migros', accountId: 'b', userId: 'u_a' },
+  { id: 'ty', type: 'income', amount: 25000, category: 'Maaş', date: '2026-03-01', note: 'Maaş', accountId: 'b', userId: 'u_b' }
 ].concat([0, 1, 2].map(i => ({ id: 'ti' + i, type: 'expense', amount: 1000, category: 'Giyim', date: '2027-0' + (3 + i) + '-16', note: 'Mont (' + (i + 1) + '/3)', accountId: 'c', userId: 'u_a', balanceApplied: i === 0, installment: { planId: 'p1', index: i + 1, total: 3, totalAmount: 3000, name: 'Mont', startDate: '2027-03-16' } })))
   .map((t, i) => Object.assign({ ts: i + 1, balanceApplied: true }, t));
 const SEED = { pf_s: { onboarded: true, users: U, activeUser: 'u_a', lastBackupAt: Date.now() }, pf_a: A, pf_t: T, pf_b: { Market: 1500 } };
@@ -79,7 +83,14 @@ srv.listen(0, async () => {
     eq('iade satırı: giderden düşüldüğü yazar', has('İade: giderden düşüldü'), true);
     eq('kart borcu ödemesi: iki bacak da "gider sayılmaz"', [has('Aktarım çıkışı (Kart hesabına) · kart borcu ödemesi; gider sayılmaz'), has('Aktarım girişi (Vadesiz hesabından) · kart borcu ödemesi; gider sayılmaz')], [true, true]);
     eq('taksit ve planlı kayıt açıklaması', [has('taksit 1/3 (toplam ₺3.000,00)'), has('planlı: günü gelmedi, toplamlara girmedi'), has('bankanın SMS\'inden')], [true, true, true]);
-    eq('hesaplar: Vadesiz bugün ₺38.500,00; kart güncel borç ₺1.300,00', [has('₺38.500,00'), has('Güncel borç ₺1.300,00.')], [true, true]);
+    eq('hesaplar: Vadesiz bugün ₺61.900,00; kart güncel borç ₺1.300,00', [has('₺61.900,00'), has('Güncel borç ₺1.300,00.')], [true, true]);
+    // İstatistikler sayfasındaki göstergeler ve kıyaslar da raporda
+    eq('günlük ortalama gider ₺140,00 ve bütçe kullanımı %133 (₺2.000 / ₺1.500)', [has('Günlük Ortalama Gider'), has('Bugüne kadar geçen 20 güne bölündü.'), has('₺140,00'), has('harcanan ₺2.000,00 / limit ₺1.500,00'), has('%133')], [true, true, true, true, true]);
+    eq('geçen aya göre: "Şubat 2027 ayına göre ₺1.200,00 daha fazla harcama"', has('Şubat 2027 ayına göre ₺1.200,00 daha fazla harcama.'), true);
+    eq('geçen yılın aynı ayı satırı', [has('Geçen yıl Mart 2026: gelir ₺25.000,00, gider ₺0,00'), has('Geçen yılın aynı ayına göre ₺2.800,00 daha fazla harcama.')], [true, true]);
+    eq('son aylar: kayıtların başladığı aydan beri, en yüksek/en düşük gider işaretli', [has('Son 2 Ay (kayıtların başladığı aydan beri)'), has('rapor ayı · en yüksek gider'), has('en düşük gider')], [true, true, true]);
+    eq('kategorilere göre değişim: Market ₺400,00 arttı (%25), Giyim yeni', [has('Kategorilere Göre Değişim'), has('₺400,00 arttı (%25).'), has('Geçen ay bu kategoride harcama yoktu.')], [true, true, true]);
+    eq('harcama dağılımı çubukları', await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2027-03'); return d.querySelectorAll('.pr-bar').length > 3; }), true);
     eq('üye açıklaması: Deniz en çok Market', has('en çok Market (₺2.000,00)'), true);
     // 2) Tarayıcıda: "Yazdır" yazdırma ekranını açar, "PDF İndir" PDF dosyası indirir
     await page.evaluate(() => App.Report.open('2027-03'));

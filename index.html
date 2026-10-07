@@ -526,6 +526,9 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
   .pr-guide{font-size:8.5pt;color:#333;background:#f0faf8;border:1px solid #cdeee8;border-radius:4px;padding:7px 9px;margin-bottom:6px;line-height:1.45}
   .pr-cat{color:#666;font-weight:400}
   .pr-tbl:not(.pr-txns) th:first-child{width:42%}
+  .pr-bar{height:5px;background:#eef1f0;border-radius:3px;margin-top:3px;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pr-bar i{display:block;height:100%;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pr-bar.g i{background:#16a34a}.pr-bar.r i{background:#dc2626}
 }
 </style>
 </head>
@@ -915,7 +918,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.07.2</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.07.3</div>
 </section>
 
 </main>
@@ -3330,18 +3333,37 @@ App.Report=(function(){
     h+='<tr><td>İşlem Sayısı'+ex('Gelir ve gider kayıtları'+(legs?'; hesaplar arası aktarımlar parantez içinde ayrıca sayıldı':'')+'.')+'</td><td class="pr-r">'+flowCount+(legs?' (+'+legs+' aktarım kaydı)':'')+'</td></tr>';
     if(planned)h+='<tr><td>Planlı İşlemler'+ex('Tarihi henüz gelmedi; günü gelince toplamlara eklenir.')+'</td><td class="pr-r">'+planned+' işlem</td></tr>';
     if(inc>0)h+='<tr><td>Tasarruf Oranı'+ex('Gelirin harcanmadan kalan yüzdesi. %20 ve üzeri genelde iyi sayılır.')+'</td><td class="pr-r">'+fmtPct(net/inc*100,1)+'</td></tr>';
-    h+='</table>';
     var an=App.Insights.compute(m);
+    // İstatistikler sayfasındaki göstergeler: günlük ortalama (içinde bulunulan ayda bugüne kadar geçen gün) ve bütçe kullanımı
+    var dim=new Date(+p[0],+p[1],0).getDate(),elapsed=m===tm()?new Date().getDate():m>tm()?0:dim;
+    if(elapsed)h+='<tr><td>Günlük Ortalama Gider'+ex(m===tm()?'Bugüne kadar geçen '+elapsed+' güne bölündü.':'Ayın '+dim+' gününe bölündü.')+'</td><td class="pr-r">'+fmt(exp/elapsed)+'</td></tr>';
+    var bL=0,bS=0;an.budgets.forEach(function(x){bL+=x.limit>0?x.limit:0;bS+=x.spent});
+    if(an.budgets.length)h+='<tr><td>Bütçe Kullanımı'+ex('Limit koyduğunuz kategorilerde harcanan '+fmt(bS)+' / limit '+fmt(bL)+'.')+'</td><td class="pr-r"'+(bL>0&&bS>bL?' style="color:#c62828"':'')+'>'+(bL>0?fmtPct(bS/bL*100,0):'limit bitti')+'</td></tr>';
+    h+='</table>';
     h+='<div class="pr-h2">Dikkat Edilecekler</div>'+intro('Uygulamanın bu ayın kayıtlarından çıkardığı uyarılar ve öneriler.');
     h+=an.warnings.length?'<ul class="pr-warn">'+an.warnings.map(function(x){return'<li class="'+x.level+'"><b>'+esc(x.title)+':</b> '+esc(x.text)+'</li>'}).join('')+'</ul>':'<div class="pr-empty">Bu ay dikkat gerektiren bir durum yok.</div>';
     var pM=an.prev.month.split('-'),pName=MF[+pM[1]-1]+' '+pM[0],dl=function(c,p){if(!p)return'—';var d=(c-p)/p*100;return(d>0?'▲ ':d<0?'▼ ':'')+fmtPct(Math.abs(d),0)};
-    var diffTxt=function(c,p,w){if(!p&&!c)return'';var d=c-p;return Math.abs(d)<0.005?pName+' ile aynı.':pName+'\'a göre '+fmt(Math.abs(d))+' '+(d>0?'daha fazla':'daha az')+' '+w+'.'};
+    var diffTxt=function(c,p,w,lbl){lbl=lbl||pName+' ayı';if(!p&&!c)return'';var d=c-p;return Math.abs(d)<0.005?lbl+' ile aynı.':lbl+'na göre '+fmt(Math.abs(d))+' '+(d>0?'daha fazla':'daha az')+' '+w+'.'};
     h+='<div class="pr-h2">Önceki Aylarla Karşılaştırma</div>'+intro('Bu ay, bir önceki ay ve son ayların ortalamasıyla karşılaştırılır. ▲ artış, ▼ azalış demektir.');
     h+='<table class="pr-tbl"><thead><tr><th></th><th class="pr-r">'+esc(title)+'</th><th class="pr-r">'+esc(pName)+'</th><th class="pr-r">Değişim</th><th class="pr-r">Son '+(an.histMonths||3)+' ay ort.</th></tr></thead>';
     h+='<tr><td>Gelir'+ex(diffTxt(inc,an.prev.income,'gelir'))+'</td><td class="pr-r pr-g">'+fmt(inc)+'</td><td class="pr-r">'+fmt(an.prev.income)+'</td><td class="pr-r">'+dl(inc,an.prev.income)+'</td><td class="pr-r">'+(an.histMonths?fmt(an.avgIncome):'—')+'</td></tr>';
     h+='<tr><td>Gider'+ex(diffTxt(exp,an.prev.expense,'harcama'))+'</td><td class="pr-r pr-rr">'+fmt(exp)+'</td><td class="pr-r">'+fmt(an.prev.expense)+'</td><td class="pr-r">'+dl(exp,an.prev.expense)+'</td><td class="pr-r">'+(an.histMonths?fmt(an.avgExpense):'—')+'</td></tr>';
     if(an.projected!==null)h+='<tr><td colspan="5" style="color:#666">Ay henüz bitmedi: bu tempoyla ay sonu gider tahmini '+fmt(an.projected)+'.</td></tr>';
+    var ly=(+p[0]-1)+'-'+p[1],lyT=App.Transactions.monthTotals(ly);
+    if(lyT.count)h+='<tr><td colspan="5">Geçen yıl '+esc(MF[+p[1]-1]+' '+(+p[0]-1))+': gelir '+fmt(lyT.income)+', gider '+fmt(lyT.expense)+ex(diffTxt(exp,lyT.expense,'harcama','Geçen yılın aynı ayı'))+'</td></tr>';
     h+='</table>';
+    // Son 6 ay: İstatistikler'deki "6 Aylık Trend" grafiğinin tablo + çubuk hali
+    var six=[],mm=m;for(var k=0;k<6;k++){six.unshift(mm);var q=mm.split('-'),yy=+q[0],mo=+q[1]-1;if(--mo<0){mo=11;yy--}mm=yy+'-'+String(mo+1).padStart(2,'0')}
+    var sixT=six.map(function(x){return{m:x,t:App.Transactions.monthTotals(x)}});while(sixT.length>1&&!sixT[0].t.count)sixT.shift();   // kayıt başlamadan önceki boş aylar gösterilmez
+    var withData=sixT.filter(function(x){return x.t.count});
+    if(withData.length>1){
+      var mx=Math.max.apply(null,sixT.map(function(x){return Math.max(x.t.income,x.t.expense)}))||1,hiE=withData.reduce(function(a,c){return c.t.expense>a.t.expense?c:a}),loE=withData.reduce(function(a,c){return c.t.expense<a.t.expense?c:a});
+      h+='<div class="pr-h2">Son '+(sixT.length<6?sixT.length+' Ay (kayıtların başladığı aydan beri)':'6 Ay')+'</div>'+intro('Gelir (yeşil) ve giderin (kırmızı) aylara göre gidişi. Çubuklar 6 ayın en yüksek tutarına göre ölçeklidir.')+'<table class="pr-tbl"><thead><tr><th>Ay</th><th class="pr-r">Gelir</th><th class="pr-r">Gider</th><th class="pr-r">Net</th></tr></thead>';
+      sixT.forEach(function(x){var q=x.m.split('-'),nm=MF[+q[1]-1]+' '+q[0],t=x.t,n_=t.income-t.expense,tags=[];
+        if(x.m===m)tags.push('rapor ayı');if(!t.count)tags.push('kayıt yok');else{if(x===hiE)tags.push('en yüksek gider');if(x===loE&&loE!==hiE)tags.push('en düşük gider')}
+        h+='<tr><td>'+esc(nm)+(x.m===m?' ◀':'')+'<div class="pr-bar g"><i style="width:'+Math.round(t.income/mx*100)+'%"></i></div><div class="pr-bar r"><i style="width:'+Math.round(t.expense/mx*100)+'%"></i></div>'+ex(tags.join(' · '))+'</td><td class="pr-r pr-g">'+fmt(t.income)+'</td><td class="pr-r pr-rr">'+fmt(t.expense)+'</td><td class="pr-r"'+(n_<0?' style="color:#c62828"':'')+'>'+(n_>=0?'+':'')+fmt(n_)+'</td></tr>'});
+      h+='</table>';
+    }
     if(an.places.length){h+='<div class="pr-h2">En Çok Harcanan Yerler</div>'+intro('Paranın en çok harcandığı işyerleri. Pay, ayın toplam giderindeki yüzdesidir.')+'<table class="pr-tbl"><thead><tr><th>Yer</th><th class="pr-r">Tutar</th><th class="pr-r">Pay</th></tr></thead>';
       an.places.forEach(function(x){var pi=plInfo[x.key];h+='<tr><td>'+esc(x.key)+ex(pi?pi.n+' işlem · son: '+fd(pi.last):'')+'</td><td class="pr-r pr-rr">'+fmt(x.amount)+'</td><td class="pr-r">'+pct(x.amount,exp)+'</td></tr>'});h+='</table>'}
     if(an.budgets.length){h+='<div class="pr-h2">Bütçe Durumu</div>'+intro('Kategoriler için koyduğunuz aylık harcama sınırları ve ne kadarının kullanıldığı.')+'<table class="pr-tbl"><thead><tr><th>Kategori</th><th class="pr-r">Harcanan</th><th class="pr-r">Limit</th><th class="pr-r">Kullanım</th></tr></thead>';
@@ -3361,7 +3383,16 @@ App.Report=(function(){
       expKeys.forEach(function(k){var v=byCatExp[k],av=an.avgCategories[k]||0,ci_=catInfo[k],note;
         if(v<0)note=(ci_?ci_.n+' iade · ':'')+'geri gelen para; giderden düşüldü.';
         else note=[ci_?ci_.n+' işlem':'',big(ci_),an.histMonths?cmp(v,av):''].filter(Boolean).join(' · ');
-        h+='<tr><td>'+esc(k)+ex(note)+'</td><td class="pr-r pr-rr">'+fmt(v)+'</td><td class="pr-r">'+(v<0?'—':pct(v,exp))+'</td><td class="pr-r"'+(av>0&&v>av*1.3?' style="color:#c62828"':'')+'>'+(an.histMonths&&av>0?fmt(av):'—')+'</td></tr>'});
+        h+='<tr><td>'+esc(k)+(v>0&&exp>0?'<div class="pr-bar r"><i style="width:'+Math.min(100,Math.round(v/exp*100))+'%"></i></div>':'')+ex(note)+'</td><td class="pr-r pr-rr">'+fmt(v)+'</td><td class="pr-r">'+(v<0?'—':pct(v,exp))+'</td><td class="pr-r"'+(av>0&&v>av*1.3?' style="color:#c62828"':'')+'>'+(an.histMonths&&av>0?fmt(av):'—')+'</td></tr>'});
+      h+='</table>';
+    }
+    // D) Kategorilere göre değişim: İstatistikler'deki "Aylık Kıyaslama" (geçen aya göre)
+    var catM=function(mo){var o={};S.txns().forEach(function(t){if(t.type!=='expense'||isTransfer(t)||t.date>todayIso||t.date.substring(0,7)!==mo)return;o[t.category]=(o[t.category]||0)+t.amount});return o};
+    var cNow=catM(m),cPrev=catM(an.prev.month),chg=Object.keys(Object.assign({},cPrev,cNow)).map(function(k){return{k:k,a:cNow[k]||0,b:cPrev[k]||0}}).filter(function(x){return Math.abs(x.a-x.b)>=0.01}).sort(function(x,y){return Math.abs(y.a-y.b)-Math.abs(x.a-x.b)}).slice(0,10);
+    if(chg.length&&Object.keys(cPrev).length){
+      h+='<div class="pr-h2">Kategorilere Göre Değişim</div>'+intro('Her kategoride bu ay, '+pName+' ayına göre ne kadar fazla ya da az harcandı (en büyük değişimler).')+'<table class="pr-tbl"><thead><tr><th>Kategori</th><th class="pr-r">'+esc(title)+'</th><th class="pr-r">'+esc(pName)+'</th><th class="pr-r">Fark</th></tr></thead>';
+      chg.forEach(function(x){var d=x.a-x.b,note=!x.b?'Geçen ay bu kategoride harcama yoktu.':!x.a?'Bu ay bu kategoride harcama olmadı.':fmt(Math.abs(d))+' '+(d>0?'arttı':'azaldı')+' (%'+Math.round(Math.abs(d)/x.b*100)+').';
+        h+='<tr><td>'+esc(x.k)+ex(note)+'</td><td class="pr-r">'+fmt(x.a)+'</td><td class="pr-r">'+fmt(x.b)+'</td><td class="pr-r" style="color:'+(d>0?'#c62828':'#0a8043')+'">'+(d>0?'▲ +':'▼ −')+fmt(Math.abs(d))+'</td></tr>'});
       h+='</table>';
     }
 
