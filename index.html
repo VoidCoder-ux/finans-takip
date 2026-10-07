@@ -910,7 +910,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.05.1</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.07.1</div>
 </section>
 
 </main>
@@ -3141,7 +3141,7 @@ App.Report=(function(){
     if(months.indexOf(cur)===-1)months.push(cur);
     months.sort().reverse();
     var opts=months.map(function(mm){var p=mm.split('-');return'<option value="'+mm+'"'+(mm===cur?' selected':'')+'>'+MF[+p[1]-1]+' '+p[0]+'</option>'}).join('');
-    var html='<div class="modal-bd show" id="rapMdl" onclick="if(event.target===this)App.Report.close()"><div class="modal"><div class="modal-title">📄 Aylık Detaylı Rapor</div><div class="f"><label>Ay seç</label><select id="rapMonth">'+opts+'</select></div><div style="font-size:.86rem;color:var(--txt2);margin-top:10px;line-height:1.5">PDF oluşturma: tarayıcının yazdırma ekranı açılır, "PDF olarak kaydet" seçeneğini seçin.</div><div class="modal-actions"><button class="btn btn-ghost" onclick="App.Report.close()">Vazgeç</button><button class="btn btn-primary" onclick="App.Report.generate()">📄 PDF Oluştur</button></div></div></div>';
+    var html='<div class="modal-bd show" id="rapMdl" onclick="if(event.target===this)App.Report.close()"><div class="modal"><div class="modal-title">📄 Aylık Detaylı Rapor</div><div class="f"><label>Ay seç</label><select id="rapMonth">'+opts+'</select></div><div style="font-size:.86rem;color:var(--txt2);margin-top:10px;line-height:1.5">'+(fileMode()?'Rapor dosyası hazırlanır ve paylaş ekranı açılır: "Dosyalar\'a Kaydet" ile saklayın ya da dosyayı açıp "Yazdır" ile PDF yapın.':'PDF oluşturma: tarayıcının yazdırma ekranı açılır, "PDF olarak kaydet" seçeneğini seçin.')+'</div><div class="modal-actions"><button class="btn btn-ghost" onclick="App.Report.close()">Vazgeç</button><button class="btn btn-primary" onclick="App.Report.generate()">'+(fileMode()?'📤 Raporu Paylaş':'📄 PDF Oluştur')+'</button></div></div></div>';
     var div=document.createElement('div');div.id='rapHolder';div.innerHTML=html;App.UI.mountModal(div,'#rapMonth');
   }
   function close(){App.UI.closeModal('rapHolder')}
@@ -3149,7 +3149,32 @@ App.Report=(function(){
     var sel=document.getElementById('rapMonth');if(!sel)return;
     generateMonth(sel.value);close();
   }
+  // Ana ekrana eklenmiş uygulamada (özellikle iPhone) window.print() sessizce hiçbir şey yapmaz: rapor dosya olarak paylaşılır
+  function fileMode(){try{return!!((window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true)}catch(e){return false}}
+  // Yazdırma görünümündeki rapor biçimi (@media print içindeki .pr-* kuralları) dosyaya taşınır; biçim tek yerde kalır
+  function _printCss(){
+    var out=[];try{[].forEach.call(document.styleSheets,function(sh){var rs;try{rs=sh.cssRules}catch(e){return}[].forEach.call(rs||[],function(r){
+      if(r.media&&/print/.test(r.media.mediaText||''))[].forEach.call(r.cssRules,function(x){if(/\.pr-|thead|@page/.test(x.cssText))out.push(x.cssText)})})})}catch(e){}
+    return out.join('\n');
+  }
+  function _file(m){
+    var p=m.split('-'),title='Aile Kasası Raporu — '+MF[+p[1]-1]+' '+p[0];
+    var html='<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(title)+'</title><style>body{margin:16px;background:#fff;color:#000}'+_printCss()+'</style></head><body>'+build(m)+'</body></html>';
+    return new File([html],'Aile-Kasasi-Rapor-'+m+'.html',{type:'text/html'});
+  }
+  function _download(f){
+    var u=URL.createObjectURL(f),a=document.createElement('a');a.href=u;a.download=f.name;a.rel='noopener';document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(u)},60000);App.UI.toast('Rapor dosyası indirildi: '+f.name,'ok');
+  }
+  function shareMonth(m){
+    var f;try{f=_file(m)}catch(e){App.UI.toast('Rapor hazırlanamadı.','err');return}
+    if(navigator.canShare&&navigator.share&&navigator.canShare({files:[f]})){
+      navigator.share({files:[f],title:f.name}).catch(function(e){if(e&&e.name==='AbortError')return;_download(f)});return;
+    }
+    _download(f);
+  }
   function generateMonth(m){
+    if(fileMode()){shareMonth(m);return}
     var reportHtml=build(m);
     var holder=document.getElementById('printHolder');
     if(!holder){holder=document.createElement('div');holder.id='printHolder';holder.className='print-view';document.body.appendChild(holder)}
