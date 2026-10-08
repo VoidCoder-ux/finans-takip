@@ -5,7 +5,8 @@
 //  2) Aile sayfası "Cüzdan Özeti" Özet'teki Aile Paneli ile aynı rakam: hesaplardaki para ayrı, kart borcu ayrı.
 //  3) "En çok harcanan yerler": işyeri adı içermeyen banka notu ("Akbank kart harcaması · …") yer sayılmaz; BİM şubeleri tek yer.
 //  4) Bütçe kullanımı İstatistikler ile raporda aynı: devirle eksiye düşen limit toplamı azaltmaz; tabloda "Tükendi".
-//  5) "Bakiye eksiye düşebilir" yalnız önümüzdeki ödemeler bakiyeyi düşürüyorsa; kart borcu düşüldüğü Özet'te yazar.
+//  5) "Bakiye eksiye düşebilir" yalnız önümüzdeki ödemeler bakiyeyi düşürüyorsa; kesim günü olmayan kartın borcunun bugünden
+//     düşüldüğü Özet'te yazar (kesim günü olan kartlar: tests/qc-ideas.test.js).
 //  6) İadeler giderden düşülünce İstatistikler'de not.
 // Kurmaca veri (Deniz/Ece), sunucu gerekmez.
 const http = require('http'), fs = require('fs'), path = require('path');
@@ -122,13 +123,13 @@ srv.listen(0, async () => {
     const { page, ctx } = await open({ pf_a: [bank('b', 1000), card('c', '2026-08-01', -5000, { statementDay: null })], pf_t: [] });
     const r = await page.evaluate(() => { App.UI.nav('ozet'); App.Cashflow.renderMini(); const t = App.Insights.compute('2026-10').warnings.map(x => x.title); return { w: t.filter(x => /eksiye|Kredi kartı borcu/.test(x)), note: document.getElementById('cashflowMini').innerText.replace(/\s+/g, ' ') }; });
     eq('ödeme yokken yalnız kart borcu uyarısı (bakiye uyarısı tekrar etmez)', r.w, ['Kredi kartı borcu']);
-    eq('Özet: kart borcunun düşüldüğü yazar', /kart borcunun tamamı \(₺5\.000,00\) düşülerek hesaplandı/.test(r.note), true);
+    eq('Özet: kesim günü olmayan kartın borcunun bugünden düşüldüğü yazar', /Kesim günü girilmemiş kart borcu \(₺5\.000,00\) bugünden düşüldü/.test(r.note), true);
     await ctx.close();
   }
   {
     const { page, ctx } = await open({ pf_a: [bank('b', 1000)], pf_r: [{ id: 'r1', type: 'expense', amount: 3000, category: 'Faturalar', day: 20, note: 'Kira', accountId: 'b', userId: 'u_a', active: true, ts: 1 }], pf_t: [] });
-    const r = await page.evaluate(() => { App.UI.nav('ozet'); App.Cashflow.renderMini(); return { w: App.Insights.compute('2026-10').warnings.filter(x => /eksiye/.test(x.title)).map(x => x.text), note: /kart borcunun/.test(document.getElementById('cashflowMini').innerText) }; });
-    eq('20 Ekim kira 3.000 bakiyeyi −2.000\'e düşürür: uyarı var', r.w, ['Önümüzdeki 30 günün ödemeleriyle en düşük bakiye -₺2.000,00 olabilir.']);
+    const r = await page.evaluate(() => { App.UI.nav('ozet'); App.Cashflow.renderMini(); return { w: App.Insights.compute('2026-10').warnings.filter(x => /eksiye/.test(x.title)).map(x => x.text), note: /Kesim günü|kart ekstreleri/.test(document.getElementById('cashflowMini').innerText) }; });
+    eq('20 Ekim kira 3.000 bakiyeyi −2.000\'e düşürür: uyarı var', r.w, ['Önümüzdeki 30 günün ödemeleriyle hesaplardaki para en düşük -₺2.000,00 olabilir.']);
     eq('kart yokken not yok', r.note, false);
     await ctx.close();
   }

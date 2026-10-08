@@ -250,8 +250,9 @@ ok('escape closes topmost modal generically', /modal-bd\.show/.test(indexHtml.sp
 ok('no mojibake in UI strings', indexHtml.indexOf('â€') === -1);
 ok('rules reachable in Ayarlar', /id="rulesCard"/.test(indexHtml) && /pg==='ayarlar'\)\{App\.Settings\.render\(\);App\.Rules\.initSelects\(\);App\.Rules\.renderList\(\)/.test(indexHtml));
 ok('transfer type pill exists', /id="pillTrf"/.test(indexHtml) && /id="txnToAccount"/.test(indexHtml));
-ok('monthly totals skip transfers and future plans', /if\(isTransfer\(t\)\|\|!t\.date\.startsWith\(month\)\|\|t\.date>today\)return;count\+\+/.test(indexHtml));
-ok('category totals skip transfers', /t\.type!=='expense'\|\|isTransfer\(t\)\|\|!t\.date\.startsWith\(month\)/.test(indexHtml));
+// Toplamlar en geç bugüne kadar (upto yalnız daha erken bir güne indirebilir: aynı günlerle kıyas)
+ok('monthly totals skip transfers and future plans', /lim=upto&&upto<today\?upto:today;\s*S\.txns\(\)\.forEach\(function\(t\)\{if\(isTransfer\(t\)\|\|!t\.date\.startsWith\(month\)\|\|t\.date>lim\)return;count\+\+/.test(indexHtml));
+ok('category totals skip transfers', /lim=upto&&upto<today\?upto:today,refunds=0,applied=0;\s*S\.txns\(\)\.forEach\(function\(t\)\{if\(isTransfer\(t\)\|\|!t\.date\.startsWith\(month\)\|\|t\.date>lim\)return;\s*if\(t\.type==='expense'\)/.test(indexHtml));
 ok('goal transfer mode creates a real transfer', /App\.Transactions\.createTransfer\(\{from:src,to:accountId/.test(indexHtml));
 ok('transactions and accounts are editable', /App\.Transactions\.edit\(/.test(indexHtml) && /App\.Accounts\.edit\(/.test(indexHtml));
 ok('normalize keeps cleared userId (deleted member)', /function ownerRef\(x\)/.test(indexHtml) && !/cleanStoredRef\(t\.userId\|\|_s\.activeUser\)/.test(indexHtml));
