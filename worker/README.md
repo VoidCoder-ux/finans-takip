@@ -151,7 +151,7 @@ Bankalar uygulama dışına veri vermediği için (açık bankacılık yalnız l
 Bazı bankalar bazı hareketleri SMS yerine kendi uygulamasının bildirimiyle gönderir. iOS 27 ile Kestirmeler'e gelen **Bildirim** otomasyonu bu bildirimin metnini de iletebilir:
 
 1. **Ayarlar > 🏦 Bankadan Otomatik Kayıt > 🔔 Bildirimden Al**: kişiye özel ayrı bir bağlantı oluşur (SMS bağlantısından bağımsız).
-2. Kestirmeler > Otomasyon > + > **Bildirim** > **Uygulama**: bankanın uygulaması, filtre: metin `TL` içeriyor > **Hemen Çalıştır** > **URL İçeriğini Al**: bağlantı, Yöntem **POST**, İstek Gövdesi **JSON**, alan `text` = **Kestirme Girişi** (bildirimin metni). Bildirim gönderen her banka uygulaması için ayrı otomasyon kurulur, bağlantı aynıdır.
+2. Kestirmeler > Otomasyon > + > **Bildirim** > "**Uygulama** bildirimi aldığımda" satırında bankanın uygulamasını seçin (**+** ile birden çok banka uygulaması aynı otomasyona eklenebilir) > **Filtre Ekle → Mesaj içeriyor `TL`** > **Çalıştırmadan Önce Onayla** kapalı (**Bildir** de kapatılabilir) > **URL İçeriğini Al**: iOS'un URL kutusuna kendiliğinden koyduğu **Kestirme Girişi**'ni silip yalnız bağlantıyı yapıştırın; Yöntem **POST**, İstek Gövdesi **JSON**, yeni alan **Metin**: anahtar `text`, değer **Değişken Seç → Kestirme Girişi**.
 3. **Bağlantıyı Dene** bağlantıyı sınar; ilk gerçek bildirimden sonra kartta "Son bildirim: ✓ alındı" görünür.
 
 - Bildirim ayrı kanal sayılır: aynı harcama SMS ya da e-postayla da gelirse bir kez eklenir.
