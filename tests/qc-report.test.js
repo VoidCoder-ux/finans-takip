@@ -86,10 +86,11 @@ srv.listen(0, async () => {
     eq('hesaplar: Vadesiz bugün ₺61.900,00; kart güncel borç ₺1.300,00', [has('₺61.900,00'), has('Güncel borç ₺1.300,00.')], [true, true]);
     // İstatistikler sayfasındaki göstergeler ve kıyaslar da raporda
     eq('günlük ortalama gider ₺140,00 ve bütçe kullanımı %133 (₺2.000 / ₺1.500)', [has('Günlük Ortalama Gider'), has('Bugüne kadar geçen 20 güne bölündü.'), has('₺140,00'), has('harcanan ₺2.000,00 / limit ₺1.500,00'), has('%133')], [true, true, true, true, true]);
-    eq('geçen aya göre: "Şubat 2027 ayına göre ₺1.200,00 daha fazla harcama"', has('Şubat 2027 ayına göre ₺1.200,00 daha fazla harcama.'), true);
-    eq('geçen yılın aynı ayı satırı', [has('Geçen yıl Mart 2026: gelir ₺25.000,00, gider ₺0,00'), has('Geçen yılın aynı ayına göre ₺2.800,00 daha fazla harcama.')], [true, true]);
+    // Ay bitmedi (20 Mart): geçen ay ve geçen yıl yalnız aynı günleriyle (1–20) kıyaslanır. Şubat'ın 1.600'ü 20 Şubat'ta → yine 1.600
+    eq('geçen aya göre: "Geçen ayın aynı günlerine göre ₺1.200,00 daha fazla harcama" (1–20 Şubat)', [has('Geçen ayın aynı günlerine göre ₺1.200,00 daha fazla harcama.'), has('1–20 Şubat 2027')], [true, true]);
+    eq('geçen yılın aynı günleri satırı', [has('Geçen yıl 1–20 Mart 2026: gelir ₺25.000,00, gider ₺0,00'), has('Geçen yılın aynı günlerine göre ₺2.800,00 daha fazla harcama.')], [true, true]);
     eq('son aylar: kayıtların başladığı aydan beri, en yüksek/en düşük gider işaretli', [has('Son 2 Ay (kayıtların başladığı aydan beri)'), has('rapor ayı · en yüksek gider'), has('en düşük gider')], [true, true, true]);
-    eq('kategorilere göre değişim: Market ₺400,00 arttı (%25), Giyim yeni', [has('Kategorilere Göre Değişim'), has('₺400,00 arttı (%25).'), has('Geçen ay bu kategoride harcama yoktu.')], [true, true, true]);
+    eq('kategorilere göre değişim: Market ₺400,00 arttı (%25), Giyim yeni', [has('Kategorilere Göre Değişim'), has('₺400,00 arttı (%25).'), has('Geçen ayın aynı günlerinde bu kategoride harcama yoktu.')], [true, true, true]);
     eq('harcama dağılımı çubukları', await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2027-03'); return d.querySelectorAll('.pr-bar').length > 3; }), true);
     eq('üye açıklaması: Deniz en çok Market', has('en çok Market (₺2.000,00)'), true);
     // 2) Tarayıcıda: "Yazdır" yazdırma ekranını açar, "PDF İndir" PDF dosyası indirir

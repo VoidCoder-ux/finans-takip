@@ -91,7 +91,8 @@ npm run deploy
 3. **Kapalıyken bildirim:** Her telefonda ayrı ayrı açılır.
    1. Ayarlar > Hatırlatmalar > **Uygulama kapalıyken de bildir**.
    2. Bildirimler her sabah 09:00'da (İstanbul) gelir: vadeden 2 gün önce, 1 gün önce ve vade günü.
-   3. **iPhone:** yalnız ana ekrana eklenmiş uygulamada çalışır (iOS 16.4+).
+   3. Her ayın 1'inde 09:00'da geçen ayın kısa özeti de ayrı bildirim olarak gelir (gelir, gider, net, en çok harcanan kategori). Özet metnini telefon hazırlar; sunucu yalnız o günü bilir.
+   4. **iPhone:** yalnız ana ekrana eklenmiş uygulamada çalışır (iOS 16.4+).
 
 Eşitleme **anlıktır**: bir cihazda kaydedilen değişiklik ~3 saniye içinde sunucuya gider. Sunucu, uygulaması açık olan diğer cihazlara hemen haber verir (Durable Object + WebSocket); onlar yenilemeye gerek kalmadan güncellenir. Uygulama arka plandaysa öne gelince, internet kopmuşsa geri gelince eşitlenir. Anlık bağlantı kurulamazsa 30 saniyede bir kontrol edilir.
 

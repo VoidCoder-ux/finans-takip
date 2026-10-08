@@ -1,4 +1,4 @@
-const CACHE = 'finanstakip-v43';
+const CACHE = 'finanstakip-v44';
 const ASSETS = [
   './',
   './index.html',
@@ -88,15 +88,25 @@ function localDay(offset) {
 
 self.addEventListener('push', function(e) {
   e.waitUntil(readReminders().then(function(items) {
-    var today = localDay(0), limit = localDay(2), when = {};
+    var today = localDay(0), limit = localDay(2), when = {}, shows = [];
     when[today] = 'bugün'; when[localDay(1)] = 'yarın'; when[limit] = '2 gün sonra';
-    var due = items.filter(function(x) { return x.date >= today && x.date <= limit; }).sort(function(a, b) { return a.date < b.date ? -1 : 1; });
-    var body = due.length
-      ? due.slice(0, 4).map(function(x) { return (when[x.date] || x.date) + ': ' + x.text; }).join('\n') + (due.length > 4 ? '\n+' + (due.length - 4) + ' ödeme daha' : '')
-      : 'Yaklaşan ödemelerinizi kontrol edin.';
-    return self.registration.showNotification(due.length > 1 ? '💰 ' + due.length + ' yaklaşan ödeme' : '💰 Yaklaşan ödeme', {
-      body: body, icon: './icons/icon-192.png', badge: './icons/icon-192.png', tag: 'ft-due', renotify: true, data: { url: './index.html#dashboard' }
+    // Ay başı özeti (kind: 'summary') yalnız kendi gününde ve ayrı bildirim olarak gösterilir
+    var sums = items.filter(function(x) { return x.kind === 'summary' && x.date === today; });
+    var due = items.filter(function(x) { return x.kind !== 'summary' && x.date >= today && x.date <= limit; }).sort(function(a, b) { return a.date < b.date ? -1 : 1; });
+    sums.forEach(function(x) {
+      shows.push(self.registration.showNotification(x.title || '📊 Aylık özet', {
+        body: x.text, icon: './icons/icon-192.png', badge: './icons/icon-192.png', tag: 'ft-month', data: { url: './index.html#ozet' }
+      }));
     });
+    if (due.length || !sums.length) {
+      var body = due.length
+        ? due.slice(0, 4).map(function(x) { return (when[x.date] || x.date) + ': ' + x.text; }).join('\n') + (due.length > 4 ? '\n+' + (due.length - 4) + ' ödeme daha' : '')
+        : 'Yaklaşan ödemelerinizi kontrol edin.';
+      shows.push(self.registration.showNotification(due.length > 1 ? '💰 ' + due.length + ' yaklaşan ödeme' : '💰 Yaklaşan ödeme', {
+        body: body, icon: './icons/icon-192.png', badge: './icons/icon-192.png', tag: 'ft-due', renotify: true, data: { url: './index.html#dashboard' }
+      }));
+    }
+    return Promise.all(shows);
   }));
 });
 
