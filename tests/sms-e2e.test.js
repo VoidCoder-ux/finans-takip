@@ -61,7 +61,7 @@ async function api(method, path, token, body, headers) {
   const style = '<style>' + '.x{color:red}'.repeat(400) + '</style>';
   const mail = 'Akbank <bilgilendirme@akbank.com>\nKredi Kartı Harcama Bilgilendirmesi\n<html><head><title>Akbank</title>' + style + '</head><body><table>' +
     '<tr><td>Sayın AYSE Y.,</td></tr><tr><td>Kredi kartınızla aşağıdaki işlem gerçekleşmiştir.</td></tr>' +
-    '<tr><td>Kart No</td><td>5571 **** **** 1483</td></tr><tr><td>İşlem Tarihi</td><td>02.10.2026 14:32</td></tr><tr><td>İşyeri</td><td>MİGROS KADIKÖY</td></tr>' +
+    '<tr><td>Kart No</td><td>5400 **** **** 9036</td></tr><tr><td>İşlem Tarihi</td><td>02.10.2026 14:32</td></tr><tr><td>İşyeri</td><td>MİGROS KADIKÖY</td></tr>' +
     '<tr><td>Tutar</td><td>245,50&nbsp;TL</td></tr><tr><td>Onay Kodu</td><td>482913</td></tr><tr><td>Kullanılabilir Limit</td><td>12.345,67 TL</td></tr></table>' +
     '<p>Axess ile %20&#39;ye varan indirim fırsatını kaçırmayın! 500 TL&#39;ye kadar chip-para kazanın.</p><p>Bu e-posta otomatik olarak gönderilmiştir, lütfen yanıtlamayınız.</p>' +
     '<p>Akbank T.A.Ş. Mersis No: 0015001526400497 · Kişisel verileriniz KVKK kapsamında işlenir.</p></body></html>';
@@ -72,14 +72,14 @@ async function api(method, path, token, body, headers) {
   const plainMail = 'Akbank <info@akbank.com>\nHesap Hareketi\nSayın AYSE YILMAZ,\nAkbank 1234 nolu hesabınıza 03.10.2026 tarihinde AHMET DEMIR tarafından 750,00 TL FAST gelmiştir.\nİyi günler dileriz.\nBu e-posta bilgilendirme amaçlı gönderilmiştir.';
   eq('plain-text e-mail stored', (await api('POST', '/v1/sms/' + mkey, null, { text: plainMail, source: 'email', id: '18c2f0a1b4' })).body, { stored: true });
   const mails = (await api('GET', V + '/inbox', token)).body.items.filter(i => i.label === 'gmailbox_u_self').map(i => i.text);
-  eq('stored e-mail text: sender, subject and transaction lines only', mails[0], 'Akbank\nKredi Kartı Harcama Bilgilendirmesi\nKredi kartınızla aşağıdaki işlem gerçekleşmiştir.\nKart No: 5571 **** **** 1483\nİşlem Tarihi: 02.10.2026 14:32\nİşyeri: MİGROS KADIKÖY\nTutar: 245,50 TL\nKullanılabilir Limit: 12.345,67 TL');
+  eq('stored e-mail text: sender, subject and transaction lines only', mails[0], 'Akbank\nKredi Kartı Harcama Bilgilendirmesi\nKredi kartınızla aşağıdaki işlem gerçekleşmiştir.\nKart No: 5400 **** **** 9036\nİşlem Tarihi: 02.10.2026 14:32\nİşyeri: MİGROS KADIKÖY\nTutar: 245,50 TL\nKullanılabilir Limit: 12.345,67 TL');
   eq('no greeting with name, approval code, campaign or legal text kept', mails.some(t => /Sayın|AYSE|482913|indirim|Mersis|KVKK|yanıtlamayınız|İyi günler/.test(t)), false);
   eq('plain e-mail kept short', mails[1], 'Akbank\nHesap Hareketi\nAkbank 1234 nolu hesabınıza 03.10.2026 tarihinde AHMET DEMIR tarafından 750,00 TL FAST gelmiştir.');
   eq('Gmail key shows its own last result', (await api('GET', V + '/inbox', token)).body.keys.find(k => k.label === 'gmailbox_u_self').lastReason, 'stored');
-  // Gerçek Akbank biçimi (ad ve kart numarası değiştirildi): işyeri ve tarih yazmaz, tutar İngilizce biçimde (1,426.78)
+  // Gerçek Akbank biçimi (ad ve kart numarası değiştirildi): işyeri ve tarih yazmaz, tutar İngilizce biçimde (1,318.65)
   const akb = 'Akbank <bilgilendirme@akbank.com>\nKredi kartı harcamanız\n<html><body><table><tr><td><p>Bu mail\'i görüntüleyemiyorsanız lütfen <a href="#">tıklayınız.</a></p></td></tr>' +
     '<tr><td><img src="logo.png" alt="AKBANK"></td></tr><tr><td><p><b>Değerli Akbanklı,</b></p>' +
-    '<p>7777 ile biten AYSE YILMAZ adına ait Axess Asıl kartınızla 1,426.78 TL tutarında KREDI KARTI harcaması yapılmıştır. 2,961.82 TL limitiniz kalmıştır.</p>' +
+    '<p>7777 ile biten AYSE YILMAZ adına ait Axess Asıl kartınızla 1,318.65 TL tutarında KREDI KARTI harcaması yapılmıştır. 3,104.27 TL limitiniz kalmıştır.</p>' +
     '<p>Kredi kartı harcamalarınızı görmek için <a href="#">Akbank Mobil</a>\'e giriş yapabilirsiniz.</p><p>Saygılarımızla,<br><b>Akbank</b></p></td></tr>' +
     '<tr><td>Bize ulaşın</td><td>Her hakkı Akbank T.A.Ş.\'ye aittir. Copyright © 2026</td></tr></table><p>Lütfen size gelen e-mailleri Spam(Junk) mail olarak işaretlemeyiniz.</p>' +
     '<p>Akbank T.A.Ş. Genel Müdürlük: Sabancı Center 4. Levent 34330 İstanbul Mersis No: 0015 0015 2640 0497 www.akbank.com</p></body></html>';
@@ -88,8 +88,8 @@ async function api(method, path, token, body, headers) {
   eq('real Akbank e-mail stored', (await api('POST', '/v1/sms/' + mkey, null, { text: akb, source: 'email', id: 'akb1', date: at })).body, { stored: true });
   eq('two different e-mails with the same text are both kept (Gmail id decides)', (await api('POST', '/v1/sms/' + mkey, null, { text: akb, source: 'email', id: 'akb2', date: at })).body, { stored: true });
   const akbTxt = (await api('GET', V + '/inbox', token)).body.items.filter(i => i.label === 'gmailbox_u_self').map(i => i.text);
-  eq('Akbank: card holder name, greeting, links, signature and footer dropped; e-mail time added (Türkiye)', akbTxt[2], 'Akbank\nKredi kartı harcamanız\n7777 ile biten Axess Asıl kartınızla 1,426.78 TL tutarında KREDI KARTI harcaması yapılmıştır. 2,961.82 TL limitiniz kalmıştır.\nE-posta tarihi: ' + atTxt);
-  eq('implausible e-mail date ignored', (await api('POST', '/v1/sms/' + mkey, null, { text: akb.replace('1,426.78', '1,111.11'), source: 'email', id: 'akb3', date: 5 })).body, { stored: true });
+  eq('Akbank: card holder name, greeting, links, signature and footer dropped; e-mail time added (Türkiye)', akbTxt[2], 'Akbank\nKredi kartı harcamanız\n7777 ile biten Axess Asıl kartınızla 1,318.65 TL tutarında KREDI KARTI harcaması yapılmıştır. 3,104.27 TL limitiniz kalmıştır.\nE-posta tarihi: ' + atTxt);
+  eq('implausible e-mail date ignored', (await api('POST', '/v1/sms/' + mkey, null, { text: akb.replace('1,318.65', '1,111.11'), source: 'email', id: 'akb3', date: 5 })).body, { stored: true });
   eq('implausible date: stored without a date line', (await api('GET', V + '/inbox', token)).body.items.filter(i => i.label === 'gmailbox_u_self').pop().text.includes('E-posta tarihi'), false);
   eq('transfer recipient name is kept (needed for the note), only the card holder is dropped', (await api('POST', '/v1/sms/' + mkey, null, { text: 'Akbank <b@akbank.com>\nHesap hareketi\n<p>Hesabınızdan MEHMET KAYA adına 2,000.00 TL FAST ile gönderilmiştir.</p>', source: 'email', id: 'akb4' })).body, { stored: true });
   eq('stored transfer text keeps the recipient', (await api('GET', V + '/inbox', token)).body.items.pop().text, 'Akbank\nHesap hareketi\nHesabınızdan MEHMET KAYA adına 2,000.00 TL FAST ile gönderilmiştir.');

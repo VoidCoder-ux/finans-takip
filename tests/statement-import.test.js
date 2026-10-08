@@ -99,7 +99,7 @@ srv.listen(0, async () => {
 
   // 2) Akbank kart ekstresi (PDF): işaretsiz = harcama, eksi = ödeme; SMS'le eklenmiş harcama atlanır; özet satırları alınmaz
   const pdfPage = await ctx.newPage();
-  await pdfPage.setContent('<html><body style="font-family:Arial;font-size:11px"><h3>AKBANK T.A.Ş. Kredi Kartı Hesap Özeti</h3><p>Kart No: 5571 **** **** 9876</p><p>Son Ödeme Tarihi: 10.10.2026 &nbsp; Dönem Borcu: 1.234,00 TL &nbsp; Asgari Ödeme: 400,00 TL</p><table style="border-collapse:collapse" cellpadding="3"><tr><th>İşlem Tarihi</th><th>Açıklama</th><th>Tutar</th><th>Chip-Para</th></tr>' +
+  await pdfPage.setContent('<html><body style="font-family:Arial;font-size:11px"><h3>AKBANK T.A.Ş. Kredi Kartı Hesap Özeti</h3><p>Kart No: 5400 **** **** 9876</p><p>Son Ödeme Tarihi: 10.10.2026 &nbsp; Dönem Borcu: 1.234,00 TL &nbsp; Asgari Ödeme: 400,00 TL</p><table style="border-collapse:collapse" cellpadding="3"><tr><th>İşlem Tarihi</th><th>Açıklama</th><th>Tutar</th><th>Chip-Para</th></tr>' +
     [['20.09.2026', 'ÖNCEKİ DÖNEM BORCU', '5.000,00', ''], ['22.09.2026', 'ÖDEME - TEŞEKKÜR EDERİZ', '-5.000,00', ''], ['28.09.2026', 'MIGROS KADIKOY', '245,50', '2,45'], ['29.09.2026', 'STARBUCKS BAGDAT CAD', '145,00', '1,45'], ['30.09.2026', 'TRENDYOL.COM 2/6 TAKSIT', '300,00', ''], ['01.10.2026', 'IADE - ZARA', '-899,90', '']]
       .map(r => '<tr>' + r.map(c => '<td>' + c + '</td>').join('') + '</tr>').join('') + '</table></body></html>');
   const pdf = await pdfPage.pdf({ format: 'A4' }); await pdfPage.close();

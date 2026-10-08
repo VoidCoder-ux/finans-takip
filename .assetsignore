@@ -8,3 +8,5 @@ node_modules
 .assetsignore
 *.md
 .github
+.ci-dev
+.wrangler

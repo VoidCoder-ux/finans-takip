@@ -18,10 +18,10 @@ const cutDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 8).ge
 function seed() {
   return {
     pf_a: [
-      { id: 'a_bank', name: 'Yapı Kredi Vadesiz', type: 'bank', owner: 'shared', last4: '4359', balance: 20000, openingBalance: 20000, ts: 1 },
-      { id: 'a_ax', name: 'Akbank Axess', type: 'card', owner: 'shared', last4: '7777', statementDay: cutDay, balance: -2000 - 1426.78 - 80 - 45, openingBalance: -2000, ts: 2 }],
+      { id: 'a_bank', name: 'Yapı Kredi Vadesiz', type: 'bank', owner: 'shared', last4: '6604', balance: 20000, openingBalance: 20000, ts: 1 },
+      { id: 'a_ax', name: 'Akbank Axess', type: 'card', owner: 'shared', last4: '7777', statementDay: cutDay, balance: -2000 - 1318.65 - 80 - 45, openingBalance: -2000, ts: 2 }],
     pf_t: [
-      { id: 't_akb', type: 'expense', amount: 1426.78, category: 'Diğer', date: day(-1), note: 'Akbank kart harcaması', accountId: 'a_ax', userId: 'u_self', ts: 3, balanceApplied: true, src: 'sms', via: 'email' },
+      { id: 't_akb', type: 'expense', amount: 1318.65, category: 'Diğer', date: day(-1), note: 'Akbank kart harcaması', accountId: 'a_ax', userId: 'u_self', ts: 3, balanceApplied: true, src: 'sms', via: 'email' },
       { id: 't_k1', type: 'expense', amount: 80, category: 'Diğer', date: day(-2), note: 'Kırtasiye Ali', accountId: 'a_ax', userId: 'u_self', ts: 2, balanceApplied: true },
       { id: 't_k2', type: 'expense', amount: 45, category: 'Diğer', date: day(-3), note: 'Kırtasiye Ali', accountId: 'a_ax', userId: 'u_self', ts: 1, balanceApplied: true }],
     pf_s: { onboarded: true, users: [{ id: 'u_self', name: 'Deniz', emoji: '🙋', color: '#14b8a6' }], activeUser: 'u_self', lastBackupAt: Date.now() }
@@ -81,7 +81,7 @@ srv.listen(0, async () => {
   eq('same shop on another row follows; generic Akbank row does not', await page.evaluate(() => [document.querySelector('[data-uncat="t_k2"]').value, document.querySelector('[data-uncat="t_akb"]').value]), ['Market', '']);
   if (OUT) await page.screenshot({ path: OUT + '/uncat.png' });
   await page.evaluate(() => document.getElementById('uncatSave').click()); await page.waitForTimeout(150);
-  eq('saved: both rows Market, balance unchanged, card shows 1 left', await page.evaluate(() => [S.txns().filter(t => t.note === 'Kırtasiye Ali').map(t => t.category), App.Accounts.get('a_ax').balance, document.querySelector('#ozet-uncat .sh-title').textContent]), [['Market', 'Market'], -3551.78, '🏷️ Kategorisi belli olmayan 1 harcama']);
+  eq('saved: both rows Market, balance unchanged, card shows 1 left', await page.evaluate(() => [S.txns().filter(t => t.note === 'Kırtasiye Ali').map(t => t.category), App.Accounts.get('a_ax').balance, document.querySelector('#ozet-uncat .sh-title').textContent]), [['Market', 'Market'], -3443.65, '🏷️ Kategorisi belli olmayan 1 harcama']);
 
   // 7) Kart son ödeme hatırlatması (kesim + 10 gün): kesimden önceki borç (dönem borcu) ve asgari tutar
   const dues = await page.evaluate(() => [App.Notifications.cardDues(3).map(c => [c.in, c.text]), App.Notifications.upcomingBills(3).filter(b => b.kind === 'card').length, App.Push.plan().items.some(x => /Akbank Axess …7777 son ödeme/.test(x.text))]);
@@ -91,14 +91,14 @@ srv.listen(0, async () => {
 
   // 8) Ekstre yüklenince işyeri adı bilinmeyen e-posta kaydına ad ve kategori
   await page.evaluate(() => { document.querySelectorAll('.modal-bd.show').forEach(m => (m.closest('[id]') || m).remove()); App.UI.nav('islemler'); });
-  const html = '<html><body><table><tr><td>Tarih</td><td>Açıklama</td><td>Borç</td><td>Alacak</td></tr><tr><td>' + dmy(day(-1)) + '</td><td>MIGROS KADIKOY</td><td>1.426,78</td><td></td></tr><tr><td>' + dmy(day(-1)) + '</td><td>BIM BIRLESIK MAGAZALAR</td><td>62,50</td><td></td></tr></table></body></html>';
+  const html = '<html><body><table><tr><td>Tarih</td><td>Açıklama</td><td>Borç</td><td>Alacak</td></tr><tr><td>' + dmy(day(-1)) + '</td><td>MIGROS KADIKOY</td><td>1.318,65</td><td></td></tr><tr><td>' + dmy(day(-1)) + '</td><td>BIM BIRLESIK MAGAZALAR</td><td>62,50</td><td></td></tr></table></body></html>';
   await page.setInputFiles('#stmtFile', { name: 'ekstre.xls', mimeType: 'application/vnd.ms-excel', buffer: Buffer.from(html, 'utf8') });
   await page.waitForFunction(() => document.getElementById('stmtList'), null, { timeout: 15000 });
   await page.selectOption('#stmtAcc', 'a_ax'); await page.waitForTimeout(100);
   eq('preview: known e-mail record will get the shop name; new row selected', await page.evaluate(() => [[...document.querySelectorAll('#stmtList .stmt-row')].map(r => [r.querySelector('input').checked, r.querySelector('.stmt-desc').textContent.trim()]), /1 kayda işyeri adı eklenecek/.test(document.getElementById('stmtSum').textContent), document.getElementById('stmtOk').textContent]), [[[false, 'MIGROS KADIKOY kayıtlı · adı eklenecek'], [true, 'BIM BIRLESIK MAGAZALAR']], true, '1 İşlemi Ekle · 1 Güncelle']);
   if (OUT) await page.screenshot({ path: OUT + '/enrich.png' });
   await page.click('#stmtOk'); await page.waitForTimeout(200);
-  eq('e-mail record now has shop name and category; amount/balance kept; no duplicate', await page.evaluate(() => { const t = S.txns().find(x => x.id === 't_akb'); return [t.note, t.category, t.amount, t.via, S.txns().filter(x => x.amount === 1426.78).length, App.Accounts.get('a_ax').balance]; }), ['MIGROS KADIKOY', 'Market', 1426.78, 'email', 1, -3614.28]);
+  eq('e-mail record now has shop name and category; amount/balance kept; no duplicate', await page.evaluate(() => { const t = S.txns().find(x => x.id === 't_akb'); return [t.note, t.category, t.amount, t.via, S.txns().filter(x => x.amount === 1318.65).length, App.Accounts.get('a_ax').balance]; }), ['MIGROS KADIKOY', 'Market', 1318.65, 'email', 1, -3506.15]);
   eq('uncategorized card gone', await page.evaluate(() => document.getElementById('ozet-uncat').innerHTML), '');
   eq('balances consistent', await page.evaluate(() => App.Accounts.reconcileAccountBalances(true)), false);
   eq('no page errors', errors, []);

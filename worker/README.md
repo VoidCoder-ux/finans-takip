@@ -168,6 +168,8 @@ Bazı bankalar (ör. Akbank) işlem bildirimini SMS yerine yalnız kendi uygulam
 
 **İşlemler > 🏦 Ekstre Yükle**: bankanın internet şubesinden/uygulamasından indirilen hesap hareketleri ya da kredi kartı ekstresi (**PDF, Excel .xlsx, Excel görünümlü .xls, CSV**). Dosya telefonda okunur, hiçbir yere gönderilmez. Önizlemede hesap seçilir, satırlar işaretlenir, tutara dokunarak gelir/gider değiştirilir, kategori düzeltilir. Daha önce kayıtlı (elle, SMS, fiş) hareketler ve kart borcu ödemesi satırları baştan işaretsiz gelir; özet satırları (dönem borcu, asgari ödeme, devreden…) alınmaz. Eski ikili `.xls` biçimi okunamaz; PDF ya da `.xlsx` indirin.
 
+Hesabın uygulamaya eklendiği (ya da bakiyesinin elle bankayla eşitlendiği) günden önceki satırlar **bakiyeyi değiştirmez**: o gün girilen bakiyenin içinde zaten vardır. Gelir/gider olarak kendi ayına yazılır; önizlemede "bakiye değişmez", listede "bakiye değişmedi" etiketiyle görünür. Böylece eski bir kart ekstresi yüklemek borcu ikinci kez artırmaz.
+
 ## Güncelleme
 
 Depoda yeni sürüm olduğunda kodu indirin, `wrangler.toml` içine `database_id` ve `VAPID_SUBJECT` değerlerinizi yeniden yazın (gizli anahtarlar Cloudflare'de kalır, tekrar girilmez) ve:

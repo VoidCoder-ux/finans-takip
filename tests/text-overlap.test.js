@@ -28,25 +28,25 @@ function firstMonthSeed() {
   const now = new Date(), d = n => iso(new Date(now.getFullYear(), now.getMonth(), Math.min(n, now.getDate()))), ts = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
   const U = [{ id: 'u_a', name: 'Ben', emoji: '🙋', color: '#14b8a6' }, { id: 'u_b', name: 'Eş', emoji: '💑', color: '#ec4899' }];
   const A = [
-    { id: 'a_b', name: 'Yapıkredi TLCARD', type: 'bank', owner: 'shared', last4: '4359', balance: 0, openingBalance: 2000, ts },
-    { id: 'a_c1', name: 'Yapıkredi Platinum', type: 'card', owner: 'shared', last4: '2947', limit: 51800, limitGroup: 'yk', statementDay: 4, balance: 0, openingBalance: -42258.72, ts: ts + 1 },
-    { id: 'a_c2', name: 'Yapıkredi Adios', type: 'card', owner: 'shared', last4: '7448', limit: 51800, limitGroup: 'yk', statementDay: 4, balance: 0, openingBalance: 0, ts: ts + 2 },
-    { id: 'a_c3', name: 'Yapıkredi Hepsiburada', type: 'card', owner: 'shared', last4: '8191', limit: 51800, limitGroup: 'yk', statementDay: 4, balance: 0, openingBalance: -7670.71, ts: ts + 3 },
-    { id: 'a_c4', name: 'Akbank Axess Gold', type: 'card', owner: 'shared', last4: '1483', limit: 25000, limitGroup: 'ak', statementDay: 12, balance: 0, openingBalance: -10041.41, ts: ts + 4 },
-    { id: 'a_c5', name: 'Akbank platin', type: 'card', owner: 'shared', last4: '7524', limit: 25000, limitGroup: 'ak', statementDay: 11, balance: 0, openingBalance: -10469.99, ts: ts + 5 },
+    { id: 'a_b', name: 'Yapıkredi TLCARD', type: 'bank', owner: 'shared', last4: '6604', balance: 0, openingBalance: 2000, ts },
+    { id: 'a_c1', name: 'Yapıkredi Platinum', type: 'card', owner: 'shared', last4: '3812', limit: 48000, limitGroup: 'yk', statementDay: 4, balance: 0, openingBalance: -39876.54, ts: ts + 1 },
+    { id: 'a_c2', name: 'Yapıkredi Adios', type: 'card', owner: 'shared', last4: '2275', limit: 48000, limitGroup: 'yk', statementDay: 4, balance: 0, openingBalance: 0, ts: ts + 2 },
+    { id: 'a_c3', name: 'Yapıkredi Hepsiburada', type: 'card', owner: 'shared', last4: '5127', limit: 48000, limitGroup: 'yk', statementDay: 4, balance: 0, openingBalance: -8123.45, ts: ts + 3 },
+    { id: 'a_c4', name: 'Akbank Axess Gold', type: 'card', owner: 'shared', last4: '9036', limit: 30000, limitGroup: 'ak', statementDay: 12, balance: 0, openingBalance: -9567.89, ts: ts + 4 },
+    { id: 'a_c5', name: 'Akbank platin', type: 'card', owner: 'shared', last4: '4489', limit: 30000, limitGroup: 'ak', statementDay: 11, balance: 0, openingBalance: -11234.56, ts: ts + 5 },
     { id: 'a_k', name: 'Cüzdan', type: 'cash', owner: 'personal', userId: 'u_b', balance: 0, openingBalance: 450, ts: ts + 6 }
   ];
   let k = 0; const t = o => Object.assign({ id: 'tf' + (++k), userId: 'u_a', ts: k, balanceApplied: true }, o);
   const T = [
-    t({ type: 'income', amount: 33300, category: 'Maaş', date: d(1), note: 'Maaş', accountId: 'a_b', userId: 'u_b', src: 'sms' }),
-    t({ type: 'income', amount: 5900, category: 'Freelance', date: d(2), note: 'Ek iş', accountId: 'a_b' }),
-    t({ type: 'expense', amount: 1102.5, category: 'Market', date: d(3), note: 'Bım Bım-T377-Karacaoglan', accountId: 'a_c3', src: 'sms' }),
-    t({ type: 'expense', amount: 1426.78, category: 'Market', date: d(3), note: 'Akbank kart harcaması', accountId: 'a_c4', src: 'sms', via: 'email' }),
-    t({ type: 'expense', amount: 16400, category: 'Transfer', date: d(4), note: 'Kart borcu ödemesi: Yapıkredi Platinum', accountId: 'a_b', transferId: 'trf1' }),
-    t({ type: 'income', amount: 16400, category: 'Transfer', date: d(4), note: 'Kart borcu ödemesi: Yapıkredi Platinum', accountId: 'a_c1', transferId: 'trf1' }),
-    t({ type: 'expense', amount: 2800, category: 'Transfer', date: d(4), note: 'Kart borcu ödemesi: Yapıkredi Hepsiburada', accountId: 'a_b', transferId: 'trf2' }),
-    t({ type: 'income', amount: 2800, category: 'Transfer', date: d(4), note: 'Kart borcu ödemesi: Yapıkredi Hepsiburada', accountId: 'a_c3', transferId: 'trf2' }),
-    t({ type: 'expense', amount: 721, category: 'Yiyecek', date: d(5), note: 'Simit Sarayı', accountId: 'a_k', userId: 'u_b' })
+    t({ type: 'income', amount: 31500, category: 'Maaş', date: d(1), note: 'Maaş', accountId: 'a_b', userId: 'u_b', src: 'sms' }),
+    t({ type: 'income', amount: 4800, category: 'Freelance', date: d(2), note: 'Ek iş', accountId: 'a_b' }),
+    t({ type: 'expense', amount: 987.4, category: 'Market', date: d(3), note: 'Bım Bım-T101-Merkez', accountId: 'a_c3', src: 'sms' }),
+    t({ type: 'expense', amount: 1318.65, category: 'Market', date: d(3), note: 'Akbank kart harcaması', accountId: 'a_c4', src: 'sms', via: 'email' }),
+    t({ type: 'expense', amount: 12500, category: 'Transfer', date: d(4), note: 'Kart borcu ödemesi: Yapıkredi Platinum', accountId: 'a_b', transferId: 'trf1' }),
+    t({ type: 'income', amount: 12500, category: 'Transfer', date: d(4), note: 'Kart borcu ödemesi: Yapıkredi Platinum', accountId: 'a_c1', transferId: 'trf1' }),
+    t({ type: 'expense', amount: 3500, category: 'Transfer', date: d(4), note: 'Kart borcu ödemesi: Yapıkredi Hepsiburada', accountId: 'a_b', transferId: 'trf2' }),
+    t({ type: 'income', amount: 3500, category: 'Transfer', date: d(4), note: 'Kart borcu ödemesi: Yapıkredi Hepsiburada', accountId: 'a_c3', transferId: 'trf2' }),
+    t({ type: 'expense', amount: 640, category: 'Yiyecek', date: d(5), note: 'Simit Sarayı', accountId: 'a_k', userId: 'u_b' })
   ];
   return {
     pf_s: { onboarded: true, users: U, activeUser: 'u_a', lastBackupAt: Date.now() }, pf_a: A, pf_t: T,
@@ -122,7 +122,9 @@ const denseModals = Object.assign({}, commonModals, {
   fundPaid: "App.YearlyFund.markPaid('yf1700000000000_f001')", recEdit: "App.Recurring.edit('r1700000000000_r001')", debtEdit: "App.Debts.edit('d1700000000000_d001')",
   smsAccept: "App.BankSms.accept('sqsms1_a')", accEdit: "App.Accounts.edit('a1700000000000_card')"
 });
-const firstModals = Object.assign({}, commonModals, { smsAccept: "App.BankSms.accept('sqsms_f1')", accEdit: "App.Accounts.edit('a_c1')", editTrf: 'App.Transactions.edit(S.txns().find(t=>t.transferId).id)' });
+// Kart detayı (uygulamadan önceki borç) ve ekstre önizlemesi: geçen ayın satırları kart eklenmeden önce, "bakiye değişmez" notu çıkar
+const stmtPre = "(()=>{const n=new Date(),q=x=>String(x).padStart(2,'0'),d=x=>q(x.getDate())+'.'+q(x.getMonth()+1)+'.'+x.getFullYear();App.Statement._load('ekstre.pdf',{lines:['Yapı Kredi Kredi Kartı Hesap Özeti',d(new Date(n.getFullYear(),n.getMonth()-1,10))+' MIGROS KADIKOY ISTANBUL 5.000,00',d(new Date(n.getFullYear(),n.getMonth()-1,20))+' TEKNOSA ELEKTRONIK 3.000,00',d(new Date(n.getFullYear(),n.getMonth(),1))+' SOK MARKET 100,00']});App.Statement.open();App.Statement.setAccount('a_c1')})()";
+const firstModals = Object.assign({}, commonModals, { smsAccept: "App.BankSms.accept('sqsms_f1')", accEdit: "App.Accounts.edit('a_c1')", editTrf: 'App.Transactions.edit(S.txns().find(t=>t.transferId).id)', cardDetail: "App.Cards.detail('a_c1')", stmtPre: stmtPre });
 const datasets = [['yoğun', () => denseSeed(iso, new Date()), denseModals, false], ['ilk-ay', firstMonthSeed, firstModals, true], ['boş', emptySeed, commonModals, false]];
 
 srv.listen(0, async () => {

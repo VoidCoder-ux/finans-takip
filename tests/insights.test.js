@@ -30,7 +30,7 @@ function seed() {
   add('expense', 3000, 'Transfer', d(0, 7), 'Kart ödemesi', 'a_bank', 'u_self', { transferId: 'tr1' });
   add('income', 3000, 'Transfer', d(0, 7), 'Kart ödemesi', 'a_card', 'u_self', { transferId: 'tr1' });
   return {
-    pf_a: [{ id: 'a_bank', name: 'Yapıkredi TLCARD', type: 'bank', owner: 'shared', last4: '4359', balance: 20000, openingBalance: 0, ts: 1 }, { id: 'a_card', name: 'Yapıkredi World', type: 'card', owner: 'shared', last4: '2947', balance: -25000, openingBalance: 0, ts: 2 }],
+    pf_a: [{ id: 'a_bank', name: 'Yapıkredi TLCARD', type: 'bank', owner: 'shared', last4: '6604', balance: 20000, openingBalance: 0, ts: 1 }, { id: 'a_card', name: 'Yapıkredi World', type: 'card', owner: 'shared', last4: '3812', balance: -25000, openingBalance: 0, ts: 2 }],
     pf_t: t, pf_b: { Market: 8000, Yiyecek: 3000 },
     pf_r: [{ id: 'r_nf', type: 'expense', amount: 229.99, category: 'Eğlence', day: 12, note: 'Netflix', accountId: 'a_card', userId: 'u_self', isSubscription: true, active: true, ts: 1 }],
     pf_s: { onboarded: true, users: [{ id: 'u_self', name: 'Deniz', emoji: '🙋', color: '#14b8a6' }, { id: 'u_partner', name: 'Ayşe', emoji: '👩', color: '#ec4899' }], activeUser: 'u_self', lastBackupAt: Date.now() }
@@ -56,8 +56,8 @@ srv.listen(0, async () => {
     titles.includes('red:Market bütçesi aşıldı'), titles.includes('info:Kredi kartı borcu'), titles.includes('info:Abonelikler'), titles.includes('green:İyi gidiyor')], [true, true, true, true, true, true, true]);
   eq('warnings sorted red → yellow → info → green', a.warnings.map(w => w.level).join(',').replace(/(\w+)(,\1)+/g, '$1'), 'red,yellow,info,green');
   eq('no false alarm: Yiyecek went down', titles.some(t => /Yiyecek/.test(t)), false);
-  eq('where it went: categories, places (brand names), people, cards', [a.categories.map(x => x.key), a.places.slice(0, 3).map(x => x.key + ' ' + x.amount), a.byUser.map(x => x.key + ' ' + x.amount), a.byAccount.map(x => x.key)], [['Market', 'Giyim', 'Yiyecek'], ['Migros 5000', 'BİM 4000', 'Zara 4000'], ['Deniz 9000', 'Ayşe 5000'], ['Yapıkredi World …2947']]);
-  eq('where it came from', [a.incomeCategories.map(x => x.key + ' ' + x.amount), a.incomeByUser.map(x => x.key), a.incomeByAccount.map(x => x.key)], [['Maaş 50000', 'Freelance 5000'], ['Deniz', 'Ayşe'], ['Yapıkredi TLCARD …4359']]);
+  eq('where it went: categories, places (brand names), people, cards', [a.categories.map(x => x.key), a.places.slice(0, 3).map(x => x.key + ' ' + x.amount), a.byUser.map(x => x.key + ' ' + x.amount), a.byAccount.map(x => x.key)], [['Market', 'Giyim', 'Yiyecek'], ['Migros 5000', 'BİM 4000', 'Zara 4000'], ['Deniz 9000', 'Ayşe 5000'], ['Yapıkredi World …3812']]);
+  eq('where it came from', [a.incomeCategories.map(x => x.key + ' ' + x.amount), a.incomeByUser.map(x => x.key), a.incomeByAccount.map(x => x.key)], [['Maaş 50000', 'Freelance 5000'], ['Deniz', 'Ayşe'], ['Yapıkredi TLCARD …6604']]);
 
   // İstatistikler sayfası
   await page.evaluate(() => App.UI.nav('istatistikler')); await page.waitForTimeout(600);
@@ -69,7 +69,7 @@ srv.listen(0, async () => {
   eq('past month: no pace projection, no current card-debt warning', prev, [null, false, 7500]);
 
   // PDF raporu
-  const rep = await page.evaluate(() => { window.print = () => {}; App.Report.generateMonth(tm()); const h = document.getElementById('printHolder'); const sec = [...h.querySelectorAll('.pr-h2')].map(x => x.textContent.replace(/\s*\(\d+\)$/, '')); return { sec, warn: h.querySelectorAll('.pr-warn li').length, sum: h.querySelector('.pr-sum').innerText, planned: /planlı: günü gelmedi, toplamlara girmedi/.test(h.innerText), acc: /Yapıkredi World …2947/.test(h.innerText) }; });
+  const rep = await page.evaluate(() => { window.print = () => {}; App.Report.generateMonth(tm()); const h = document.getElementById('printHolder'); const sec = [...h.querySelectorAll('.pr-h2')].map(x => x.textContent.replace(/\s*\(\d+\)$/, '')); return { sec, warn: h.querySelectorAll('.pr-warn li').length, sum: h.querySelector('.pr-sum').innerText, planned: /planlı: günü gelmedi, toplamlara girmedi/.test(h.innerText), acc: /Yapıkredi World …3812/.test(h.innerText) }; });
   eq('report sections (İstatistikler sayfasındaki son aylar ve kategori değişimi dahil)', rep.sec, ['Özet', 'Dikkat Edilecekler', 'Önceki Aylarla Karşılaştırma', 'Son 4 Ay (kayıtların başladığı aydan beri)', 'En Çok Harcanan Yerler', 'Bütçe Durumu', 'Gelir Kategorileri', 'Gider Kategorileri', 'Kategorilere Göre Değişim', 'Üyelere Göre', 'Hesap Hareketleri', 'Tüm İşlemler']);
   eq('report: same warnings as the stats page', rep.warn, a.warnings.length);
   eq('report totals match stats (planned rent counted separately)', [/Toplam Gider[^₺]*-₺14\.000,00/.test(rep.sum), /Aylık Net \(Gelir − Gider\)/.test(rep.sum), /Planlı[\s\S]*1 işlem/.test(rep.sum), rep.planned, rep.acc], [true, true, true, true, true]);

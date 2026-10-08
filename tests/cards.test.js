@@ -19,8 +19,8 @@ const futMonth = iso(new Date(now.getFullYear(), now.getMonth() + 1, 10));
 function seed() {
   return {
     pf_a: [
-      { id: 'a_bank', name: 'Yapı Kredi Vadesiz', type: 'bank', owner: 'shared', last4: '4359', balance: 30000, openingBalance: 30000, ts: 1 },
-      { id: 'a_world', name: 'Yapı Kredi World', type: 'card', owner: 'shared', last4: '2947', statementDay: cut1, limit: 50000, balance: -12000, openingBalance: -10000, ts: 2 },
+      { id: 'a_bank', name: 'Yapı Kredi Vadesiz', type: 'bank', owner: 'shared', last4: '6604', balance: 30000, openingBalance: 30000, ts: 1 },
+      { id: 'a_world', name: 'Yapı Kredi World', type: 'card', owner: 'shared', last4: '3812', statementDay: cut1, limit: 50000, balance: -12000, openingBalance: -10000, ts: 2 },
       { id: 'a_ax', name: 'Akbank Axess', type: 'card', owner: 'shared', last4: '7777', statementDay: cut2, limit: 10000, balance: -8600, openingBalance: -8600, ts: 3 },
       { id: 'a_cash', name: 'Cüzdan', type: 'cash', owner: 'shared', balance: 500, openingBalance: 500, ts: 4 }],
     pf_t: [
@@ -98,12 +98,12 @@ srv.listen(0, async () => {
   // 7) Özet: kart borcuna dokununca kartlarım
   await closeModals();
   await page.evaluate(() => { App.UI.nav('ozet'); document.querySelector('button.hero-tile').click(); }); await page.waitForTimeout(150);
-  eq('hero card-debt chip opens all cards', await page.evaluate(() => [...document.querySelectorAll('#cardsHolder .cc-ov-top b')].map(b => b.textContent)), ['💳 Yapı Kredi World …2947', '💳 Akbank Axess …7777']);
+  eq('hero card-debt chip opens all cards', await page.evaluate(() => [...document.querySelectorAll('#cardsHolder .cc-ov-top b')].map(b => b.textContent)), ['💳 Yapı Kredi World …3812', '💳 Akbank Axess …7777']);
   if (OUT) await page.screenshot({ path: OUT + '/cards-overview.png' });
   await closeModals();
 
   // 8) Bankanın "kartınıza ödeme yapıldı" mesajı: bankadan karta aktarım (gider sayılmaz), aynı ödeme ikinci kez eklenmez
-  const r1 = await page.evaluate(() => App.BankSms.ingest([{ id: 7001, label: 'abcd1234_u_self', text: 'Yapi Kredi: 2947 ile biten kredi kartiniza ' + new Date().toLocaleDateString('tr-TR') + ' tarihinde 1.000,00 TL odeme yapilmistir.', receivedAt: Date.now() }]));
+  const r1 = await page.evaluate(() => App.BankSms.ingest([{ id: 7001, label: 'abcd1234_u_self', text: 'Yapi Kredi: 3812 ile biten kredi kartiniza ' + new Date().toLocaleDateString('tr-TR') + ' tarihinde 1.000,00 TL odeme yapilmistir.', receivedAt: Date.now() }]));
   eq('card payment SMS → transfer from bank to card', [r1.transfers, r1.queued, await page.evaluate(() => S.txns().filter(t => t.transferId && t.amount === 1000).map(t => [t.type, t.accountId, t.src]).sort())], [1, 0, [['expense', 'a_bank', 'sms'], ['income', 'a_world', 'sms']]]);
   const r2 = await page.evaluate(() => App.BankSms.ingest([{ id: 7002, label: 'abcd1234_u_self', text: 'Kredi kartiniza 1.000,00 TL odeme yapilmistir. Yapi Kredi World', receivedAt: Date.now() }]));
   eq('same payment again (other message) → not added twice', [r2.transfers || 0, r2.dupes, await page.evaluate(() => S.txns().filter(t => t.transferId && t.amount === 1000).length)], [0, 1, 2]);
@@ -120,7 +120,7 @@ srv.listen(0, async () => {
   // Bankaların farklı cümleleri kart borcu ödemesi olarak tanınır; karta "gelen" para gelir sayılmaz
   const P = t => page.evaluate(t => { const x = App.BankSms.parse(t, Date.now()); return [x.kind, /Kredi kartı borç ödemesi/.test(x.reason)]; }, t);
   eq('"…ile biten kartınıza … ödeme yapılmıştır" recognised', await P('Akbank: 7777 ile biten kartınıza 04.10.2026 tarihinde 12.000,00 TL ödeme yapılmıştır.'), ['review', true]);
-  eq('"kredi kartı ödemeniz alınmıştır" recognised', await P('Yapi Kredi: 2947 nolu kredi karti odemeniz alinmistir. Tutar: 500,00 TL'), ['review', true]);
+  eq('"kredi kartı ödemeniz alınmıştır" recognised', await P('Yapi Kredi: 3812 nolu kredi karti odemeniz alinmistir. Tutar: 500,00 TL'), ['review', true]);
   eq('"kartınızdan fatura ödemeniz" stays a spend', (await P('Kartinizdan 450,00 TL fatura odemeniz gerceklesmistir. Yapi Kredi'))[1], false);
   const r3 = await page.evaluate(() => { const b = App.Accounts.get('a_bank').balance; const r = App.BankSms.ingest([{ id: 7010, label: 'abcd1234_u_self', text: 'Akbank: 7777 ile biten kartiniza 750,00 TL yatirilmistir.', receivedAt: Date.now() }]); return [r.transfers || 0, r.added, App.Accounts.get('a_bank').balance - b, S.txns().filter(t => t.amount === 750 && t.accountId === 'a_ax').map(t => [t.type, t.category, !!t.transferId])]; });
   eq('money "to the card" becomes a card payment from the bank, not income', r3, [1, 0, -750, [['income', 'Transfer', true]]]);
@@ -152,7 +152,7 @@ srv.listen(0, async () => {
   eq('reload keeps the entered dates', await page.evaluate(() => { S.load(); const i = App.Cards.info('a_ax'); return [i.nextCut, i.nextDue]; }), up);
   // Özet: her kart için borç / kullanılabilir limit çubuğu
   const bars = await page.evaluate(() => { App.UI.nav('ozet'); renderAllViews(); return [...document.querySelectorAll('#ozet-cardbars .ccb')].map(b => [b.querySelector('.ccb-top b').textContent, !!b.querySelector('.cc-bar') || /Limit girilmedi/.test(b.textContent), /Kullanılabilir|aşıldı|Limit girilmedi/.test(b.textContent)]); });
-  eq('Özet "Kartlarım": one row per card with debt and available limit', [bars.length >= 2, bars.every(b => b[1] && b[2]), bars.map(b => b[0]).slice(0, 2)], [true, true, ['Yapı Kredi World …2947', 'Akbank Axess …7777']]);
+  eq('Özet "Kartlarım": one row per card with debt and available limit', [bars.length >= 2, bars.every(b => b[1] && b[2]), bars.map(b => b[0]).slice(0, 2)], [true, true, ['Yapı Kredi World …3812', 'Akbank Axess …7777']]);
   if (OUT) await page.locator('#ozet-cardbars').screenshot({ path: OUT + '/ozet-cardbars.png' });
 
   // 9) Kart ekleme / düzenleme alanları
@@ -167,9 +167,9 @@ srv.listen(0, async () => {
   eq('add form saves limit', await page.evaluate(() => (S.accounts().find(a => a.name === 'İş Bankası Maximum') || {}).limit), 40000);
   // 10) Ortak limit: aynı bankanın iki kartı tek limit; borç ve ekstre kart kart ayrı
   await closeModals();
-  await page.evaluate(() => { const a = S.accounts(); a.push({ id: 'a_hb', name: 'Yapı Kredi Hepsiburada', type: 'card', owner: 'shared', last4: '8191', balance: -3000, openingBalance: -3000, limit: 20000, ts: 9 }); S.saveAccounts(a); App.Accounts.edit('a_hb'); });
+  await page.evaluate(() => { const a = S.accounts(); a.push({ id: 'a_hb', name: 'Yapı Kredi Hepsiburada', type: 'card', owner: 'shared', last4: '5127', balance: -3000, openingBalance: -3000, limit: 20000, ts: 9 }); S.saveAccounts(a); App.Accounts.edit('a_hb'); });
   await page.waitForTimeout(150);
-  eq('edit dialog offers "limit shared with" other cards', await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); return [...m.querySelector('[data-pkey="limitWith"]').options].map(o => o.textContent); }), ['— Hayır, kendi limiti var —', '🔗 Yapı Kredi World …2947', '🔗 Akbank Axess …7777', '🔗 Garanti Bonus', '🔗 İş Bankası Maximum']);
+  eq('edit dialog offers "limit shared with" other cards', await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); return [...m.querySelector('[data-pkey="limitWith"]').options].map(o => o.textContent); }), ['— Hayır, kendi limiti var —', '🔗 Yapı Kredi World …3812', '🔗 Akbank Axess …7777', '🔗 Garanti Bonus', '🔗 İş Bankası Maximum']);
   await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="limitWith"]').value = 'a_world'; m.querySelector('[data-act="ok"]').click(); }); await page.waitForTimeout(150);
   const sh = await page.evaluate(() => { const w = App.Cards.info('a_world'), h = App.Cards.info('a_hb'); return { hbLimitField: App.Accounts.get('a_hb').limit, wDebt: w.debt, hDebt: h.debt, wAvail: w.avail, hAvail: h.avail, limit: h.limit, shared: [w.shared, h.shared] }; });
   eq('shared limit: one limit (World), available = limit − both debts − future installment of World 500, debts separate', [sh.hbLimitField, sh.limit, sh.wAvail, sh.hAvail, sh.hDebt, sh.shared], [undefined, 50000, 50000 - sh.wDebt - 3000 - 500, 50000 - sh.wDebt - 3000 - 500, 3000, [['Yapı Kredi Hepsiburada'], ['Yapı Kredi World']]]);
@@ -178,7 +178,7 @@ srv.listen(0, async () => {
   await page.evaluate(() => App.Cards.detail('a_hb')); await page.waitForTimeout(100);
   eq('detail shows shared limit and total debt of the cards', await page.evaluate(() => { const t = document.getElementById('cardDetailHolder').textContent; return [/Ortak limit₺50\.000,00/.test(t), /Ortak limitli kartlarYapı Kredi World/.test(t), /Kartların toplam borcu/.test(t)]; }), [true, true, true]);
   await closeModals();
-  eq('limit warning once per shared limit (on the main card)', await page.evaluate(() => { const a = S.accounts(); a.find(x => x.id === 'a_hb').balance = -46000; S.saveAccounts(a); const w = App.Insights.compute(tm()).warnings.filter(x => /Yapı Kredi .*limiti/.test(x.title)).map(x => x.title); a.find(x => x.id === 'a_hb').balance = -3000; S.saveAccounts(a); return w; }), ['Yapı Kredi World …2947 ve ortak kartların limiti dolmak üzere']);
+  eq('limit warning once per shared limit (on the main card)', await page.evaluate(() => { const a = S.accounts(); a.find(x => x.id === 'a_hb').balance = -46000; S.saveAccounts(a); const w = App.Insights.compute(tm()).warnings.filter(x => /Yapı Kredi .*limiti/.test(x.title)).map(x => x.title); a.find(x => x.id === 'a_hb').balance = -3000; S.saveAccounts(a); return w; }), ['Yapı Kredi World …3812 ve ortak kartların limiti dolmak üzere']);
   await page.evaluate(() => App.Accounts.reconcileAccountBalances(true));
 
   await page.reload(); await page.waitForTimeout(300);
