@@ -146,6 +146,19 @@ Bankalar uygulama dışına veri vermediği için (açık bankacılık yalnız l
 - Elle/fişle girilmiş aynı hareket tekrar eklenmez; maaş SMS'i tekrarlayan maaş kaydını gerçek tutar ve tarihle günceller. Kart borcu ödemesi, ATM, yabancı para ve aile içi aktarımlar onaya düşer.
 - Android'de SMS'i bir adrese ileten otomasyon uygulamalarıyla (ör. MacroDroid) aynı bağlantı kullanılabilir.
 
+## Banka uygulaması bildirimleriyle otomatik kayıt (iPhone, iOS 27+)
+
+Bazı bankalar bazı hareketleri SMS yerine kendi uygulamasının bildirimiyle gönderir. iOS 27 ile Kestirmeler'e gelen **Bildirim** otomasyonu bu bildirimin metnini de iletebilir:
+
+1. **Ayarlar > 🏦 Bankadan Otomatik Kayıt > 🔔 Bildirimden Al**: kişiye özel ayrı bir bağlantı oluşur (SMS bağlantısından bağımsız).
+2. Kestirmeler > Otomasyon > + > **Bildirim** > **Uygulama**: bankanın uygulaması, filtre: metin `TL` içeriyor > **Hemen Çalıştır** > **URL İçeriğini Al**: bağlantı, Yöntem **POST**, İstek Gövdesi **JSON**, alan `text` = **Kestirme Girişi** (bildirimin metni). Bildirim gönderen her banka uygulaması için ayrı otomasyon kurulur, bağlantı aynıdır.
+3. **Bağlantıyı Dene** bağlantıyı sınar; ilk gerçek bildirimden sonra kartta "Son bildirim: ✓ alındı" görünür.
+
+- Bildirim ayrı kanal sayılır: aynı harcama SMS ya da e-postayla da gelirse bir kez eklenir.
+- Akbank bildirimi işyeri yerine harcama grubu yazar ("GIDA VE MARKET"): kategoriye çevrilir (Market), not "Akbank kart harcaması · Gıda ve market" olur. Ekstre yüklenince işyeri adı eklenir.
+- ATM'ye nakit yatırma gelir sayılmaz: onaya düşer, Ekle penceresinde varsayılan olarak nakit hesabından bankaya aktarımdır.
+- Kestirmeler ekranlarındaki adlar iOS sürümüne göre küçük farklarla çıkabilir.
+
 ## Banka e-postalarıyla otomatik kayıt (Gmail)
 
 Bazı bankalar (ör. Akbank) işlem bildirimini SMS yerine yalnız kendi uygulamasından ve e-postayla gönderir. iPhone başka uygulamaların bildirimlerini okutmaz; e-posta ise kişinin kendi Google hesabında çalışan küçük bir **Google Apps Script** betiğiyle alınır:
