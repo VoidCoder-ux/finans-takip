@@ -19,13 +19,13 @@ srv.listen(0, async () => {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, serviceWorkers: 'block' });
   const page = await ctx.newPage(); const errors = []; page.on('pageerror', e => errors.push(e.message));
   await page.goto(base);
-  // Kullanıcının durumu: hesaplar bugün kuruldu; TLCARD 6.000; Hepsiburada kartıyla 115 TL market; eski aylarda başka hesaplardan kalma 60 bin kayıtları
+  // Örnek durum: hesaplar bugün kuruldu; TLCARD 6.000; Hepsiburada kartıyla 115 TL market; eski aylarda başka hesaplardan kalma 60 bin kayıtları
   await page.evaluate(d => {
     localStorage.clear(); localStorage.setItem('ft_setup_shown', String(Date.now()));
     localStorage.setItem('pf_a', JSON.stringify([
-      { id: 'a_tl', name: 'Yapıkredi TLCARD', type: 'bank', owner: 'shared', last4: '4359', balance: 6000, openingBalance: 6000, ts: d.T },
-      { id: 'a_hb', name: 'Yapıkredi Hepsiburada', type: 'card', owner: 'shared', last4: '8191', balance: -115, openingBalance: 0, ts: d.T + 1 },
-      { id: 'a_ax', name: 'Akbank Axess Gold', type: 'card', owner: 'personal', userId: 'u_self', last4: '1483', balance: 0, openingBalance: 0, ts: d.T + 2 }]));
+      { id: 'a_tl', name: 'Yapıkredi TLCARD', type: 'bank', owner: 'shared', last4: '6604', balance: 6000, openingBalance: 6000, ts: d.T },
+      { id: 'a_hb', name: 'Yapıkredi Hepsiburada', type: 'card', owner: 'shared', last4: '5127', balance: -115, openingBalance: 0, ts: d.T + 1 },
+      { id: 'a_ax', name: 'Akbank Axess Gold', type: 'card', owner: 'personal', userId: 'u_self', last4: '9036', balance: 0, openingBalance: 0, ts: d.T + 2 }]));
     localStorage.setItem('pf_t', JSON.stringify([{ id: 't1', type: 'expense', amount: 115, category: 'Market', date: d.today, note: '', accountId: 'a_hb', userId: 'u_partner', ts: 1, balanceApplied: true }]));
     localStorage.setItem('pf_nw', JSON.stringify([{ month: d.m5, total: 60000, accounts: 60000 }, { month: d.m3, total: 60000, accounts: 60000 }, { month: d.m1, total: 6000, accounts: 6000 }]));
     localStorage.setItem('pf_s', JSON.stringify({ onboarded: true, users: [{ id: 'u_self', name: 'Ben', emoji: '🙋', color: '#14b8a6' }, { id: 'u_partner', name: 'Eş', emoji: '💑', color: '#ec4899' }], activeUser: 'u_self', lastBackupAt: Date.now() }));

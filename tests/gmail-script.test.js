@@ -23,7 +23,7 @@ const H = (name, value) => ({ name, value });
 const style = '<style type="text/css">' + 'td.k{font-family:Arial;color:#333;padding:4px}'.repeat(900) + '</style>';
 const htmlTxn = '<html><head><meta charset="windows-1254"><title>Akbank</title>' + style + '</head><body style="margin:0"><table width="600" cellpadding="0" style="border:1px solid #ccc">' +
   '<tr><td class="k"><img src="https://www.akbank.com/logo.png" alt="Akbank"></td></tr><tr><td class="k">Sayın AYSE Y.,</td></tr>' +
-  '<tr><td class="k">Kredi kartınızla aşağıdaki işlem gerçekleşmiştir.</td></tr><tr><td class="k">Kart No</td><td class="k">5571 **** **** 1483</td></tr>' +
+  '<tr><td class="k">Kredi kartınızla aşağıdaki işlem gerçekleşmiştir.</td></tr><tr><td class="k">Kart No</td><td class="k">5400 **** **** 9036</td></tr>' +
   '<tr><td class="k">İşyeri</td><td class="k">ŞİŞLİ ECZANESİ</td></tr><tr><td class="k">Tutar</td><td class="k">312,75 TL</td></tr>' +
   '<!-- izleme --><tr><td class="k">Bu e-posta otomatik olarak gönderilmiştir, lütfen yanıtlamayınız.</td></tr></table></body></html>';
 const plainNoAmount = 'Bu e-postayı görüntülemek için HTML destekli bir e-posta programı kullanın.';
@@ -155,7 +155,7 @@ srv.listen(0, async () => {
     const items = (await api('GET', V + '/inbox', token)).body.items.map(i => i.text);
     eq('real server: stored texts are short and without greeting/footer', [items.length, items.every(t => t.length < 400 && !/Sayın|yanıtlamayınız|İyi günler|<|>/.test(t))], [4, true]);
     const tr = new Date(Number(MSGS.m1.internalDate) + 3 * 3600_000), p2 = x => String(x).padStart(2, '0');
-    eq('real server: card e-mail keeps the transaction lines and the e-mail time', items[1], 'Akbank\nKredi Kartı Harcama Bilgilendirmesi\nKredi kartınızla aşağıdaki işlem gerçekleşmiştir.\nKart No: 5571 **** **** 1483\nİşyeri: ŞİŞLİ ECZANESİ\nTutar: 312,75 TL\nE-posta tarihi: ' + p2(tr.getUTCDate()) + '.' + p2(tr.getUTCMonth() + 1) + '.' + tr.getUTCFullYear() + ' ' + p2(tr.getUTCHours()) + ':' + p2(tr.getUTCMinutes()));
+    eq('real server: card e-mail keeps the transaction lines and the e-mail time', items[1], 'Akbank\nKredi Kartı Harcama Bilgilendirmesi\nKredi kartınızla aşağıdaki işlem gerçekleşmiştir.\nKart No: 5400 **** **** 9036\nİşyeri: ŞİŞLİ ECZANESİ\nTutar: 312,75 TL\nE-posta tarihi: ' + p2(tr.getUTCDate()) + '.' + p2(tr.getUTCMonth() + 1) + '.' + tr.getUTCFullYear() + ' ' + p2(tr.getUTCHours()) + ':' + p2(tr.getUTCMinutes()));
     // Betik silinip yeniden kurulsa (hatırlanan liste boş) aynı e-postalar ikinci kez saklanmaz
     const again = google(curl); vm.runInContext(realCode, again.ctx); vm.runInContext('kontrolEt()', again.ctx);
     eq('re-installed script: same e-mails not stored twice', again.st.posts.map(p => JSON.parse(p.reply).reason), ['duplicate', 'duplicate', 'duplicate', 'no_amount']);

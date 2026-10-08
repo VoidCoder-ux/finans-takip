@@ -32,3 +32,7 @@ npm-debug.log*
 # Cloudflare
 .wrangler/
 .dev.vars
+
+# Yerel test sunucusu (wrangler dev) verileri
+.ci-dev/
+.wrangler/
