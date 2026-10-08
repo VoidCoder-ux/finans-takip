@@ -1,4 +1,4 @@
-const CACHE = 'finanstakip-v38';
+const CACHE = 'finanstakip-v39';
 const ASSETS = [
   './',
   './index.html',
