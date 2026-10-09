@@ -83,13 +83,14 @@ srv.listen(0, async () => {
       const d = document.createElement('div'); d.innerHTML = App.Report.build('2027-03');
       const sp = s => s.replace(/\s+/g, ' ').trim(), tx = (el, s) => sp(((s ? el.querySelector(s) : el) || {}).textContent || '');
       const rows = s => [...d.querySelectorAll(s + ' tbody tr')].map(r => [...r.cells].map(c => tx(c)));
+      const cardRows = d => [...d.querySelectorAll('.pr-cards tbody tr')].map(r => [...r.cells].map(c => c.querySelector('.pr-who') ? [...c.querySelectorAll('.pr-who')].map(w => [...w.children].map(x => tx(x)).join(' ')).join(' | ') : [...c.childNodes].map(n => sp(n.textContent)).filter(Boolean).join(' / ')));
       return { title: tx(d, '.pr-title'), chip: tx(d, '.pr-chip'), who: tx(d, '.pr-meta > div'), story: tx(d, '.pr-story'),
         kpi: [...d.querySelectorAll('.pr-kpi')].map(k => [...k.children].map(c => tx(c))), note: tx(d, '.pr-kpis + .pr-note'),
         pos: [...d.querySelectorAll('.pr-pos > div')].map(x => [...x.children].map(c => tx(c)).join(' ')), legend: [...d.querySelectorAll('.pr-legend > div')].map(x => tx(x)),
         flow: rows('.pr-flow'), flowNote: tx(d, '.pr-flow + .pr-note'),
         alerts: [...d.querySelectorAll('.pr-al')].map(x => [tx(x, '.pr-st'), tx(x, 'b')]), alert2: tx(d.querySelectorAll('.pr-al')[1] || d, 'div'), more: tx(d, '.pr-alerts + .pr-note'),
         fwd: rows('.pr-fwd'), catHead: [...d.querySelectorAll('.pr-cats th')].map(x => tx(x)), cats: rows('.pr-cats'), catNote: tx(d, '.pr-cats + .pr-note'),
-        cards: rows('.pr-cards'), cardNote: tx(d, '.pr-cards + .pr-note'), accHead: [...d.querySelectorAll('.pr-accs th')].map(x => tx(x)), accs: rows('.pr-accs'),
+        cardHead: [...d.querySelectorAll('.pr-cards th')].map(x => tx(x)), cards: cardRows(d), cardNote: tx(d, '.pr-cards + .pr-note'), accHead: [...d.querySelectorAll('.pr-accs th')].map(x => tx(x)), accs: rows('.pr-accs'),
         cols: [...d.querySelectorAll('.pr-col')].map(x => tx(x)), colx: [...d.querySelectorAll('.pr-colx span')].map(x => x.textContent),
         ek: sp(d.querySelector('.pr-break + .pr-sec .pr-h2').firstChild.textContent), txns: rows('.pr-txns'),
         guide: [...d.querySelectorAll('.pr-gl > div')].map(x => tx(x, 'b')), people: rows('.pr-two .pr-tbl:not(.x)').slice(0, 2) };
@@ -118,8 +119,10 @@ srv.listen(0, async () => {
     eq('kategori notu: iade ve bütçe toplamı', r.catNote, 'Kategorisiz iade: kategorisi seçilmediği ya da o kategoride bu ay harcama olmadığı için yalnız toplamdan düşüldü. Bütçe: limit koyduğunuz kategorilerde ₺2.000 / ₺1.500 (%133).');
     eq('kim ne harcadı (getirdi / harcadı ayrı)', r.people, [['🙋 Deniz', '—', '₺2.800'], ['💑 Ece', '₺30.000', '₺0']]);
     // Kart: 1.300 borç + 2.000 gelecek taksit limitten düşer → %17 (16,5), 16.700 boş; kesim günü yok
-    eq('kredi kartı: borç, limit kullanımı, son ödeme', r.cards, [['💳 Kart', '₺1.300', '%17 · ₺16.700 boş', 'kesim günü yok', '—']]);
-    eq('kart notu: ödeme gider değil; kartla harcanan 1.200 + 800 − 200 + 1.000', r.cardNote, 'Bu ay kartlara ₺1.500 ödendi; gider sayılmadı, harcamalar kartla yapıldıkları gün yazıldı. Bu ay kartla harcanan: ₺2.800 (gidere dahil).');
+    // Kartla Mart'ta Deniz harcadı: 1.200 + 800 + 1.000 − 200 iade = 2.800. Kullanılabilir: 20.000 − 1.300 − 2.000 gelecek taksit = 16.700
+    eq('kredi kartı: kim harcadı, borç, limit, kullanılabilir limit, son ödeme', [r.cardHead, r.cards], [['Kart', 'Mart\'ta kim harcadı', 'Borç', 'Limit', 'Kullanılabilir', 'Son ödeme', 'Asgari'],
+      [['💳 Kart', '🙋 Deniz ₺2.800', '₺1.300', '₺20.000', '₺16.700', 'kesim günü yok', '—']]]);
+    eq('kart notu: ödeme gider değil; kartla harcanan 1.200 + 800 − 200 + 1.000; kullanılabilir neyin düşülmesiyle bulundu', r.cardNote, 'Bu ay kartlara ₺1.500 ödendi; gider sayılmadı, harcamalar kartla yapıldıkları gün yazıldı. Bu ay kartla harcanan: ₺2.800 (gidere dahil). Kullanılabilir: limitten kart borcu ve ekstreye henüz gelmemiş taksitler düşülünce kalan (bugün).');
     // Vadesiz: 10.000 + 25.000 (Mart 2026) − 1.600 (Şubat) = 33.400; + 30.000 − 1.500 = 61.900. Kart: 0 + 200 + 1.500 − 3.000 = −1.300
     eq('hesaplar: ay başında + giren − çıkan = bugün', [r.accHead, r.accs], [['Hesap', 'Ay başında', 'Giren', 'Çıkan', 'Bugün'], [['🏦 Vadesiz', '₺33.400', '+₺30.000', '−₺1.500', '₺61.900'], ['💳 Kart', '₺0', '+₺1.700', '−₺3.000', '−₺1.300']]]);
     eq('her ay ne kadar kaldı: Şubat −1.600, Mart 27.200 (ay devam ediyor)', [r.cols, r.colx], [['−₺1,6 bin', '₺27,2 bin'], ['Şub', 'Mar*']]);
@@ -247,6 +250,42 @@ srv.listen(0, async () => {
     });
     eq('9 kategori: ilk altısı renkli, kalan üçü "Diğer 3 kalem" satırında', r.fold, ['Diğer 3 kalem']);
     eq('çok sayfalı rapor: kesilen yazı yok, sayfa taşmıyor, ek sayfa başında, tablo başlığı tekrarlanıyor', [r.pages >= 5, r.cut, r.tall, r.ek, r.heads >= 3], [true, [], 0, true, true]);
+    await ctx.close();
+  }
+  // 8) Kredi kartları: her kartta kim harcadı ve kullanılabilir limit; ortak limitli kartlar yan yana, kullanılabilir tutar ortak.
+  // Kurmaca: Axess (limit 30.000) ve Wings (Axess'in limitini kullanır), Ece'nin kişisel Bonus kartı (harcama yok),
+  // Maximum (limit 5.000, açılış borcu 5.000 + kişisi seçilmemiş 400 → 400 aşıldı), limiti girilmemiş Kart.
+  {
+    const { page, ctx } = await open({ mode: 'browser', share: false, picker: 'none' });
+    const r = await page.evaluate(() => {
+      const ac = [{ id: 'b', name: 'Vadesiz', type: 'bank', owner: 'shared', balance: 0, openingBalance: 50000, ts: 1 },
+        { id: 'k1', name: 'Axess', type: 'card', owner: 'shared', limit: 30000, last4: '1111', balance: -7400, openingBalance: 0, ts: 2 },
+        { id: 'k3', name: 'Bonus', type: 'card', owner: 'personal', userId: 'u_b', limit: 10000, balance: 0, openingBalance: 0, ts: 3 },
+        { id: 'k2', name: 'Wings', type: 'card', owner: 'shared', limitWith: 'k1', last4: '2222', balance: -1800, openingBalance: 0, ts: 4 },
+        { id: 'k4', name: 'Maximum', type: 'card', owner: 'shared', limit: 5000, balance: -5400, openingBalance: -5000, ts: 5 },
+        { id: 'k5', name: 'Kart', type: 'card', owner: 'shared', balance: 0, openingBalance: 0, ts: 6 }];
+      const x = (id, amount, date, note, accountId, userId, type) => ({ id, type: type || 'expense', amount, category: type === 'income' ? 'İade' : 'Market', date, note, accountId, userId, ts: 1, balanceApplied: true });
+      S.saveAccounts(ac); S.saveTxns([x('a1', 4000, '2027-03-03', 'Migros', 'k1', 'u_a'), x('a2', 2500, '2027-03-06', 'Zara', 'k1', 'u_b'), x('a3', 1500, '2027-03-08', 'Trendyol', 'k2', 'u_b'),
+        x('a4', 500, '2027-03-09', 'BİM', 'k2', 'u_a'), x('a5', 200, '2027-03-11', 'İade: BİM', 'k2', 'u_a', 'income'), x('a6', 400, '2027-03-12', 'Shell', 'k4', null),
+        x('a7', 900, '2027-02-20', 'Şubat harcaması', 'k1', 'u_a'), x('a8', 700, '2027-03-25', 'Planlı', 'k3', 'u_b')].map(t => t.id === 'a8' ? Object.assign(t, { balanceApplied: false }) : t));
+      S.load();
+      const d = document.createElement('div'); d.innerHTML = App.Report.build('2027-03');
+      const sp = s => s.replace(/\s+/g, ' ').trim(), tx = (el, s) => sp(((s ? el.querySelector(s) : el) || {}).textContent || '');
+      const cardRows = d => [...d.querySelectorAll('.pr-cards tbody tr')].map(r => [...r.cells].map(c => c.querySelector('.pr-who') ? [...c.querySelectorAll('.pr-who')].map(w => [...w.children].map(x => tx(x)).join(' ')).join(' | ') : [...c.childNodes].map(n => sp(n.textContent)).filter(Boolean).join(' / ')));
+      const d2 = document.createElement('div'); d2.innerHTML = App.Report.build('2027-01');
+      return { rows: cardRows(d), note: tx(d, '.pr-cards + .pr-note'), bars: [...d.querySelectorAll('.pr-cards .pr-cmt i')].map(i => i.style.width), old: !!d2.querySelector('.pr-cards') };
+    });
+    // Axess borcu 4.000 + 2.500 + 900 (Şubat) = 7.400; Wings 1.500 + 500 − 200 = 1.800 → kullanılabilir 30.000 − 9.200 = 20.800 (ikisi için ortak)
+    // Wings'te Deniz 500 − 200 iade = 300; Şubat harcaması (900) Mart'ın "kim harcadı"sında yok, borçta var; 25 Mart planlı harcama yok
+    eq('kart tablosu: kişi başı Mart harcaması, borç, limit, kullanılabilir; ortak limitli kartlar yan yana', r.rows, [
+      ['💳 Axess …1111', '🙋 Deniz ₺4.000 | 💑 Ece ₺2.500', '₺7.400', '₺30.000 / ortak limit', '₺20.800', 'kesim günü yok', '—'],
+      ['💳 Wings …2222', '💑 Ece ₺1.500 | 🙋 Deniz ₺300', '₺1.800', '₺30.000 / ortak limit', '₺20.800', 'kesim günü yok', '—'],
+      ['💳 Bonus', '💑 Ece / harcama yok', '₺0', '₺10.000', '₺10.000', '—', '—'],
+      ['💳 Maximum', 'Belirtilmemiş ₺400', '₺5.400', '₺5.000', '₺400 aşıldı', 'kesim günü yok', '—'],
+      ['💳 Kart', 'harcama yok', '₺0', 'girilmemiş', '—', '—', '—']]);
+    eq('doluluk çubuğu: Axess/Wings 9.200 / 30.000 = %31, Bonus boş (en az %2), Maximum %100', r.bars, ['31%', '31%', '2%', '100%']);
+    eq('kart notu: kullanılabilir nasıl bulundu; ortak limit toplanmaz', r.note, 'Bu ay kartla harcanan: ₺8.700 (gidere dahil). Kullanılabilir: limitten kart borcu düşülünce kalan (bugün). Axess …1111 ve Wings …2222 aynı limiti kullanır; kullanılabilir tutar ikisi için ortaktır, toplanmaz.');
+    eq('eski ayın raporunda kart tablosu yok (limit bugünkü durum)', r.old, false);
     await ctx.close();
   }
   eq('sayfa hatası yok', errors, []);
