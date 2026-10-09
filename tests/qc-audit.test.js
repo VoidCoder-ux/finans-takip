@@ -91,7 +91,7 @@ srv.listen(0, async () => {
       pf_t: [tx('y1', 'expense', 410, '2026-10-02', 'c', { note: 'Akbank kart harcaması · Gıda ve market', src: 'sms' }), tx('y2', 'expense', 120, '2026-10-03', 'c', { note: 'BIM-T205 KADIKOY' }), tx('y3', 'expense', 80, '2026-10-04', 'c', { note: 'BİM BİRLEŞİK MAĞAZALAR' }),
         tx('y4', 'expense', 55, '2026-10-05', 'c', { note: 'Kart harcaması', src: 'sms' }), tx('y5', 'expense', 60, '2026-10-06', 'b', { note: 'Simit Sarayı Moda', category: 'Yiyecek' })]
     });
-    const r = await page.evaluate(() => { const rep = App.Report.build('2026-10'); const i = rep.indexOf('En Çok Harcanan Yerler'); return { places: App.Insights.compute('2026-10').places.map(x => [x.key, x.amount]), rep: rep.slice(i, rep.indexOf('</table>', i)).replace(/<[^>]+>/g, ' ') }; });
+    const r = await page.evaluate(() => { const rep = App.Report.build('2026-10'); const i = rep.indexOf('En çok harcanan yerler'); return { places: App.Insights.compute('2026-10').places.map(x => [x.key, x.amount]), rep: rep.slice(i, rep.indexOf('</table>', i)).replace(/<[^>]+>/g, ' ') }; });
     eq('genel banka notları yer sayılmaz; BİM şubeleri tek yer', r.places, [['BİM', 200], ['Simit Sarayı', 60]]);
     eq('raporun yer tablosu da aynı', [/BİM/.test(r.rep), /Akbank kart/.test(r.rep), /Kart harcaması/.test(r.rep)], [true, false, false]);
     await ctx.close();
@@ -109,7 +109,7 @@ srv.listen(0, async () => {
       const row = [...document.querySelectorAll('#statsTable tr')].find(e => /Eğlence/.test(e.textContent)).querySelector('[data-l="Limit"]').textContent;
       const rep = App.Report.build('2026-10').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
       const w = App.Insights.compute('2026-10').warnings.find(x => /Eğlence/.test(x.title));
-      return { kpi, row, rep: /harcanan ₺1\.200,00 \/ limit ₺4\.000,00/.test(rep) && /Bütçe Kullanımı .*%30/.test(rep), w: w && w.text };
+      return { kpi, row, rep: /Bütçe: limit koyduğunuz kategorilerde ₺1\.200 \/ ₺4\.000 \(%30\)\./.test(rep), w: w && w.text };
     });
     eq('İstatistikler: 1.200 / 4.000 = %30 (eksi limit toplamı azaltmaz)', r.kpi, 'Bütçe Kullanımı%30,0₺1.200,00 / ₺4.000,00 limitli kategoriler');
     eq('rapor aynı rakam', r.rep, true);

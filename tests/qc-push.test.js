@@ -67,7 +67,7 @@ srv.listen(0, async () => {
     const r3 = await ingest(page, [item('Akbank: 4821 ile biten kartinizla 1.250,00 TL harcama yapilmistir.', 'abcd1234_u_a')]);
     eq('aynı harcamanın SMS\'i de gelirse eklenmez', [r3.added, r3.dupes, (await rows()).length], [0, 1, 2]);
     eq('işlem listesinde 🔔 Bildirim etiketi', await page.evaluate(() => { App.UI.nav('islemler'); App.Transactions.renderList(); return [...document.querySelectorAll('#txnList .ti')].filter(x => /🔔 Bildirim/.test(x.textContent)).length; }), 2);
-    eq('rapor açıklaması kaynağı söyler', await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2026-10'); return [...d.querySelectorAll('.pr-txns tr')].filter(r => /banka uygulamasının bildiriminden/.test(r.textContent)).length; }), 2);
+    eq('rapor açıklaması kaynağı söyler', await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2026-10'); return [...d.querySelectorAll('.pr-txns tr')].filter(r => /· bildirimden/.test(r.textContent)).length; }), 2);
     await page.reload(); await page.waitForTimeout(300);
     eq('yeniden yüklemede kanal korunur', await page.evaluate(() => S.txns().filter(t => t.via === 'push').length), 2);
     // Ekstre: işyeri adı bildirim kaydına eklenir, kategori (Market) korunur

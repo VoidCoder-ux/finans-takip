@@ -69,10 +69,13 @@ srv.listen(0, async () => {
   eq('past month: no pace projection, no current card-debt warning', prev, [null, false, 7500]);
 
   // PDF raporu
-  const rep = await page.evaluate(() => { window.print = () => {}; App.Report.generateMonth(tm()); const h = document.getElementById('printHolder'); const sec = [...h.querySelectorAll('.pr-h2')].map(x => x.textContent.replace(/\s*\(\d+\)$/, '')); return { sec, warn: h.querySelectorAll('.pr-warn li').length, sum: h.querySelector('.pr-sum').innerText, planned: /planlı: günü gelmedi, toplamlara girmedi/.test(h.innerText), acc: /Yapıkredi World …3812/.test(h.innerText) }; });
-  eq('report sections (İstatistikler sayfasındaki son aylar ve kategori değişimi dahil)', rep.sec, ['Özet', 'Dikkat Edilecekler', 'Önceki Aylarla Karşılaştırma', 'Son 4 Ay (kayıtların başladığı aydan beri)', 'En Çok Harcanan Yerler', 'Bütçe Durumu', 'Gelir Kategorileri', 'Gider Kategorileri', 'Kategorilere Göre Değişim', 'Üyelere Göre', 'Hesap Hareketleri', 'Tüm İşlemler']);
-  eq('report: same warnings as the stats page', rep.warn, a.warnings.length);
-  eq('report totals match stats (planned rent counted separately)', [/Toplam Gider[^₺]*-₺14\.000,00/.test(rep.sum), /Aylık Net \(Gelir − Gider\)/.test(rep.sum), /Planlı[\s\S]*1 işlem/.test(rep.sum), rep.planned, rep.acc], [true, true, true, true, true]);
+  const rep = await page.evaluate(() => { window.print = () => {}; App.Report.generateMonth(tm()); const h = document.getElementById('printHolder'), tx = s => (s || {}).textContent || '';
+    const sec = [...h.querySelectorAll('.pr-h2')].map(x => x.firstChild.textContent.replace(/\s*\(\d+\)$/, ''));
+    return { sec, warn: h.querySelectorAll('.pr-al').length, more: tx(h.querySelector('.pr-alerts + .pr-note')), exp: tx(h.querySelector('.pr-kout .pr-kv')), tot: tx(h.querySelector('.pr-cats .pr-tot td.pr-r')), note: tx(h.querySelector('.pr-kpis + .pr-note')),
+      planned: [...h.querySelectorAll('.pr-txns tr')].filter(r => /planlı, toplamlara girmedi/.test(r.textContent)).length, acc: /Yapıkredi World …3812/.test(h.textContent) }; });
+  eq('report sections: bir bakışta, ayrıntılar, ek', rep.sec, ['Gelirin nereye gitti?', 'Dikkat', 'Önümüzdeki 30 gün', 'Kategoriler', 'Kim ne harcadı?', 'En çok harcanan yerler', 'Gelir kaynakları', 'Kredi kartları', 'Hesaplar', 'Her ay ne kadar kaldı?', 'Ek: ' + ({ '01': 'Ocak\'ın', '02': 'Şubat\'ın', '03': 'Mart\'ın', '04': 'Nisan\'ın', '05': 'Mayıs\'ın', '06': 'Haziran\'ın', '07': 'Temmuz\'un', '08': 'Ağustos\'un', '09': 'Eylül\'ün', '10': 'Ekim\'in', '11': 'Kasım\'ın', '12': 'Aralık\'ın' })[iso(new Date()).slice(5, 7)] + ' bütün işlemleri', 'Okuma rehberi']);
+  eq('report: en önemli 4 uyarı (İstatistikler ile aynı sırada), kalanı sayılır', [rep.warn, rep.more], [Math.min(4, a.warnings.length), a.warnings.length > 4 ? 've ' + (a.warnings.length - 4) + ' not daha (İstatistikler sayfasında).' : '']);
+  eq('report totals match stats (planned rent counted separately)', [rep.exp, rep.tot, rep.note, rep.planned, rep.acc], ['₺14.000', '₺14.000', 'Tarihi gelmemiş 1 planlı kayıt toplamlara girmedi; günü gelince eklenir.', 1, true]);
   eq('no page errors', errors, []);
   await browser.close(); srv.close();
   console.log('\n' + pass + ' passed, ' + fail + ' failed');

@@ -1,9 +1,10 @@
 // Usage: node tests/qc-report.test.js
-// Aylık rapor:
-//  - Ana ekrana eklenmiş uygulamada (iPhone'da window.print() sessizce çalışmaz) gerçek bir PDF hazırlanır ve paylaşılır;
-//    paylaşım yoksa indirilir. Tarayıcıda "PDF İndir" ve "Yazdır" ikisi de çalışır.
-//  - PDF geçerlidir: ayrı bir okuyucuyla (pdf.js) açılır, sayfaları vardır.
-//  - Her kalemin altında kısa açıklama: değerler elle hesaplanmış beklenenlerle karşılaştırılır.
+// Aylık rapor (1. sayfa bir bakışta, sonra ayrıntılar, isteğe bağlı ek: ayın işlemleri):
+//  - İçerik: rakamlar elle hesaplanmış beklenenlerle karşılaştırılır; tablolarda tutar başlığı tutarlarla aynı hizada.
+//  - Telefona eklenmiş uygulamada (iPhone'da window.print() sessizce çalışmaz) PDF paylaş ekranıyla verilir, paylaşım yoksa indirilir.
+//    Bilgisayarda (tarayıcı ya da bilgisayara kurulan uygulama) "PDF'i Kaydet" (Farklı kaydet penceresi, yoksa indirme) ve "Yazdır".
+//  - "Ayın bütün işlemlerini sona ekle" seçeneği: kapalıysa ek yok; seçim bu cihazda hatırlanır.
+//  - PDF geçerlidir: ayrı bir okuyucuyla (pdf.js) açılır, A4; sayfa sınırında yazı kesilmez, tablo başlığı yeni sayfada tekrarlanır.
 // Kurmaca veri; sunucu gerekmez.
 const http = require('http'), fs = require('fs'), path = require('path');
 function loadPlaywright() { try { return require('playwright'); } catch (e) {} try { return require(path.join(require('child_process').execSync('npm root -g', { encoding: 'utf8' }).trim(), 'playwright')); } catch (e) { return null; } }
@@ -39,19 +40,23 @@ srv.listen(0, async () => {
   const base = 'http://127.0.0.1:' + srv.address().port + '/index.html';
   const browser = await pw.chromium.launch();
   const errors = [];
-  // mode: 'browser' | 'app' (ana ekrandan açılmış); share: paylaşım destekli mi
-  async function open(mode, share) {
-    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
-    await ctx.addInitScript(([mode, share]) => {
-      window.__log = { print: 0, shared: [], downloads: [] };
+  // o.mode: 'browser' | 'app' (ana ekrandan/kurulu açılmış); o.touch: telefon (dokunmatik); o.share: paylaşım destekli mi;
+  // o.picker: 'ok' | 'cancel' | 'none' (Farklı kaydet penceresi: kaydedilir, vazgeçilir, tarayıcıda yok)
+  async function open(o) {
+    const ctx = await browser.newContext({ viewport: o.touch ? { width: 390, height: 844 } : { width: 1280, height: 860 }, hasTouch: !!o.touch, serviceWorkers: 'block' });
+    await ctx.addInitScript(o => {
+      window.__log = { print: 0, shared: [], downloads: [], saved: [], picker: [] };
       window.print = () => { window.__log.print++; };
       const mm = window.matchMedia.bind(window);
-      window.matchMedia = q => /display-mode:\s*standalone/.test(q) ? { matches: mode === 'app', media: q, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} } : mm(q);
-      if (share) { navigator.canShare = d => !!(d && d.files && d.files.length); navigator.share = d => { window.__log.shared.push(d.files[0]); return Promise.resolve(); }; }
+      window.matchMedia = q => /display-mode:\s*standalone/.test(q) ? { matches: o.mode === 'app', media: q, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {} } : mm(q);
+      if (o.share) { navigator.canShare = d => !!(d && d.files && d.files.length); navigator.share = d => { window.__log.shared.push(d.files[0]); return Promise.resolve(); }; }
       else { delete Navigator.prototype.canShare; delete Navigator.prototype.share; }
+      delete Window.prototype.showSaveFilePicker; delete window.showSaveFilePicker;
+      if (o.picker !== 'none') window.showSaveFilePicker = opts => { window.__log.picker.push(opts); if (o.picker === 'cancel') return Promise.reject(new DOMException('Vazgeçildi', 'AbortError'));
+        return Promise.resolve({ createWritable: () => Promise.resolve({ write: b => { window.__log.saved.push(b); return Promise.resolve(); }, close: () => Promise.resolve() }) }); };
       const blobs = new Map(), cou = URL.createObjectURL; URL.createObjectURL = b => { const u = cou(b); blobs.set(u, b); return u; };
       HTMLAnchorElement.prototype.click = function () { if (this.download) window.__log.downloads.push({ name: this.download, blob: blobs.get(this.href) }); };
-    }, [mode, share]);
+    }, o);
     const page = await ctx.newPage(); page.on('pageerror', e => errors.push(e.message));
     await page.clock.setFixedTime(new Date('2027-03-20T10:00:00'));
     await page.goto(base);
@@ -71,52 +76,142 @@ srv.listen(0, async () => {
   const fileBytes = (p, expr) => p.evaluate(async e => { const f = eval(e); return f ? { name: f.name, type: f.type, bytes: Array.from(new Uint8Array(await f.arrayBuffer())) } : null; }, expr);
   const head = b => Buffer.from(b.slice(0, 5)).toString('latin1'), tail = b => Buffer.from(b.slice(-6)).toString('latin1').trim();
 
-  // 1) Rapor içeriği: her kalemin açıklaması, elle hesaplanmış değerlerle
+  // 1) Rapor içeriği: elle hesaplanmış değerler (bugün 20 Mart; geçen ay aynı günleriyle, 1–20 Şubat)
   {
-    const { page, ctx } = await open('browser', true);
-    const txt = await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2027-03'); return d.textContent.replace(/\s+/g, ' '); });
-    const has = s => txt.includes(s);
-    eq('nasıl okunur kutusu ve özet açıklamaları', [has('Bu rapor nasıl okunur?'), has('Bu ay hesaplara giren para'), has('₺200,00 iade düşüldü'), has('Gelirden harcamalar çıktıktan sonra kalan para')], [true, true, true, true]);
-    eq('özet tutarları: gelir +₺30.000,00, gider -₺2.800,00, net +₺27.200,00', [has('+₺30.000,00'), has('-₺2.800,00'), has('+₺27.200,00')], [true, true, true]);
-    eq('bütçe satırı: Market limiti ₺500,00 aşıldı', has('Limit ₺500,00 aşıldı.'), true);
-    eq('gider kategorisi açıklaması: işlem sayısı ve en büyük kalem', has('2 işlem · en büyük: Migros ₺1.200,00 (05 Mart 2027)'), true);
-    eq('iade satırı: giderden düşüldüğü yazar', has('İade: giderden düşüldü'), true);
-    eq('kart borcu ödemesi: iki bacak da "gider sayılmaz"', [has('Aktarım çıkışı (Kart hesabına) · kart borcu ödemesi; gider sayılmaz'), has('Aktarım girişi (Vadesiz hesabından) · kart borcu ödemesi; gider sayılmaz')], [true, true]);
-    eq('taksit ve planlı kayıt açıklaması', [has('taksit 1/3 (toplam ₺3.000,00)'), has('planlı: günü gelmedi, toplamlara girmedi'), has('bankanın SMS\'inden')], [true, true, true]);
-    eq('hesaplar: Vadesiz bugün ₺61.900,00; kart güncel borç ₺1.300,00', [has('₺61.900,00'), has('Güncel borç ₺1.300,00.')], [true, true]);
-    // İstatistikler sayfasındaki göstergeler ve kıyaslar da raporda
-    eq('günlük ortalama gider ₺140,00 ve bütçe kullanımı %133 (₺2.000 / ₺1.500)', [has('Günlük Ortalama Gider'), has('Bugüne kadar geçen 20 güne bölündü.'), has('₺140,00'), has('harcanan ₺2.000,00 / limit ₺1.500,00'), has('%133')], [true, true, true, true, true]);
-    // Ay bitmedi (20 Mart): geçen ay ve geçen yıl yalnız aynı günleriyle (1–20) kıyaslanır. Şubat'ın 1.600'ü 20 Şubat'ta → yine 1.600
-    eq('geçen aya göre: "Geçen ayın aynı günlerine göre ₺1.200,00 daha fazla harcama" (1–20 Şubat)', [has('Geçen ayın aynı günlerine göre ₺1.200,00 daha fazla harcama.'), has('1–20 Şubat 2027')], [true, true]);
-    eq('geçen yılın aynı günleri satırı', [has('Geçen yıl 1–20 Mart 2026: gelir ₺25.000,00, gider ₺0,00'), has('Geçen yılın aynı günlerine göre ₺2.800,00 daha fazla harcama.')], [true, true]);
-    eq('son aylar: kayıtların başladığı aydan beri, en yüksek/en düşük gider işaretli', [has('Son 2 Ay (kayıtların başladığı aydan beri)'), has('rapor ayı · en yüksek gider'), has('en düşük gider')], [true, true, true]);
-    eq('kategorilere göre değişim: Market ₺400,00 arttı (%25), Giyim yeni', [has('Kategorilere Göre Değişim'), has('₺400,00 arttı (%25).'), has('Geçen ayın aynı günlerinde bu kategoride harcama yoktu.')], [true, true, true]);
-    eq('harcama dağılımı çubukları', await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2027-03'); return d.querySelectorAll('.pr-bar').length > 3; }), true);
-    eq('üye açıklaması: Deniz en çok Market', has('en çok Market (₺2.000,00)'), true);
-    // 2) Tarayıcıda: "Yazdır" yazdırma ekranını açar, "PDF İndir" PDF dosyası indirir
-    await page.evaluate(() => App.Report.open('2027-03'));
-    eq('tarayıcıda düğmeler', await btns(page), ['Vazgeç', '🖨 Yazdır', '📄 PDF İndir']);
-    await page.evaluate(() => App.Report.print()); await page.waitForTimeout(300);
-    eq('Yazdır → yazdırma ekranı', await page.evaluate(() => window.__log.print), 1);
-    await page.evaluate(() => { App.Report.open('2027-03'); App.Report.generate(); });
-    await page.waitForFunction(() => window.__log.downloads.length > 0, null, { timeout: 30000 });
-    const d = await fileBytes(page, 'window.__log.downloads[0].blob');
-    const dn = await page.evaluate(() => window.__log.downloads[0].name);
-    eq('PDF İndir → geçerli PDF dosyası indirilir', [dn, head(d.bytes), tail(d.bytes)], ['Aile-Kasasi-Rapor-2027-03.pdf', '%PDF-', '%%EOF']);
-    const info = await readPdf(ctx, d.bytes);
-    eq('PDF ayrı bir okuyucuyla açılır: en az 2 sayfa, A4', [info[0] >= 2, info[1], info[2]], [true, 595, 842]);
+    const { page, ctx } = await open({ mode: 'browser', share: true, picker: 'ok' });
+    const r = await page.evaluate(() => {
+      const d = document.createElement('div'); d.innerHTML = App.Report.build('2027-03');
+      const sp = s => s.replace(/\s+/g, ' ').trim(), tx = (el, s) => sp(((s ? el.querySelector(s) : el) || {}).textContent || '');
+      const rows = s => [...d.querySelectorAll(s + ' tbody tr')].map(r => [...r.cells].map(c => tx(c)));
+      return { title: tx(d, '.pr-title'), chip: tx(d, '.pr-chip'), who: tx(d, '.pr-meta > div'), story: tx(d, '.pr-story'),
+        kpi: [...d.querySelectorAll('.pr-kpi')].map(k => [...k.children].map(c => tx(c))), note: tx(d, '.pr-kpis + .pr-note'),
+        pos: [...d.querySelectorAll('.pr-pos > div')].map(x => [...x.children].map(c => tx(c)).join(' ')), legend: [...d.querySelectorAll('.pr-legend > div')].map(x => tx(x)),
+        alerts: [...d.querySelectorAll('.pr-al')].map(x => [tx(x, '.pr-st'), tx(x, 'b')]), alert2: tx(d.querySelectorAll('.pr-al')[1] || d, 'div'), more: tx(d, '.pr-alerts + .pr-note'),
+        fwd: rows('.pr-fwd'), catHead: [...d.querySelectorAll('.pr-cats th')].map(x => tx(x)), cats: rows('.pr-cats'), catNote: tx(d, '.pr-cats + .pr-note'),
+        cards: rows('.pr-cards'), cardNote: tx(d, '.pr-cards + .pr-note'), accHead: [...d.querySelectorAll('.pr-accs th')].map(x => tx(x)), accs: rows('.pr-accs'),
+        cols: [...d.querySelectorAll('.pr-col')].map(x => tx(x)), colx: [...d.querySelectorAll('.pr-colx span')].map(x => x.textContent),
+        ek: sp(d.querySelector('.pr-break + .pr-sec .pr-h2').firstChild.textContent), txns: rows('.pr-txns'),
+        guide: [...d.querySelectorAll('.pr-gl > div')].map(x => tx(x, 'b')), people: rows('.pr-two .pr-tbl:not(.x)').slice(0, 2) };
+    });
+    eq('başlık: ay, durum etiketi (20/31 gün), aile', [r.title, r.chip, /^Deniz ve Ece · Oluşturuldu \d\d\.\d\d\.\d{4}$/.test(r.who)], ['Mart 2027 Raporu', 'Ay devam ediyor · 20/31 gün', true]);
+    eq('özet cümlesi: gelir 30.000, gider 1.200 + 800 + 1.000 − 200 iade = 2.800, kalan 27.200; en çok Market (2.000 / 3.000)', r.story, 'Mart\'ın ilk 20 gününde ₺30.000 geldi, ₺2.800 harcandı; ₺27.200 kaldı. En çok harcanan: Market (%67).');
+    eq('gelir/gider/kalan kutuları: geçen ayın aynı günleri (1–20 Şubat: gider 1.600) ile fark; ay sonu tahmini 2.800 / 20 × 31 = 4.340, günlük 140', r.kpi, [
+      ['Gelir', '₺30.000', '▲ ₺30.000 fazla geçen ayın aynı günlerine göre'],
+      ['Gider', '₺2.800', '▲ ₺1.200 fazla (%75) geçen ayın aynı günlerine göre', 'Ay sonu tahmini ~₺4.340 · günde ortalama ₺140'],
+      ['Kalan', '₺27.200', 'Gelirden kalan pay: %91']]);
+    eq('planlı kayıt (28 Mart) toplamlara girmez', r.note, 'Tarihi gelmemiş 1 planlı kayıt toplamlara girmedi; günü gelince eklenir.');
+    eq('para durumu: hesaplarda 61.900, kart borcu 1.300, borç düşülünce +60.600', r.pos, ['Hesaplarda (bugün) ₺61.900', 'Kart borcu ₺1.300', 'Borç düşülünce +₺60.600']);
+    eq('gelirin dağılımı: kategoriler ve kalan', r.legend, ['Market ₺2.000', 'Giyim ₺1.000', 'Kalan ₺27.200']);
+    eq('dikkat: en önemli dört not (acil, dikkat, iyi), kalanı sayılır', [r.alerts, r.more], [[['!Acil', 'Harcama temposu yüksek.'], ['!Acil', 'Market bütçesi aşıldı.'], ['!Dikkat', 'Giyim bu ay yeni.'], ['✓İyi', 'İyi gidiyor.']], 've 3 not daha (İstatistikler sayfasında).']);
+    eq('bütçe uyarısı kuruşsuz: 2.000 / 1.500 (%133)', r.alert2, 'Market bütçesi aşıldı. ₺2.000 / ₺1.500 (%133)');
+    eq('önümüzdeki 30 gün: kesim günü olmayan kart borcu bugünden düşülür; planlı ödeme ve taksit sırayla', r.fwd, [
+      ['Bugün', 'Hesaplardaki para (kesim günü girilmemiş kart borcu ₺1.300 düşüldü)', '', '₺60.600'],
+      ['28 Mar', 'Sağlık · Planlı', '−₺500', '₺60.100'], ['16 Nis', 'Mont · Taksit', '−₺1.000', '₺59.100']]);
+    eq('kategoriler: tutar, pay, 1–20 Şubat, fark, bütçe doluluğu; kategorisiz iade ayrı satır; toplam 2.800', [r.catHead, r.cats], [['Kategori', 'Pay', 'Tutar', '%', '1–20 Şub', 'Fark', 'Bütçe'], [
+      ['🛒 Market', '', '₺2.000', '66,7', '₺1.600', '▲ %25', 'aşıldı'], ['👕 Giyim', '', '₺1.000', '33,3', '—', 'yeni', '—'],
+      ['↩️ Kategorisiz iade', '', '−₺200', '—', '', '', ''], ['Toplam gider', '', '₺2.800', '', '₺1.600', '▲ %75', '']]]);
+    eq('kategori notu: iade ve bütçe toplamı', r.catNote, 'Kategorisiz iade: kategorisi seçilmediği ya da o kategoride bu ay harcama olmadığı için yalnız toplamdan düşüldü. Bütçe: limit koyduğunuz kategorilerde ₺2.000 / ₺1.500 (%133).');
+    eq('kim ne harcadı (getirdi / harcadı ayrı)', r.people, [['🙋 Deniz', '—', '₺2.800'], ['💑 Ece', '₺30.000', '₺0']]);
+    // Kart: 1.300 borç + 2.000 gelecek taksit limitten düşer → %17 (16,5), 16.700 boş; kesim günü yok
+    eq('kredi kartı: borç, limit kullanımı, son ödeme', r.cards, [['💳 Kart', '₺1.300', '%17 · ₺16.700 boş', 'kesim günü yok', '—']]);
+    eq('kart notu: ödeme gider değil; kartla harcanan 1.200 + 800 − 200 + 1.000', r.cardNote, 'Bu ay kartlara ₺1.500 ödendi; gider sayılmadı, harcamalar kartla yapıldıkları gün yazıldı. Bu ay kartla harcanan: ₺2.800 (gidere dahil).');
+    // Vadesiz: 10.000 + 25.000 (Mart 2026) − 1.600 (Şubat) = 33.400; + 30.000 − 1.500 = 61.900. Kart: 0 + 200 + 1.500 − 3.000 = −1.300
+    eq('hesaplar: ay başında + giren − çıkan = bugün', [r.accHead, r.accs], [['Hesap', 'Ay başında', 'Giren', 'Çıkan', 'Bugün'], [['🏦 Vadesiz', '₺33.400', '+₺30.000', '−₺1.500', '₺61.900'], ['💳 Kart', '₺0', '+₺1.700', '−₺3.000', '−₺1.300']]]);
+    eq('her ay ne kadar kaldı: Şubat −1.600, Mart 27.200 (ay devam ediyor)', [r.cols, r.colx], [['−₺1,6 bin', '₺27,2 bin'], ['Şub', 'Mar*']]);
+    eq('ek: işlemler son günden ilk güne, kart ödemesi tek satır, kaynak ve planlı açıklaması', [r.ek, r.txns], ['Ek: Mart\'ın bütün işlemleri (7)', [
+      ['28 Mart Pazar'], ['Diş kontrolü · planlı, toplamlara girmedi', 'Sağlık', 'Vadesiz', '🙋 Deniz', '−₺500'],
+      ['16 Mart Salı'], ['Mont (1/3) · taksit 1/3', 'Giyim', 'Kart', '🙋 Deniz', '−₺1.000'],
+      ['15 Mart Pazartesi'], ['↔ Kart borcu ödemesi · gider sayılmaz', 'Aktarım', 'Vadesiz → Kart', '🙋 Deniz', '₺1.500'],
+      ['12 Mart Cuma'], ['İade: A101 · iade · giderden düştü', 'İade', 'Kart', '🙋 Deniz', '+₺200'],
+      ['10 Mart Çarşamba'], ['A101', 'Market', 'Kart', '🙋 Deniz', '−₺800'],
+      ['5 Mart Cuma'], ['Migros', 'Market', 'Kart', '🙋 Deniz', '−₺1.200'],
+      ['1 Mart Pazartesi'], ['Maaş · SMS\'ten', 'Maaş', 'Vadesiz', '💑 Ece', '+₺30.000']]]);
+    eq('okuma rehberi: yalnız raporda geçen kavramlar', r.guide, ['Gelir:', 'Gider:', 'Kart borcu ödemesi:', 'İade:', 'Karta yazılır:', 'Tahmini:', 'Planlı:']);
+    eq('işlemsiz rapor: ek yok', await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2027-03', { txns: false }); return [!!d.querySelector('.pr-txns'), /Ek: /.test(d.textContent), !!d.querySelector('.pr-guide')]; }), [false, false, true]);
+    // Hizalama: sağa yaslı başlığın yazısı, sütundaki tutarların yazısıyla aynı sağ kenarda (yazdırma görünümü)
+    await page.emulateMedia({ media: 'print' });
+    await page.evaluate(() => App.Report.printMonth('2027-03', { txns: true })); await page.waitForTimeout(300);
+    const al = await page.evaluate(() => {
+      const right = el => { const g = document.createRange(); g.selectNodeContents(el); return g.getBoundingClientRect().right; };
+      let worst = 0, n = 0, left = 0;
+      document.querySelectorAll('#printHolder table').forEach(tb => { const hs = [...tb.querySelectorAll('thead th')];
+        hs.forEach((th, i) => { if (!th.textContent.trim()) return; const isR = th.classList.contains('pr-r');
+          tb.querySelectorAll('tbody tr').forEach(tr => { if (tr.cells.length !== hs.length) return; const td = tr.cells[i]; if (!td.textContent.trim()) return;
+            if (isR) { n++; worst = Math.max(worst, Math.abs(right(td) - right(th))); } else if (td.classList.contains('pr-r')) left++; }); }); });
+      return [n, Math.round(worst * 10) / 10, left];
+    });
+    await page.emulateMedia({ media: 'screen' });
+    eq('tablolarda tutar başlıkları tutarlarla aynı hizada (sağ kenar farkı ≤ 1 px, sola yaslı başlıkta tutar yok)', [al[0] >= 40, al[1] <= 1, al[2]], [true, true, 0]);
     await ctx.close();
   }
-  // 3) Ana ekran uygulaması: PDF hazırlanır, düğme açılınca paylaşılır; yazdırma çağrılmaz
+  // 2) Bilgisayarda (tarayıcı): Yazdır ve PDF'i Kaydet ("Farklı kaydet" penceresi)
   {
-    const { page, ctx } = await open('app', true);
+    const { page, ctx } = await open({ mode: 'browser', share: true, picker: 'ok' });
+    await page.evaluate(() => App.Report.open('2027-03'));
+    eq('açılınca: Vazgeç, Yazdır, "Hazırlanıyor…" (kapalı); işlemler seçeneği açık', [await btns(page), await page.evaluate(() => document.getElementById('rapTxns').checked)], [['Vazgeç', '🖨 Yazdır', '⏳ Hazırlanıyor… (kapalı)'], true]);
+    await waitReady(page);
+    eq('PDF hazır olunca "PDF\'i Kaydet"', await btns(page), ['Vazgeç', '🖨 Yazdır', '💾 PDF\'i Kaydet']);
+    await page.evaluate(() => App.Report.print()); await page.waitForTimeout(300);
+    eq('Yazdır → yazdırma ekranı, rapor işlemlerle', await page.evaluate(() => [window.__log.print, !!document.querySelector('#printHolder .pr-txns')]), [1, true]);
+    await page.evaluate(() => App.Report.open('2027-03')); await waitReady(page);
+    await page.evaluate(() => document.getElementById('rapGo').click()); await page.waitForFunction(() => window.__log.saved.length > 0, null, { timeout: 10000 });
+    const sv = await fileBytes(page, 'window.__log.saved[0]');
+    eq('PDF\'i Kaydet → "Farklı kaydet" penceresi (önerilen ad, PDF türü); dosya yazılır, pencere kapanır, paylaşım/indirme yok', [await page.evaluate(() => { const o = window.__log.picker[0]; return [o.suggestedName, Object.keys(o.types[0].accept)[0], o.types[0].accept['application/pdf'][0]]; }), head(sv.bytes), tail(sv.bytes),
+      await page.evaluate(() => [!!document.getElementById('rapHolder'), window.__log.shared.length, window.__log.downloads.length, [...document.querySelectorAll('.toast')].some(t => /Rapor kaydedildi: Aile-Kasasi-Rapor-2027-03\.pdf/.test(t.textContent))])],
+      [['Aile-Kasasi-Rapor-2027-03.pdf', 'application/pdf', '.pdf'], '%PDF-', '%%EOF', [false, 0, 0, true]]);
+    const info = await readPdf(ctx, sv.bytes);
+    eq('PDF ayrı bir okuyucuyla açılır: en az 2 sayfa, A4', [info[0] >= 2, info[1], info[2]], [true, 595, 842]);
+    eq('sayfalar paletli ve sıkıştırılmış (yazı keskin, dosya küçük: sayfa başına 150 KB altı)', [Buffer.from(sv.bytes).toString('latin1').includes('/Indexed /DeviceRGB'), sv.bytes.length / info[0] < 150 * 1024], [true, true]);
+    // İşlemler seçeneği kapatılır: PDF yeniden hazırlanır, seçim hatırlanır, yazdırmada da ek yok
+    await page.evaluate(() => { window.__log.saved = []; App.Report.open('2027-03'); });
+    await waitReady(page);
+    await page.evaluate(() => { const c = document.getElementById('rapTxns'); c.checked = false; c.dispatchEvent(new Event('change')); });
+    eq('seçenek değişince PDF yeniden hazırlanır', await btns(page), ['Vazgeç', '🖨 Yazdır', '⏳ Hazırlanıyor… (kapalı)']);
+    await waitReady(page);
+    await page.evaluate(() => document.getElementById('rapGo').click()); await page.waitForFunction(() => window.__log.saved.length > 0, null, { timeout: 10000 });
+    const sv2 = await fileBytes(page, 'window.__log.saved[0]');
+    eq('işlemsiz PDF daha kısa (ek yok)', (await readPdf(ctx, sv2.bytes))[0] < info[0], true);
+    await page.evaluate(() => App.Report.open('2027-03'));
+    eq('seçim hatırlanır (bu cihazda)', await page.evaluate(() => [localStorage.getItem('ft_rep_txns'), document.getElementById('rapTxns').checked]), ['0', false]);
+    await page.evaluate(() => App.Report.print()); await page.waitForTimeout(300);
+    eq('yazdırmada da ek yok', await page.evaluate(() => [!!document.querySelector('#printHolder .pr-txns'), !!document.querySelector('#printHolder .pr-kpis')]), [false, true]);
+    await ctx.close();
+  }
+  // 3) Bilgisayarda: pencere kapatılırsa (vazgeçildi) hiçbir şey olmaz; "Farklı kaydet" olmayan tarayıcıda dosya iner
+  {
+    const { page, ctx } = await open({ mode: 'browser', share: true, picker: 'cancel' });
+    await page.evaluate(() => App.Report.open('2027-03')); await waitReady(page);
+    await page.evaluate(() => document.getElementById('rapGo').click()); await page.waitForTimeout(400);
+    eq('kaydetmekten vazgeçildi: rapor penceresi açık kalır, indirme/hata yok', await page.evaluate(() => [window.__log.picker.length, !!document.getElementById('rapHolder'), window.__log.downloads.length, [...document.querySelectorAll('.toast')].some(t => /hazırlanamadı/.test(t.textContent))]), [1, true, 0, false]);
+    await ctx.close();
+  }
+  {
+    const { page, ctx } = await open({ mode: 'browser', share: false, picker: 'none' });
+    await page.evaluate(() => App.Report.open('2027-03')); await waitReady(page);
+    await page.evaluate(() => document.getElementById('rapGo').click()); await page.waitForFunction(() => window.__log.downloads.length > 0, null, { timeout: 10000 });
+    const d = await fileBytes(page, 'window.__log.downloads[0].blob');
+    eq('"Farklı kaydet" yoksa PDF indirilir ve söylenir', [await page.evaluate(() => [window.__log.downloads[0].name, [...document.querySelectorAll('.toast')].some(t => /indirildi/.test(t.textContent))]), head(d.bytes), tail(d.bytes)], [['Aile-Kasasi-Rapor-2027-03.pdf', true], '%PDF-', '%%EOF']);
+    await ctx.close();
+  }
+  // 4) Bilgisayara kurulan uygulama (pencerede açılır, dokunmatik değil): paylaş ekranı değil, Kaydet ve Yazdır
+  {
+    const { page, ctx } = await open({ mode: 'app', share: true, picker: 'ok' });
+    await page.evaluate(() => document.querySelector('.qrep').click()); await waitReady(page);
+    eq('kurulu uygulama, bilgisayar: Yazdır ve PDF\'i Kaydet', [await page.evaluate(() => App.Report.fileMode()), await btns(page)], [false, ['Vazgeç', '🖨 Yazdır', '💾 PDF\'i Kaydet']]);
+    await page.evaluate(() => document.getElementById('rapGo').click()); await page.waitForFunction(() => window.__log.saved.length > 0, null, { timeout: 10000 });
+    eq('kaydedilir; paylaş ekranı açılmaz', await page.evaluate(() => [window.__log.saved[0].name, window.__log.shared.length]), ['Aile-Kasasi-Rapor-2027-03.pdf', 0]);
+    await ctx.close();
+  }
+  // 5) Telefona eklenmiş uygulama: PDF hazırlanır, düğme açılınca paylaşılır; yazdırma çağrılmaz
+  {
+    const { page, ctx } = await open({ mode: 'app', touch: true, share: true, picker: 'ok' });
     await page.evaluate(() => document.querySelector('.qrep').click());
-    eq('açılınca düğme "Hazırlanıyor…" (kapalı)', await btns(page), ['Vazgeç', '⏳ Hazırlanıyor… (kapalı)']);
+    eq('açılınca düğme "Hazırlanıyor…" (kapalı), Yazdır yok', await btns(page), ['Vazgeç', '⏳ Hazırlanıyor… (kapalı)']);
     await waitReady(page);
     eq('PDF hazır olunca "PDF\'i Paylaş"', await btns(page), ['Vazgeç', '📤 PDF\'i Paylaş']);
     await page.evaluate(() => document.getElementById('rapGo').click()); await page.waitForTimeout(200);
     const f = await fileBytes(page, 'window.__log.shared[0]');
-    eq('paylaşılan dosya PDF (ad, tür, başlangıç/bitiş), yazdırma yok', f && [f.name, f.type, head(f.bytes), tail(f.bytes), await page.evaluate(() => window.__log.print)], ['Aile-Kasasi-Rapor-' + '2027-03' + '.pdf', 'application/pdf', '%PDF-', '%%EOF', 0]);
+    eq('paylaşılan dosya PDF (ad, tür, başlangıç/bitiş), yazdırma ve kaydetme penceresi yok', f && [f.name, f.type, head(f.bytes), tail(f.bytes), await page.evaluate(() => [window.__log.print, window.__log.picker.length])], ['Aile-Kasasi-Rapor-2027-03.pdf', 'application/pdf', '%PDF-', '%%EOF', [0, 0]]);
     eq('paylaşılan PDF açılır', (await readPdf(ctx, f.bytes))[0] >= 2, true);
     eq('pencere kapanır', await page.evaluate(() => !!document.getElementById('rapHolder')), false);
     // İstatistikler › Seçili Ay PDF Raporu: aynı pencere, seçili ay ile
@@ -127,12 +222,26 @@ srv.listen(0, async () => {
     eq('seçili ayın PDF\'i paylaşılır', await page.evaluate(() => window.__log.shared.map(x => x.name)), ['Aile-Kasasi-Rapor-2027-02.pdf']);
     await ctx.close();
   }
-  // 4) Paylaşım desteklenmiyorsa PDF indirilir
+  // 6) Telefonda paylaşım desteklenmiyorsa PDF indirilir
   {
-    const { page, ctx } = await open('app', false);
+    const { page, ctx } = await open({ mode: 'app', touch: true, share: false, picker: 'none' });
     await page.evaluate(() => App.Report.open()); await waitReady(page);
     await page.evaluate(() => document.getElementById('rapGo').click()); await page.waitForTimeout(300);
     eq('paylaşım yoksa PDF indirilir ve söylenir', await page.evaluate(() => [window.__log.downloads.map(x => x.name), [...document.querySelectorAll('.toast')].some(t => /indirildi/.test(t.textContent))]), [['Aile-Kasasi-Rapor-2027-03.pdf'], true]);
+    await ctx.close();
+  }
+  // 7) Kalabalık ay: sayfa sınırında yazı kesilmez, tablo başlığı tekrarlanır, ek yeni sayfada başlar (ya da önceki sayfa çok boşsa aynı sayfada)
+  {
+    const { page, ctx } = await open({ mode: 'browser', share: false, picker: 'none' });
+    const r = await page.evaluate(() => {
+      const t = S.txns(); for (let i = 0; i < 160; i++) t.push({ id: 'k' + i, type: 'expense', amount: 10 + i, category: ['Market', 'Yiyecek', 'Ulaşım', 'Eğlence', 'Sağlık', 'Faturalar', 'Eğitim', 'Diğer'][i % 8], date: '2027-03-' + String(1 + i % 20).padStart(2, '0'), note: 'Kurmaca işyeri ' + i, accountId: 'b', userId: i % 2 ? 'u_a' : 'u_b', ts: 1000 + i, balanceApplied: true });
+      S.saveTxns(t); S.load();
+      const L = App.Report._dbg.layout('2027-03', { txns: true }), P = App.Report._dbg.pages(L), ch = 1123 - 2 * 38, b = L.breaks[0], pb = P.find(p => p.start <= b && b <= p.end + 1);
+      return { pages: P.length, cut: L.ops.filter(o => o.k === 't' && !P.some(p => o.top >= p.start - 1 && o.bot <= p.end + 1)).map(o => o.s), heads: P.filter(p => p.table).length,
+        tall: P.filter(p => p.end - p.start + (p.table ? p.table.hH : 0) > ch + 1).length, ek: Math.abs(pb.start - b) < 1 || b - pb.start < ch * 0.35, fold: (() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2027-03'); return [...d.querySelectorAll('.pr-cats tbody tr')].map(x => x.cells[0].textContent.trim()).filter(x => /^Diğer \d+ kalem$/.test(x)); })() };
+    });
+    eq('9 kategori: ilk altısı renkli, kalan üçü "Diğer 3 kalem" satırında', r.fold, ['Diğer 3 kalem']);
+    eq('çok sayfalı rapor: kesilen yazı yok, sayfa taşmıyor, ek sayfa başında, tablo başlığı tekrarlanıyor', [r.pages >= 5, r.cut, r.tall, r.ek, r.heads >= 3], [true, [], 0, true, true]);
     await ctx.close();
   }
   eq('sayfa hatası yok', errors, []);

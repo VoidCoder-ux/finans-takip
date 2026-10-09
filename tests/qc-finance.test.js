@@ -52,8 +52,8 @@ srv.listen(0, async () => {
   eq('A2 400 kart ödemesi: banka 9.600, kart borcu 600, gider yine 1.000, gelir 0', await state(), { bank: 9600, card: -600, cash: 0, inc: 0, exp: 1000 });
   const v = await views();
   eq('A3 Özet/İstatistik aynı sonuç', [v.heroNet, v.heroCard, v.mInc, v.mExp, v.insInc, v.insExp], ['₺9.600,00', '₺600,00', '₺0,00', '₺1.000,00', 0, 1000]);
-  eq('A4 PDF rapor: net −1.000 (ödeme gider sayılmaz, 1.400 hiç geçmez)', [/Aylık Net \(Gelir − Gider\)[^₺]*-₺1\.000,00/.test(v.report), /1\.400,00/.test(v.report)], [true, false]);
-  if (!/Aylık Net \(Gelir − Gider\)[^₺]*-₺1\.000,00/.test(v.report)) console.log(v.report.slice(0, 900));
+  eq('A4 PDF rapor: gider 1.000 (ödeme gider sayılmaz, 1.400 hiç geçmez)', [/Gider\s*₺1\.000(?![\d.,])/.test(v.report), /harcandı/.test(v.report) && /₺1\.000 harcandı/.test(v.report), /1\.400/.test(v.report)], [true, true, false]);
+  if (!/Gider\s*₺1\.000(?![\d.,])/.test(v.report)) console.log(v.report.slice(0, 900));
   // Yenileme sonrası
   await page.reload(); await page.waitForTimeout(400);
   eq('A5 yenileme sonrası aynı', await state(), { bank: 9600, card: -600, cash: 0, inc: 0, exp: 1000 });
@@ -106,7 +106,7 @@ srv.listen(0, async () => {
   const f1 = await state();
   eq('F1 karta 250 iade: kart borcu azalır', f1.card, -1033.83);
   eq('F2 iade gelir sayılmaz, bu ayın giderinden düşer (gelir aynı, gider −250)', [f1.inc - f0.inc, Math.round((f1.exp - f0.exp) * 100) / 100], [0, -250]);
-  eq('F3 İstatistik ve PDF rapor aynı kuralla: iade gelir değil, rapor "İade (giderden düşüldü)" satırı', await page.evaluate(() => { const i = App.Insights.compute(tm()); window.print = () => {}; App.Report.generateMonth(tm()); const r = document.getElementById('printHolder').textContent; return [i.refunds, i.income === App.Transactions.monthTotals(tm()).income, i.expense === App.Transactions.monthTotals(tm()).expense, /İade \(giderden düşüldü\)/.test(r)]; }), [250, true, true, true]);
+  eq('F3 İstatistik ve PDF rapor aynı kuralla: iade gelir değil, raporda iade giderden düşülür (kategorisiz iade satırı)', await page.evaluate(() => { const i = App.Insights.compute(tm()); window.print = () => {}; App.Report.generateMonth(tm()); const r = document.getElementById('printHolder').textContent; return [i.refunds, i.income === App.Transactions.monthTotals(tm()).income, i.expense === App.Transactions.monthTotals(tm()).expense, /Kategorisiz iade\s*−₺250(?![\d.,])/.test(r) || /₺250 iade kendi kategorisinden düşüldü/.test(r)]; }), [250, true, true, true]);
   eq('F4 bankadan gelen eski iade kaydı (Diğer, "İade: …") yüklemede İade kategorisine geçer', await page.evaluate(() => { const t = S.txns(); t.push({ id: 't_oldref', type: 'income', amount: 10, category: 'Diğer', date: td(), note: 'İade: Eski', accountId: 'a_cash', userId: 'u_a', ts: 1, balanceApplied: false, src: 'sms' }); S.saveTxns(t); S.load(); const x = S.txns().find(y => y.id === 't_oldref'); const r = x.category; App.Transactions.purge('t_oldref'); return r; }), 'İade');
 
   // ---- Senaryo G: çift dokunma ----
