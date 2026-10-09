@@ -86,6 +86,7 @@ srv.listen(0, async () => {
       return { title: tx(d, '.pr-title'), chip: tx(d, '.pr-chip'), who: tx(d, '.pr-meta > div'), story: tx(d, '.pr-story'),
         kpi: [...d.querySelectorAll('.pr-kpi')].map(k => [...k.children].map(c => tx(c))), note: tx(d, '.pr-kpis + .pr-note'),
         pos: [...d.querySelectorAll('.pr-pos > div')].map(x => [...x.children].map(c => tx(c)).join(' ')), legend: [...d.querySelectorAll('.pr-legend > div')].map(x => tx(x)),
+        flow: rows('.pr-flow'), flowNote: tx(d, '.pr-flow + .pr-note'),
         alerts: [...d.querySelectorAll('.pr-al')].map(x => [tx(x, '.pr-st'), tx(x, 'b')]), alert2: tx(d.querySelectorAll('.pr-al')[1] || d, 'div'), more: tx(d, '.pr-alerts + .pr-note'),
         fwd: rows('.pr-fwd'), catHead: [...d.querySelectorAll('.pr-cats th')].map(x => tx(x)), cats: rows('.pr-cats'), catNote: tx(d, '.pr-cats + .pr-note'),
         cards: rows('.pr-cards'), cardNote: tx(d, '.pr-cards + .pr-note'), accHead: [...d.querySelectorAll('.pr-accs th')].map(x => tx(x)), accs: rows('.pr-accs'),
@@ -94,14 +95,18 @@ srv.listen(0, async () => {
         guide: [...d.querySelectorAll('.pr-gl > div')].map(x => tx(x, 'b')), people: rows('.pr-two .pr-tbl:not(.x)').slice(0, 2) };
     });
     eq('başlık: ay, durum etiketi (20/31 gün), aile', [r.title, r.chip, /^Deniz ve Ece · Oluşturuldu \d\d\.\d\d\.\d{4}$/.test(r.who)], ['Mart 2027 Raporu', 'Ay devam ediyor · 20/31 gün', true]);
-    eq('özet cümlesi: gelir 30.000, gider 1.200 + 800 + 1.000 − 200 iade = 2.800, kalan 27.200; en çok Market (2.000 / 3.000)', r.story, 'Mart\'ın ilk 20 gününde ₺30.000 geldi, ₺2.800 harcandı; ₺27.200 kaldı. En çok harcanan: Market (%67).');
+    // "Gelir − gider" elde kalan para değildir: cümle kart borcuna ödeneni ve hesaplardaki parayı söyler
+    eq('özet cümlesi: gelir 30.000, gider 1.200 + 800 + 1.000 − 200 iade = 2.800; karta 1.500 ödendi; Vadesiz 61.900; en çok Market (2.000 / 3.000)', r.story, 'Mart\'ın ilk 20 gününde ₺30.000 geldi, ₺2.800 harcandı. Kart borçlarına ₺1.500 ödendi. Hesaplarda şu an ₺61.900 var. En çok harcanan: Market (%67).');
     eq('gelir/gider/kalan kutuları: geçen ayın aynı günleri (1–20 Şubat: gider 1.600) ile fark; ay sonu tahmini 2.800 / 20 × 31 = 4.340, günlük 140', r.kpi, [
       ['Gelir', '₺30.000', '▲ ₺30.000 fazla geçen ayın aynı günlerine göre'],
       ['Gider', '₺2.800', '▲ ₺1.200 fazla (%75) geçen ayın aynı günlerine göre', 'Ay sonu tahmini ~₺4.340 · günde ortalama ₺140'],
-      ['Kalan', '₺27.200', 'Gelirden kalan pay: %91']]);
+      ['Gelir − gider', '+₺27.200', 'Harcanmayan pay: %91', 'Elde kalan para değil: hesaplarda şu an ₺61.900']]);
     eq('planlı kayıt (28 Mart) toplamlara girmez', r.note, 'Tarihi gelmemiş 1 planlı kayıt toplamlara girmedi; günü gelince eklenir.');
     eq('para durumu: hesaplarda 61.900, kart borcu 1.300, borç düşülünce +60.600', r.pos, ['Hesaplarda (bugün) ₺61.900', 'Kart borcu ₺1.300', 'Borç düşülünce +₺60.600']);
-    eq('gelirin dağılımı: kategoriler ve kalan', r.legend, ['Market ₺2.000', 'Giyim ₺1.000', 'Kalan ₺27.200']);
+    eq('harcamanın dağılımı: yalnız kategoriler ("Kalan" dilimi yok)', r.legend, ['Market ₺2.000', 'Giyim ₺1.000']);
+    // Vadesiz ay başında 10.000 + 25.000 (Mart 2026) − 1.600 (Şubat) = 33.400; + 30.000 maaş − 1.500 kart ödemesi = 61.900 (28 Mart planlı, sayılmaz)
+    eq('gelen para nereye gitti: ay başı + gelir − kart borcuna ödenen = şu an; kartla harcanan ayrı not', [r.flow, r.flowNote], [[['Ay başında hesaplarda', '₺33.400'], ['+ Gelir', '+₺30.000'], ['− Kart borcuna ödenen · gider sayılmaz; harcama kartla yapıldığı gün yazıldı', '−₺1.500'], ['= Şu an hesaplarda', '₺61.900']],
+      'Kartla yapılan ₺2.800 harcama bu dökümde yok: kart borcuna eklendi, ekstre gününde ödenir.']);
     eq('dikkat: en önemli dört not (acil, dikkat, iyi), kalanı sayılır', [r.alerts, r.more], [[['!Acil', 'Harcama temposu yüksek.'], ['!Acil', 'Market bütçesi aşıldı.'], ['!Dikkat', 'Giyim bu ay yeni.'], ['✓İyi', 'İyi gidiyor.']], 've 3 not daha (İstatistikler sayfasında).']);
     eq('bütçe uyarısı kuruşsuz: 2.000 / 1.500 (%133)', r.alert2, 'Market bütçesi aşıldı. ₺2.000 / ₺1.500 (%133)');
     eq('önümüzdeki 30 gün: kesim günü olmayan kart borcu bugünden düşülür; planlı ödeme ve taksit sırayla', r.fwd, [
@@ -126,7 +131,7 @@ srv.listen(0, async () => {
       ['10 Mart Çarşamba'], ['A101', 'Market', 'Kart', '🙋 Deniz', '−₺800'],
       ['5 Mart Cuma'], ['Migros', 'Market', 'Kart', '🙋 Deniz', '−₺1.200'],
       ['1 Mart Pazartesi'], ['Maaş · SMS\'ten', 'Maaş', 'Vadesiz', '💑 Ece', '+₺30.000']]]);
-    eq('okuma rehberi: yalnız raporda geçen kavramlar', r.guide, ['Gelir:', 'Gider:', 'Kart borcu ödemesi:', 'İade:', 'Karta yazılır:', 'Tahmini:', 'Planlı:']);
+    eq('okuma rehberi: yalnız raporda geçen kavramlar ("Gelir − gider" elde kalan para değildir)', r.guide, ['Gelir − gider:', 'Gelir:', 'Gider:', 'Kart borcu ödemesi:', 'İade:', 'Karta yazılır:', 'Tahmini:', 'Planlı:']);
     eq('işlemsiz rapor: ek yok', await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2027-03', { txns: false }); return [!!d.querySelector('.pr-txns'), /Ek: /.test(d.textContent), !!d.querySelector('.pr-guide')]; }), [false, false, true]);
     // Hizalama: sağa yaslı başlığın yazısı, sütundaki tutarların yazısıyla aynı sağ kenarda (yazdırma görünümü)
     await page.emulateMedia({ media: 'print' });

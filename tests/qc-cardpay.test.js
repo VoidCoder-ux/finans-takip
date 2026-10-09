@@ -117,7 +117,11 @@ srv.listen(0, async () => {
     eq('bakiyeler: banka 39.000, kart −23.700', [(await acc(page, 'b'))[0], (await acc(page, 'c'))[0]], [39000, -23700]);
     eq('ekim: gelir 45.000, gider 3.700 (kart ödemeleri gider değil, iade düşülür)', await page.evaluate(() => App.Transactions.monthTotals('2026-10')), { income: 45000, expense: 3700, count: 4 });
     eq('ekim kart akışı: ödenen 16.000, kartla harcanan 3.700, eski borca giden 16.000', await page.evaluate(() => { const f = App.Cards.monthFlow('2026-10'); return [f.paid, f.spent, f.paidOld]; }), [16000, 3700, 16000]);
-    eq('Özet "Bu Ay": ödenen ve harcanan ayrı, eski borç notu', await page.evaluate(() => { App.UI.nav('ozet'); App.Transactions.renderSummaryMetrics(); const el = document.getElementById('mCards'); const t = el.innerText.replace(/\s+/g, ' '); return [el.hidden, /Kart borcuna ödenen ₺16\.000,00 gider sayılmadı/.test(t), /Kartla harcanan ₺3\.700,00 gidere dahil/.test(t), /Bu ödemelerden ₺16\.000,00, uygulamaya başlamadan önceki kart borcunu kapattı/.test(t)]; }), [false, true, true, true]);
+    // Banka 10.000 (1 Ekim'de eklendi) + 45.000 maaş − 16.000 kart ödemesi = 39.000; kartla harcanan 3.700 dökümde yok
+    eq('Özet "Bu Ay": gelen para nereye gitti (kart ödemesi eski borç, kartla harcanan ayrı not)', await page.evaluate(() => { App.UI.nav('ozet'); App.Transactions.renderSummaryMetrics(); const el = document.getElementById('mCards');
+      return [el.hidden, [...el.querySelectorAll('.mf-row')].map(r => [r.querySelector('span').firstChild.textContent, (r.querySelector('small') || {}).textContent || '', r.querySelector('b').textContent]), el.querySelector('.mc-note').textContent]; }),
+      [false, [['Ay başında hesaplarda', '', '₺10.000,00'], ['＋ Gelir', '', '+₺45.000,00'], ['− Kart borcuna ödenen', 'uygulamadan önceki kart borcu; bu ayın giderinde yok', '−₺16.000,00'], ['= Şu an hesaplarda', '', '₺39.000,00']],
+        'Kartla harcanan ₺3.700,00 gidere dahil; ödenene kadar kart borcunda durur, bu dökümde yok.']);
     eq('ekim raporu: gider 3.700; kart ödemeleri 16.000 (gider değil, eski borç payı yazılı); kartla harcanan 3.700', await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2026-10'); const t = d.textContent.replace(/\s+/g, ' ');
       return [d.querySelector('.pr-kout .pr-kv').textContent, /Bu ay kartlara ₺16\.000 ödendi; gider sayılmadı, harcamalar kartla yapıldıkları gün yazıldı\./.test(t), /Bunun ₺16\.000 kadarı uygulamadan önceki kart borcunu kapattı\./.test(t), /Bu ay kartla harcanan: ₺3\.700 \(gidere dahil\)\./.test(t)]; }), ['₺3.700', true, true, true]);
     eq('eski borç (C): 36.000; 16.000 ödendi, 20.000 kaldı', await page.evaluate(() => App.Cards.oldDebt('c')), { start: 36000, since: '2026-10-01', paid: 16000, left: 20000 });
@@ -149,7 +153,9 @@ srv.listen(0, async () => {
   // Kart yoksa ya da bu ay kart hareketi yoksa Özet'te kart satırı çıkmaz
   {
     const { page, ctx } = await open({ pf_a: [{ id: 'b', name: 'Vadesiz', type: 'bank', owner: 'shared', balance: 9000, openingBalance: 10000, ts: at('2026-10-01') }], pf_t: [tx('x', 'expense', 1000, '2026-10-02', 'b')] });
-    eq('kart yok: "Bu Ay" kart satırı gizli', await page.evaluate(() => { App.Transactions.renderSummaryMetrics(); return document.getElementById('mCards').hidden; }), true);
+    eq('kart yok: "Bu Ay" dökümünde kart satırı ve kart notu yok (10.000 − 1.000 = 9.000)', await page.evaluate(() => { App.Transactions.renderSummaryMetrics(); const el = document.getElementById('mCards');
+      return [el.hidden, [...el.querySelectorAll('.mf-row')].map(r => r.querySelector('span').firstChild.textContent + ' ' + r.querySelector('b').textContent), !!el.querySelector('.mc-note')]; }),
+      [false, ['Ay başında hesaplarda ₺10.000,00', '− Hesaplardan harcanan −₺1.000,00', '= Şu an hesaplarda ₺9.000,00'], false]);
     await ctx.close();
   }
   eq('sayfa hatası yok', errors, []);
