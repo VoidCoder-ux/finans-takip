@@ -737,6 +737,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
       <div class="f" id="accStmtWrap" style="display:none"><label for="accCutDate">Hesap Kesim Tarihi (son ya da yaklaşan)</label><input type="date" id="accCutDate"/></div>
       <div class="f" id="accDueWrap" style="display:none"><label for="accDueDate">Son Ödeme Tarihi</label><input type="date" id="accDueDate"/></div>
       <div class="f" id="accLimitWrap" style="display:none"><label for="accLimit">Kart Limiti (₺)</label><input type="text" inputmode="decimal" id="accLimit" placeholder="ör. 50.000" data-money="money" autocomplete="off"/></div>
+      <div class="f" id="accLimitWithWrap" style="display:none"><label for="accLimitWith">Limiti Şu Kartla Ortak</label><select id="accLimitWith"></select></div>
       <div class="f"><label for="accLast4">Son 4 Hane (isteğe bağlı)</label><input type="text" inputmode="numeric" id="accLast4" placeholder="Banka SMS'i için, ör. 1234" autocomplete="off"/></div>
     </div>
     <button class="btn btn-primary" onclick="App.Accounts.add()">Hesap Ekle</button>
@@ -1013,7 +1014,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.09.3</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.09.4</div>
 </section>
 
 </main>
@@ -1709,7 +1710,15 @@ App.UI=(function(){
 })();
 
 App.Accounts=(function(){
-  function onTypeChange(){var c=document.getElementById('accType').value==='card';document.getElementById('accStmtWrap').style.display=c?'':'none';var lw=document.getElementById('accLimitWrap');if(lw)lw.style.display=c?'':'none';var dw=document.getElementById('accDueWrap');if(dw)dw.style.display=c?'':'none'}
+  function onTypeChange(){var c=document.getElementById('accType').value==='card';document.getElementById('accStmtWrap').style.display=c?'':'none';var lw=document.getElementById('accLimitWrap');if(lw)lw.style.display=c?'':'none';var dw=document.getElementById('accDueWrap');if(dw)dw.style.display=c?'':'none';_fillLimitWith()}
+  // Ekleme formunda ortak limit: Düzenle'deki gibi yalnız kendi limiti olan (başka karta bağlı olmayan) kartlar; kart yoksa alan gizli
+  function _fillLimitWith(){
+    var sel=document.getElementById('accLimitWith'),w=document.getElementById('accLimitWithWrap'),ty=document.getElementById('accType');if(!sel||!w||!ty)return;
+    var others=S.accounts().filter(function(x){return x.type==='card'&&!x.limitWith}),prev=sel.value;
+    sel.innerHTML='<option value="">— Hayır, kendi limiti var —</option>'+others.map(function(x){return'<option value="'+escAttr(x.id)+'">🔗 '+esc(accLabel(x))+'</option>'}).join('');
+    if(prev&&others.some(function(x){return x.id===prev}))sel.value=prev;
+    w.style.display=ty.value==='card'&&others.length?'':'none';
+  }
   function onOwnerChange(){document.getElementById('accUserWrap').style.display=document.getElementById('accOwner').value==='personal'?'':'none'}
   function add(){
     var name=document.getElementById('accName').value.trim(),type=document.getElementById('accType').value,bal=parseMoney(document.getElementById('accBal').value||0,{allowZero:true,min:-MAX_MONEY});
@@ -1725,8 +1734,10 @@ App.Accounts=(function(){
     if(clash){App.UI.toast('Bu son 4 hane "'+clash.name+'" hesabında kayıtlı.','err');return}
     var limEl=document.getElementById('accLimit'),limRaw=String(limEl&&limEl.value||'').trim(),lim=type==='card'&&limRaw?parseMoney(limRaw):null;if(type==='card'&&limRaw&&lim===null){App.UI.toast('Geçerli kart limiti girin.','err');return}
     var na={id:gid('a'),name,type,owner,userId,statementDay:stmtDay,balance:bal,openingBalance:bal,ts:Date.now()};if(lim)na.limit=lim;if(cd.dueOffset)na.dueOffset=cd.dueOffset;if(cd.cutAnchor)na.cutAnchor=cd.cutAnchor;if(l4.length)na.last4=l4.filter(function(x,i){return l4.indexOf(x)===i}).slice(0,6).join(',');
+    var lwEl=document.getElementById('accLimitWith'),lw=type==='card'&&lwEl&&lwEl.value?a.find(function(x){return x.id===lwEl.value&&x.type==='card'&&!x.limitWith}):null;
+    if(lw){na.limitWith=lw.id;if(!lw.limit&&na.limit)lw.limit=na.limit;delete na.limit}
     a.push(na);S.saveAccounts(a);
-    document.getElementById('accName').value='';document.getElementById('accBal').value='';if(cdEl)cdEl.value='';if(ddEl)ddEl.value='';if(l4el)l4el.value='';if(limEl)limEl.value='';
+    document.getElementById('accName').value='';document.getElementById('accBal').value='';if(cdEl)cdEl.value='';if(ddEl)ddEl.value='';if(l4el)l4el.value='';if(limEl)limEl.value='';if(lwEl)lwEl.value='';
     App.UI.refreshAccSelects();renderAll();renderSummary();App.UI.toast('Hesap eklendi.');
   }
   function remove(id){
@@ -1792,7 +1803,7 @@ App.Accounts=(function(){
   function get(id){return S.accounts().find(function(a){return a.id===id})}
   function sharedAccount(){return S.accounts().find(function(a){return(a.owner||'shared')!=='personal'})}
   function renderAll(){
-    var accs=S.accounts(),el=document.getElementById('accGrid');
+    var accs=S.accounts(),el=document.getElementById('accGrid');_fillLimitWith();
     if(!accs.length){el.innerHTML='<div class="empty" style="grid-column:1/-1"><span class="empty-ico">💳</span><div class="empty-t">Hesap eklenmedi</div></div>';return}
     var neg={};negAccounts().forEach(function(a){neg[a.id]=1});
     el.innerHTML=accs.map(function(a){
