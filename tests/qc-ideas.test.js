@@ -92,7 +92,7 @@ srv.listen(0, async () => {
       const an = App.Insights.compute('2026-10').prev, rep = App.Report.build('2026-10').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
       document.getElementById('statMonth').value = '2026-09'; App.Charts.refresh();
       return { title, rows, note: /Ay henüz bitmedi: geçen ayın aynı günleriyle \(1–8\) kıyaslandı\. Eylül 2026 tamamında gelir ₺10\.000,00, gider ₺5\.000,00\./.test(note), an: [an.income, an.expense, an.uptoDay],
-        rep: [/Ekim'in ilk 8 gününde ₺10\.000 geldi, ₺1\.500 harcandı; ₺8\.500 kaldı\./.test(rep), /▲ ₺500 fazla \(%50\) geçen ayın aynı günlerine göre/.test(rep), /1–8 Eyl Fark .*Market ₺1\.500 100,0 ₺1\.000 ▲ %50/.test(rep), !/Giyim/.test(rep.slice(rep.indexOf('Kategoriler %'), rep.indexOf('Toplam gider')))], past: document.getElementById('cmpTitle').textContent };
+        rep: [/Ekim'in ilk 8 gününde ₺10\.000 geldi, ₺1\.500 harcandı\. Hesaplarda şu an ₺63\.500 var\./.test(rep), /▲ ₺500 fazla \(%50\) geçen ayın aynı günlerine göre/.test(rep), /1–8 Eyl Fark .*Market ₺1\.500 100,0 ₺1\.000 ▲ %50/.test(rep), !/Giyim/.test(rep.slice(rep.indexOf('Kategoriler %'), rep.indexOf('Toplam gider')))], past: document.getElementById('cmpTitle').textContent };
     });
     eq('başlık: 1–8 Ekim ile 1–8 Eylül', r.title, 'Aydan Aya Kıyaslama — 1–8 Ekim 2026 vs 1–8 Eylül 2026');
     eq('gider 1.500 / 1.000 (20 Eylül sayılmaz); planlı 25 Ekim Giyim kategoriye girmez', r.rows.filter(x => /Gider|Market|Giyim/.test(x)), ['💸 Gider | ₺1.500,00 | ₺1.000,00 | ▲ %50', '🛒 Market | ₺1.500,00 | ₺1.000,00 | ▲ %50']);
