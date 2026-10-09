@@ -592,6 +592,9 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
   .pr-mt i{display:block;height:100%;border-radius:99px}
   .pr-meter>span{font-size:10.5px;font-weight:700;white-space:nowrap;min-width:38px;text-align:right}
   .pr-meter>span.pr-amt{font-size:12px;font-weight:600;min-width:68px}
+  .pr-who{display:flex;justify-content:space-between;gap:6px}
+  .pr-cmt{margin-top:4px}
+  .pr-csm{font-size:10.5px}
   .pr-two{display:grid;grid-template-columns:1fr 1fr;gap:18px;break-inside:avoid}
   .pr-two>div{min-width:0}
   .pr-cols{display:flex;break-inside:avoid}
@@ -1010,7 +1013,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.09.2</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.09.3</div>
 </section>
 
 </main>
@@ -3848,19 +3851,31 @@ App.Report=(function(){
     var cardNote=[];
     if(cfm.paid>0.009)cardNote.push('Bu ay kartlara '+_m(cfm.paid)+' ödendi; gider sayılmadı, harcamalar kartla yapıldıkları gün yazıldı.'+(cfm.paidOld>0.009?' Bunun '+_m(cfm.paidOld)+' kadarı uygulamadan önceki kart borcunu kapattı.':''));
     if(Math.abs(cfm.spent)>0.009)cardNote.push('Bu ay kartla harcanan: '+_m(cfm.spent)+' (gidere dahil).');
+    // Her kartta: ayın harcamasını kim yaptı (kişi başı, iade düşülür), limit ve kullanılabilir limit (bugün).
+    // Ortak limitli kartlar yan yana; kullanılabilir tutar gruptaki kartlar için ortaktır
     var cardList=fwd?App.Cards.cards():[];
     if(cardList.length){
-      h+='<div class="pr-sec pr-keep"><div class="pr-h2">Kredi kartları<span class="pr-h2s">bugünkü durum</span></div><table class="pr-tbl pr-cards"><colgroup><col style="width:170px"><col style="width:92px"><col><col style="width:96px"><col style="width:84px"></colgroup><thead><tr><th>Kart</th><th class="pr-r">Borç</th><th>Limit kullanımı</th><th class="pr-r">Son ödeme</th><th class="pr-r">Asgari</th></tr></thead><tbody>';
-      cardList.forEach(function(a){var i=App.Cards.info(a);if(!i)return;
-        var lim=i.limit?(function(){var pc=Math.round(i.used*100),c=i.used>=0.9?'#d03b3b':i.used>=0.7?'#fab219':'#0ca30c';return'<div class="pr-meter"><div class="pr-mt"><i style="width:'+Math.min(100,Math.max(2,pc))+'%;background:'+c+'"></i></div><span class="pr-dim">%'+pc+' · '+(i.avail<0?'aşıldı':_m(i.avail)+' boş')+'</span></div>'})():'<span class="pr-dim">limit girilmemiş</span>';
+      var cInf=cardList.map(function(a){return{a:a,i:App.Cards.info(a)}}).filter(function(x){return x.i}),cOrd=[],cSeen={},cGroups=[],cBlocked=false;
+      cInf.forEach(function(x){if(cSeen[x.a.id])return;var g=cInf.filter(function(y){return!cSeen[y.a.id]&&y.i.rootId===x.i.rootId});g.forEach(function(y){cSeen[y.a.id]=1;cOrd.push(y)});if(g.length>1)cGroups.push(g)});
+      var cardUse={};txns.forEach(function(t){if(t.date>todayIso||isTransfer(t)||!t.accountId)return;var e=flowOf(t).exp;if(!e)return;var k=t.userId&&userMap[t.userId]?t.userId:'__none__',cu=cardUse[t.accountId]=cardUse[t.accountId]||{};cu[k]=(cu[k]||0)+e});
+      var uName=function(k){var u=userMap[k];return u?(u.emoji?u.emoji+' ':'')+u.name:'Belirtilmemiş'};
+      h+='<div class="pr-sec pr-keep"><div class="pr-h2">Kredi kartları<span class="pr-h2s">bugünkü durum</span></div><table class="pr-tbl pr-cards"><colgroup><col style="width:152px"><col><col style="width:80px"><col style="width:80px"><col style="width:100px"><col style="width:92px"><col style="width:76px"></colgroup><thead><tr><th>Kart</th><th>'+MLOC[mi]+' kim harcadı</th><th class="pr-r">Borç</th><th class="pr-r">Limit</th><th class="pr-r">Kullanılabilir</th><th class="pr-r">Son ödeme</th><th class="pr-r">Asgari</th></tr></thead><tbody>';
+      cOrd.forEach(function(x){var a=x.a,i=x.i;if(i.blocked>0.009)cBlocked=true;
+        var cu=cardUse[a.id]||{},usr=Object.keys(cu).map(function(k){return{k:k,v:roundMoney(cu[k])}}).filter(function(u){return u.v>0.009}).sort(function(p,q){return q.v-p.v});
+        var own=a.owner==='personal'&&userMap[a.userId]?esc(uName(a.userId))+'<div class="pr-dim">harcama yok</div>':'<span class="pr-dim">harcama yok</span>';
+        var who=usr.length?usr.map(function(u){return'<div class="pr-who"><span>'+esc(uName(u.k))+'</span><span>'+_m(u.v)+'</span></div>'}).join(''):own;
+        var lim=i.limit?_m(i.limit)+(i.shared.length?'<div class="pr-dim pr-csm">ortak limit</div>':''):'<span class="pr-dim">girilmemiş</span>';
+        var av=i.limit?(function(){var pc=Math.round(i.used*100),c=i.used>=0.9?'#d03b3b':i.used>=0.7?'#fab219':'#0ca30c';return(i.avail<0?'<b class="pr-neg">'+_m(-i.avail)+' aşıldı</b>':'<b>'+_m(i.avail)+'</b>')+'<div class="pr-mt pr-cmt"><i style="width:'+Math.min(100,Math.max(2,pc))+'%;background:'+c+'"></i></div>'})():'<span class="pr-dim">—</span>';
         var due='<span class="pr-dim">—</span>',min='<span class="pr-dim">—</span>';
         if(!i.hasCut){if(i.debt>0.009)due='<span class="pr-dim">kesim günü yok</span>'}
         else if(!i.upcoming&&i.stmtLeft>0.009){
           if(i.overdue&&i.minPaid){due=_dS(i.nextDue);min='<span class="pr-good">ödendi</span>'}
           else{due=_dS(i.due)+(i.overdue?' <b class="pr-neg">geçti</b>':'');min=i.minLeft>0.009?_m(i.minLeft):'<span class="pr-good">ödendi</span>'}}
         else if(i.debt>0.009)due=_dS(i.nextDue);
-        h+='<tr><td>💳 '+esc(_acc(a))+'</td><td class="pr-r">'+(i.credit>0.009?'<span class="pr-good">alacak '+_m(i.credit)+'</span>':_m(i.debt))+'</td><td>'+lim+'</td><td class="pr-r">'+due+'</td><td class="pr-r">'+min+'</td></tr>';
+        h+='<tr><td>💳 '+esc(_acc(a)).replace(' …','&nbsp;…')+'</td><td>'+who+'</td><td class="pr-r">'+(i.credit>0.009?'<span class="pr-good">alacak '+_m(i.credit)+'</span>':_m(i.debt))+'</td><td class="pr-r">'+lim+'</td><td class="pr-r">'+av+'</td><td class="pr-r">'+due+'</td><td class="pr-r">'+min+'</td></tr>';
       });
+      if(cInf.some(function(x){return x.i.limit}))cardNote.push('Kullanılabilir: limitten kart borcu'+(cBlocked?' ve ekstreye henüz gelmemiş taksitler':'')+' düşülünce kalan (bugün).');
+      cGroups.forEach(function(g){var n=g.map(function(y){return esc(_acc(y.a))});cardNote.push(n.slice(0,-1).join(', ')+' ve '+n[n.length-1]+' aynı limiti kullanır; kullanılabilir tutar '+(g.length>2?'hepsi':'ikisi')+' için ortaktır, toplanmaz.')});
       h+='</tbody></table>'+(cardNote.length?'<div class="pr-note">'+cardNote.join(' ')+'</div>':'')+'</div>';
     }
 
