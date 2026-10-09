@@ -92,13 +92,13 @@ srv.listen(0, async () => {
       const an = App.Insights.compute('2026-10').prev, rep = App.Report.build('2026-10').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
       document.getElementById('statMonth').value = '2026-09'; App.Charts.refresh();
       return { title, rows, note: /Ay henüz bitmedi: geçen ayın aynı günleriyle \(1–8\) kıyaslandı\. Eylül 2026 tamamında gelir ₺10\.000,00, gider ₺5\.000,00\./.test(note), an: [an.income, an.expense, an.uptoDay],
-        rep: [/1–8 Ekim 2026 1–8 Eylül 2026/.test(rep), /Geçen ayın aynı günlerine göre ₺500,00 daha fazla harcama\./.test(rep), /bu ayın ilk 8 günü/.test(rep)], past: document.getElementById('cmpTitle').textContent };
+        rep: [/Ekim'in ilk 8 gününde ₺10\.000 geldi, ₺1\.500 harcandı; ₺8\.500 kaldı\./.test(rep), /▲ ₺500 fazla \(%50\) geçen ayın aynı günlerine göre/.test(rep), /1–8 Eyl Fark .*Market ₺1\.500 100,0 ₺1\.000 ▲ %50/.test(rep), !/Giyim/.test(rep.slice(rep.indexOf('Kategoriler %'), rep.indexOf('Toplam gider')))], past: document.getElementById('cmpTitle').textContent };
     });
     eq('başlık: 1–8 Ekim ile 1–8 Eylül', r.title, 'Aydan Aya Kıyaslama — 1–8 Ekim 2026 vs 1–8 Eylül 2026');
     eq('gider 1.500 / 1.000 (20 Eylül sayılmaz); planlı 25 Ekim Giyim kategoriye girmez', r.rows.filter(x => /Gider|Market|Giyim/.test(x)), ['💸 Gider | ₺1.500,00 | ₺1.000,00 | ▲ %50', '🛒 Market | ₺1.500,00 | ₺1.000,00 | ▲ %50']);
     eq('altında açıklama ve geçen ayın tamamı', r.note, true);
     eq('Insights önceki ay = aynı günler', r.an, [10000, 1000, 8]);
-    eq('rapor da aynı günlerle', r.rep, [true, true, true]);
+    eq('rapor da aynı günlerle: özet cümlesi, gider farkı (1–8 Eylül), kategori satırı; planlı Giyim kategoriye girmez', r.rep, [true, true, true, true]);
     eq('geçmiş ay seçilince ayların tamamı', r.past, 'Aydan Aya Kıyaslama — Eylül 2026 vs Ağustos 2026');
     await ctx.close();
   }
@@ -147,7 +147,7 @@ srv.listen(0, async () => {
       const rep = App.Report.build('2026-10').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
       App.UI.nav('islemler'); const lbl = [...document.querySelectorAll('#txnList .ti')].map(e => e.textContent.replace(/\s+/g, ' ')).find(x => /LC Waikiki/.test(x) && /İade/.test(x)) || '';
       const so = o => Object.keys(o).sort().map(k => [k, o[k]]);
-      return { refs, cats: so(n.cats), applied: [n.refunds, n.applied, n.rest, so(n.appliedBy)], exp: mt.expense, g, note, rep: [/Giyim .{0,40}₺400,00 iade düşüldü/.test(rep), /İade \(giderden düşüldü\) .{0,160}-₺300,00/.test(rep)], lbl: /İade \(Giyim\)/.test(lbl) };
+      return { refs, cats: so(n.cats), applied: [n.refunds, n.applied, n.rest, so(n.appliedBy)], exp: mt.expense, g, note, rep: [/₺500 iade kendi kategorisinden düşüldü \(Giyim ₺400, Eğlence ₺100\)\./.test(rep), /Kategorisiz iade −₺300 /.test(rep), /Giyim ₺600 /.test(rep)], lbl: /İade \(Giyim\)/.test(lbl) };
     });
     eq('iadeler: 400 → Giyim (tahmin), 250 → Eğlence (seçildi), 150 → kategorisiz', r.refs, [[400, 'Giyim'], [250, 'Eğlence'], [150, '']]);
     eq('kategoriler: Giyim 600, Eğlence 0 (100 harcama; artan 150 toplamdan), Market 300', r.cats, [['Giyim', 600], ['Market', 300]]);
@@ -155,7 +155,7 @@ srv.listen(0, async () => {
     eq('toplam gider 1.400 − 800 = 600', r.exp, 600);
     eq('Giyim bütçesi: 600 / 2.000', flat(r.g), '₺600,00 / ₺2.000,00');
     eq('İstatistikler notu', /₺800,00 iade giderden düşüldü: ₺500,00 kendi kategorisinden, ₺300,00 yalnız toplamdan\./.test(r.note), true);
-    eq('rapor: Giyim satırında iade, kalan 300 ayrı satır', r.rep, [true, true]);
+    eq('rapor: iadeler kendi kategorisinden (Giyim 400, Eğlence 100), kalan 300 ayrı satır; Giyim 600', r.rep, [true, true, true]);
     eq('işlem listesinde "İade (Giyim)"', r.lbl, true);
     // Düzenleme: kategorisiz iadeyi Market'e bağla
     const ed = await page.evaluate(() => { const t = S.txns().find(x => x.amount === 150 && x.category === 'İade'); App.Transactions.edit(t.id); const m = [...document.querySelectorAll('.modal-bd.show')].pop(); const sel = m.querySelector('[data-pkey="refCat"]'); const had = !!sel; sel.value = 'Market'; m.querySelector('[data-act="ok"]').click(); return [had, S.txns().find(x => x.id === t.id).refCat, App.Transactions.catTotals('2026-10').Market]; });
