@@ -218,6 +218,26 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
 @media(max-width:768px){.btn-sm,.btn.btn-sm[style]{min-height:36px}.sh-link{padding:10px 6px;margin:-10px -6px}.sh-toggle{min-width:36px;min-height:36px}.nw-mode-toggle .nw-mode{min-height:36px}.rec-filter-btn{min-height:36px}.rate-chip{min-height:36px}.fs,.fi{min-height:40px}.notif-btn{min-height:36px}.toast-box{top:auto;bottom:calc(80px + env(safe-area-inset-bottom));left:12px;right:84px;align-items:stretch}.toast{max-width:none}.fab{display:flex}body[data-page="islemler"] .fab{display:none}}
 .set-card:empty{display:none}
 .lock-screen{position:fixed;inset:0;z-index:2000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}.lock-screen[hidden],#lockReset[hidden]{display:none}.lock-box{width:100%;max-width:320px;text-align:center;display:flex;flex-direction:column;gap:10px}.lock-title{font-size:1.1rem;font-weight:800;margin-bottom:6px}.lock-box input{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:12px;font-size:20px;text-align:center;letter-spacing:.3em;color:var(--txt);width:100%}.lock-msg{font-size:.9rem;color:var(--red);min-height:1em;line-height:1.45}.lock-link{color:var(--txt2);font-size:.86rem;text-decoration:underline;padding:6px}
+#txnCal{display:none}.cal-mode #txnCal{display:block}.cal-mode #txnList,.cal-mode #txnFilterSum,.cal-mode #fMonth,.cal-mode .f-range{display:none}
+.cal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:12px;margin-bottom:12px}
+.cal-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}.cal-title{flex:1;text-align:center;font-size:1.02rem;font-weight:800}.cal-nav{font-size:1.15rem;line-height:1;padding:6px 14px}
+.cal-sum{font-size:.86rem;color:var(--txt2);text-align:center;margin-bottom:10px}.cal-sum b{color:var(--txt)}.cal-sum b.cal-in{color:var(--green)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.cal-wd{font-size:.72rem;font-weight:700;color:var(--txt3);text-align:center;padding-bottom:2px}
+.cal-d{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;min-height:60px;padding:4px 3px 3px 4px;border-radius:9px;background:var(--bg3);border:1px solid var(--border);color:var(--txt);text-align:left;overflow:hidden}
+.cal-pad{min-height:60px}
+.cal-n{font-size:.78rem;font-weight:700;color:var(--txt2);line-height:1.2}
+.cal-v{font-size:clamp(.58rem,2.7vw,.76rem);font-weight:700;line-height:1.2;letter-spacing:-.01em;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-in{color:var(--green)}.cal-plan{color:var(--txt2);font-weight:600}
+.cal-h1{background:rgba(249,115,22,.10)}.cal-h2{background:rgba(249,115,22,.19)}.cal-h3{background:rgba(249,115,22,.30)}.cal-h4{background:rgba(249,115,22,.42)}
+.cal-fut{border:1px dashed var(--txt3)}
+.cal-today{border:2px solid var(--teal)}.cal-today .cal-n{color:var(--teal)}
+.cal-sel{box-shadow:inset 0 0 0 2px var(--txt);border-color:transparent}
+.cal-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.78rem;color:var(--txt2);margin-top:10px}
+.cal-sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:5px;border:1px solid var(--border2)}.cal-sw.cal-fut{border:1px dashed var(--txt3)}
+.cal-note{font-size:.8rem;color:var(--txt2);margin-top:6px;line-height:1.4}
+.cal-day .sh{margin-top:16px;flex-wrap:wrap;gap:4px 10px}.cal-day-sum{font-size:.86rem;color:var(--txt2)}.cal-exp-h{font-size:.86rem;font-weight:700;color:var(--txt2);margin:12px 0 8px}
+@media(min-width:769px){.cal{padding:16px}.cal-grid{gap:5px}.cal-d,.cal-pad{min-height:78px}.cal-d{padding:7px 8px}.cal-v{font-size:.8rem}}
 .f-range{display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--txt2);font-weight:700;flex:1;min-width:150px}.f-range .fs{min-width:0}.filter-sum{font-size:.86rem;color:var(--txt2);margin:-6px 0 10px}
 @media(max-width:768px){.metrics>.mc:last-child:nth-child(odd){grid-column:1/-1;display:flex;align-items:center;gap:12px}.metrics>.mc:last-child:nth-child(odd) .mc-icon{margin-bottom:0}}
 .set-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:12px;margin-bottom:4px}.set-card{display:flex;flex-direction:column;gap:8px;margin-bottom:0}.set-card .btn,.set-card .notif-btn{align-self:flex-start}.set-sub{font-size:.86rem;color:var(--txt2);line-height:1.45}.set-actions{display:flex;gap:8px;flex-wrap:wrap}
@@ -778,6 +798,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="fg c2" id="txnInstRow" style="margin-bottom:11px"><div class="f"><label>Taksit Sayısı</label><input type="number" id="txnInst" placeholder="Tek çekim için boş bırak" min="2" max="36"/></div><div class="f"><label>İlk Taksit Tarihi</label><input type="date" id="txnInstStart"/></div></div>
     <button class="btn btn-primary" onclick="App.Transactions.add()">İşlemi Ekle</button>
   </div>
+  <div class="sub-tabs" role="tablist" aria-label="İşlemleri gösterme biçimi"><button type="button" class="sub-tab active" id="txnViewList" role="tab" aria-selected="true" onclick="App.Transactions.setView('list')">📋 Liste</button><button type="button" class="sub-tab" id="txnViewCal" role="tab" aria-selected="false" onclick="App.Transactions.setView('cal')">📅 Takvim</button></div>
   <div class="filter-row">
     <select class="fs" id="fType" aria-label="Tür filtresi" onchange="App.Transactions.renderList()"><option value="">Tümü</option><option value="income">Gelir</option><option value="expense">Gider</option><option value="transfer">Transfer</option></select>
     <select class="fs" id="fCat" aria-label="Kategori filtresi" onchange="App.Transactions.renderList()"><option value="">Tüm Kategoriler</option></select>
@@ -792,6 +813,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <button class="btn btn-sm btn-ghost" onclick="App.Transactions.clearFilters()">Filtreleri temizle</button>
   </div>
   <div class="filter-sum" id="txnFilterSum"></div>
+  <div class="cal" id="txnCal"></div>
   <div class="txn-list" id="txnList"></div>
 </section>
 
@@ -1014,7 +1036,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.09.4</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.11.1</div>
 </section>
 
 </main>
@@ -2243,20 +2265,71 @@ App.Transactions=(function(){
     var title=t.note&&t.note!==t.category?t.note:t.category,sub=[title!==t.category?esc(catLbl):'',fd(t.date),an?'<span class="ti-acc">'+esc(an)+'</span>':''].filter(Boolean).join(' · '),tags=insTag+stmtTag+srcTag+uTag;
     return'<div class="ti"><div class="cat-ico '+info.c+'">'+info.i+'</div><div class="ti-body"><div class="ti-cat">'+esc(title)+'</div><div class="ti-meta">'+sub+'</div>'+(tags?'<div class="ti-tags">'+tags+'</div>':'')+'</div><div class="ti-right"><div class="ti-amt '+t.type+'">'+sign+fmt(t.amount)+'</div>'+_actions(t,del)+'</div></div>'
   }
-  function renderList(){
-    var tf=document.getElementById('fType').value,cf=document.getElementById('fCat').value,af=document.getElementById('fAcc').value,mf=document.getElementById('fMonth').value,sf=document.getElementById('fSearch').value.toLowerCase();
-    var uf=(document.getElementById('fUser')||{}).value||'';
-    var ff=(document.getElementById('fFrom')||{}).value||'',ft=(document.getElementById('fTo')||{}).value||'';
-    var txns=_entries().filter(function(e){
+  function _filters(){var g=function(id){var el=document.getElementById(id);return el&&el.value||''};return{tf:g('fType'),cf:g('fCat'),af:g('fAcc'),uf:g('fUser'),mf:g('fMonth'),sf:g('fSearch').toLowerCase(),ff:g('fFrom'),ft:g('fTo')}}
+  // noDate: ay ve tarih aralığı süzgeci uygulanmaz (takvimin kendi ayı var)
+  function _matcher(f,noDate){return function(e){
       var t=e.t,trf=isTransfer(t);
-      if(tf==='transfer'){if(!trf)return false}else if(tf&&(trf||t.type!==tf))return false;
-      if(cf&&t.category!==cf)return false;if(af&&t.accountId!==af&&!(e.pair&&e.pair.accountId===af))return false;
-      if(uf==='__shared__'){var acc=t.accountId?App.Accounts.get(t.accountId):null;if(acc&&acc.owner==='personal')return false}
-      else if(uf&&t.userId!==uf)return false;
-      if(mf&&!t.date.startsWith(mf))return false;
-      if(ff&&t.date<ff)return false;if(ft&&t.date>ft)return false;
-      if(sf){var h=(t.category+' '+(t.note||'')+' '+t.amount+' '+String(t.amount).replace('.',',')+(trf?' transfer '+App.Accounts.getName(t.accountId)+' '+(e.pair?App.Accounts.getName(e.pair.accountId):''):'')).toLowerCase();if(h.indexOf(sf)===-1)return false}return true
-    });
+      if(f.tf==='transfer'){if(!trf)return false}else if(f.tf&&(trf||t.type!==f.tf))return false;
+      if(f.cf&&t.category!==f.cf)return false;if(f.af&&t.accountId!==f.af&&!(e.pair&&e.pair.accountId===f.af))return false;
+      if(f.uf==='__shared__'){var acc=t.accountId?App.Accounts.get(t.accountId):null;if(acc&&acc.owner==='personal')return false}
+      else if(f.uf&&t.userId!==f.uf)return false;
+      if(!noDate){if(f.mf&&!t.date.startsWith(f.mf))return false;if(f.ff&&t.date<f.ff)return false;if(f.ft&&t.date>f.ft)return false}
+      if(f.sf){var h=(t.category+' '+(t.note||'')+' '+t.amount+' '+String(t.amount).replace('.',',')+(trf?' transfer '+App.Accounts.getName(t.accountId)+' '+(e.pair?App.Accounts.getName(e.pair.accountId):''):'')).toLowerCase();if(h.indexOf(f.sf)===-1)return false}return true}}
+  // İşlemler: liste ya da takvim (seçim bu cihazda hatırlanır)
+  var _viewMem=null,_calM=null,_calSel;
+  function _view(){if(_viewMem===null){try{_viewMem=localStorage.getItem('ft_txn_view')==='cal'?'cal':'list'}catch(e){_viewMem='list'}}return _viewMem}
+  function setView(v){_viewMem=v==='cal'?'cal':'list';try{localStorage.setItem('ft_txn_view',_viewMem)}catch(e){}
+    if(_viewMem==='cal'){var fm=(document.getElementById('fMonth')||{}).value;if(fm&&fm!==_calM){_calM=fm;_calSel=undefined}}renderList()}
+  function calNav(d){var m=_calM||tm();if(!d){_calM=tm();_calSel=td()}else{var y=+m.slice(0,4),mo=+m.slice(5,7)-1+d,dt=new Date(y,mo,1);_calM=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');_calSel=undefined}renderList()}
+  function calPick(iso){_calSel=_calSel===iso?null:iso;renderList();var p=_calSel&&document.querySelector('#txnCal .cal-day');if(p&&p.scrollIntoView)try{p.scrollIntoView({block:'nearest',behavior:'smooth'})}catch(e){}}
+  // Takvim hücresindeki kısa tutar: 678 · 1.250 · 12,5b (bin) · 1,2mn
+  function _calAmt(v){v=Math.round(Math.abs(v));return v>=1e6?(Math.round(v/1e5)/10).toLocaleString('tr-TR')+'mn':v>=1e4?(v>=1e5?Math.round(v/1e3):Math.round(v/100)/10).toLocaleString('tr-TR')+'b':v.toLocaleString('tr-TR')}
+  var CAL_WD=['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'],CAL_WDL=['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+  function _calItem(x){var c=!!x.card;return'<div class="cash-row"><div class="cash-main" style="min-width:0"><div class="cash-name">'+esc(x.label)+'</div><div class="cash-meta">'+esc(x.src)+(c?' · karta yazılır':'')+'</div></div><div class="cash-amt" style="color:'+(c?'var(--txt2)':x.type==='income'?'var(--green)':'var(--red)')+'">'+(x.type==='income'?'+':'-')+fmt(x.amount)+'</div></div>'}
+  // Ay takvimi: geçmiş günlerde harcanan (renk koyulaştıkça çok) ve gelen; gelecek günlerde beklenen ödeme ve gelir
+  // (planlı/taksit kayıtları, tekrarlayanlar, kart ekstreleri, yıllık fon, borç vadesi). Güne dokununca o günün kayıtları
+  function _renderCal(f){
+    var el=document.getElementById('txnCal');if(!el)return;
+    var today=td(),cur=tm(),m=_calM||cur,y=+m.slice(0,4),mo=+m.slice(5,7),dim=new Date(y,mo,0).getDate(),lead=(new Date(y,mo-1,1).getDay()+6)%7;
+    if(_calSel===undefined)_calSel=m===cur?today:null;
+    var match=_matcher(f,true),days={},mInc=0,mExp=0;
+    function day(d){return days[d]=days[d]||{inc:0,exp:0,pin:0,pout:0,items:[]}}
+    _entries().forEach(function(e){var t=e.t;if(t.date.slice(0,7)!==m||!match(e)||isTransfer(t))return;var d=day(t.date),fl=flowOf(t);
+      if(t.date<=today){d.inc+=fl.inc;d.exp+=fl.exp;mInc+=fl.inc;mExp+=fl.exp}else{d.pin+=fl.inc;d.pout+=fl.exp}});
+    // Tekrarlayan, kart ekstresi gibi kayıt olmayan beklenenler yalnız süzgeçsiz görünümde (kişi/kategori/hesap bilgisi yok)
+    var plain=!f.cf&&!f.af&&!f.uf&&!f.sf&&f.tf!=='transfer',last=m+'-'+String(dim).padStart(2,'0');
+    if(plain&&last>=today){var span=Math.round((new Date(last+'T12:00:00')-new Date(today+'T12:00:00'))/864e5);
+      App.Cashflow.items(span).forEach(function(x){if(x.date.slice(0,7)!==m||x.src==='Taksit'||x.src==='Planlı'||(f.tf&&x.type!==f.tf))return;var d=day(x.date);d.items.push(x);if(x.date<=today)return;if(x.type==='income')d.pin+=x.amount;else d.pout+=x.amount})}
+    var mx=0;Object.keys(days).forEach(function(k){if(k<=today&&days[k].exp>mx)mx=days[k].exp});
+    var h='<div class="cal-head"><button type="button" class="btn-del cal-nav" aria-label="Önceki ay" onclick="App.Transactions.calNav(-1)">‹</button><div class="cal-title">'+MF[mo-1]+' '+y+'</div><button type="button" class="btn-del cal-nav" aria-label="Sonraki ay" onclick="App.Transactions.calNav(1)">›</button>'+(m!==cur?'<button type="button" class="btn btn-sm btn-ghost" onclick="App.Transactions.calNav(0)">Bugün</button>':'')+'</div>';
+    h+='<div class="cal-sum">'+(m>cur?'Bu ay henüz başlamadı':(m===cur?'Bugüne kadar':'Ay boyunca')+' gelir <b class="cal-in">'+fmt(mInc)+'</b> · gider <b>'+fmt(mExp)+'</b>')+'</div>';
+    h+='<div class="cal-grid">'+CAL_WD.map(function(w){return'<div class="cal-wd" aria-hidden="true">'+w+'</div>'}).join('');
+    for(var i=0;i<lead;i++)h+='<div class="cal-pad" aria-hidden="true"></div>';
+    for(var dd=1;dd<=dim;dd++){var iso=m+'-'+String(dd).padStart(2,'0'),x=days[iso],fut=iso>today,cls='cal-d',a='',b='',lab=dd+' '+MF[mo-1];
+      if(x&&!fut){if(x.exp>0.009){a='<span class="cal-v">'+_calAmt(x.exp)+'</span>';cls+=' cal-h'+Math.min(4,Math.max(1,Math.ceil(x.exp/mx*4)));lab+=', gider '+fmt(x.exp)}
+        // İade (harcamadan fazlası) o gün gelen para gibi yeşil
+        var back=x.inc+(x.exp<-0.009?-x.exp:0);if(back>0.009){b='<span class="cal-v cal-in">+'+_calAmt(back)+'</span>';if(x.inc>0.009)lab+=', gelir '+fmt(x.inc);if(x.exp<-0.009)lab+=', iade '+fmt(-x.exp)}}
+      if(x&&fut){if(x.pout>0.009){a='<span class="cal-v cal-plan">'+_calAmt(x.pout)+'</span>';lab+=', beklenen ödeme '+fmt(x.pout)}
+        if(x.pin>0.009){b='<span class="cal-v cal-in">+'+_calAmt(x.pin)+'</span>';lab+=', beklenen gelir '+fmt(x.pin)}if(a||b)cls+=' cal-fut'}
+      if(iso===today){cls+=' cal-today';lab+=', bugün'}if(iso===_calSel)cls+=' cal-sel';
+      h+='<button type="button" class="'+cls+'" data-d="'+iso+'" aria-label="'+escAttr(lab)+'" aria-pressed="'+(iso===_calSel)+'" onclick="App.Transactions.calPick(\''+iso+'\')"><span class="cal-n">'+dd+'</span>'+a+b+'</button>'}
+    h+='</div><div class="cal-legend"><span><i class="cal-sw cal-h3"></i>Harcama (renk koyulaştıkça çok)</span><span><i class="cal-sw cal-fut"></i>Beklenen ödeme</span><span class="cal-in">+ gelir</span><span>Tutarlar ₺ · b: bin</span></div>';
+    if(!plain)h+='<div class="cal-note">Süzgeç seçiliyken yalnız kayıtlı işlemler gösterilir; tekrarlayan ödemeler ve kart ekstreleri gösterilmez.</div>';
+    var sel=_calSel&&_calSel.slice(0,7)===m?_calSel:null;
+    if(sel){var x2=days[sel]||{inc:0,exp:0,items:[]},dt=new Date(sel+'T12:00:00'),list=_entries().filter(function(e){return e.t.date===sel&&match(e)});
+      h+='<div class="cal-day"><div class="sh"><div class="sh-title">'+dt.getDate()+' '+MF[dt.getMonth()]+' '+dt.getFullYear()+' '+CAL_WDL[dt.getDay()]+'</div>'+(sel<=today?'<div class="cal-day-sum">Gider '+fmt(x2.exp)+' · Gelir '+fmt(x2.inc)+'</div>':'')+'</div>'+
+        (list.length?'<div class="txn-list">'+list.map(function(e){return _h(e.t,true,e.pair)}).join('')+'</div>':'')+
+        (x2.items.length?'<div class="cal-exp-h">Beklenenler</div><div class="cash-list">'+x2.items.map(_calItem).join('')+'</div>':'')+
+        (!list.length&&!x2.items.length?'<div class="empty"><div class="empty-t">Bu gün kayıt yok</div></div>':'')+'</div>'}
+    el.innerHTML=h;
+  }
+  function renderList(){
+    var f=_filters(),cal=_view()==='cal',pg=document.getElementById('page-islemler');
+    if(pg)pg.classList.toggle('cal-mode',cal);
+    var vl=document.getElementById('txnViewList'),vc=document.getElementById('txnViewCal');if(vl&&vc){vl.classList.toggle('active',!cal);vc.classList.toggle('active',cal);vl.setAttribute('aria-selected',String(!cal));vc.setAttribute('aria-selected',String(cal))}
+    if(cal){_renderCal(f);return}
+    var tf=f.tf,cf=f.cf,af=f.af,uf=f.uf,mf=f.mf,sf=f.sf,ff=f.ff,ft=f.ft;
+    var txns=_entries().filter(_matcher(f));
     var el=document.getElementById('txnList'),sum=document.getElementById('txnFilterSum');
     // Filtre etkinse süzülen işlemlerin gelir/gider toplamı (transferler hariç)
     if(sum){var active=tf||cf||af||uf||mf||sf||ff||ft,inc=0,exp=0;if(active)txns.forEach(function(e){if(isTransfer(e.t))return;var f=flowOf(e.t);inc+=f.inc;exp+=f.exp});sum.textContent=active?txns.length+' kayıt · Gelir '+fmt(inc)+' · Gider '+fmt(exp)+' · Net '+fmt(inc-exp):''}
@@ -2330,7 +2403,7 @@ App.Transactions=(function(){
     };
     reader.readAsText(file,'utf-8');
   }
-  return{add,addPlan,edit,remove,purge,restore,clearFilters,createTransfer,addInternal,addExpense,patch,reconcileInstallments,monthTotals,catTotals,catNet,moneyFlow,orphanTransfers,guessRefCat,last6,allTimeTotals,renderSummaryMetrics,renderList,renderRecent,exportCSV,importCSV,importCSVFile,statementPeriod}
+  return{add,addPlan,edit,remove,purge,restore,clearFilters,createTransfer,addInternal,addExpense,patch,reconcileInstallments,monthTotals,catTotals,catNet,moneyFlow,orphanTransfers,guessRefCat,last6,allTimeTotals,renderSummaryMetrics,renderList,renderRecent,exportCSV,importCSV,importCSVFile,statementPeriod,setView,calNav,calPick}
 })();
 
 App.Recurring=(function(){
