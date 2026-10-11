@@ -345,7 +345,7 @@ async function runAudit3b() {
   eq('own CSV export is recognised by Ekstre Yükle', await p.evaluate(function() { return [...document.querySelectorAll('.app-dialog-holder .modal-title')].pop().textContent; }), 'CSV İçe Aktar');
   await p.click('.app-dialog-holder [data-act="ok"]');
   eq('re-importing own export adds no duplicates', await p.evaluate(function() { return S.txns().length; }), 2);
-  eq('export uses ; and decimal comma', exported.split('\r\n')[0].replace('﻿', '') + ' | ' + /;"1234,56";/.test(exported), 'Tarih;Tür;Kategori;Tutar;Hesap;Üye;Not | true');
+  eq('export uses ; and decimal comma', exported.split('\r\n')[0].replace('﻿', '') + ' | ' + /;"1234,56";/.test(exported), 'Tarih;Tür;Kategori;Tutar;Hesap;Üye;Not;Etiketler | true');
   await r.ctx.close();
 }
 
