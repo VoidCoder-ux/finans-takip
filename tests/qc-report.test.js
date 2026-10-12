@@ -134,7 +134,7 @@ srv.listen(0, async () => {
       ['10 Mart Çarşamba'], ['A101', 'Market', 'Kart', '🙋 Deniz', '−₺800'],
       ['5 Mart Cuma'], ['Migros', 'Market', 'Kart', '🙋 Deniz', '−₺1.200'],
       ['1 Mart Pazartesi'], ['Maaş · SMS\'ten', 'Maaş', 'Vadesiz', '💑 Ece', '+₺30.000']]]);
-    eq('okuma rehberi: yalnız raporda geçen kavramlar ("Gelir − gider" elde kalan para değildir)', r.guide, ['Gelir − gider:', 'Gelir:', 'Gider:', 'Kart borcu ödemesi:', 'İade:', 'Karta yazılır:', 'Tahmini:', 'Planlı:']);
+    eq('okuma rehberi: yalnız raporda geçen kavramlar ("Gelir − gider" elde kalan para değildir)', r.guide, ['Gelir − gider:', 'Gelir:', 'Gider:', 'Kart borcu ödemesi:', 'İade:', 'Karta yazılır:', 'Tahmini:', 'Gelirin bölünüşü:', 'Planlı:']);
     eq('işlemsiz rapor: ek yok', await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2027-03', { txns: false }); return [!!d.querySelector('.pr-txns'), /Ek: /.test(d.textContent), !!d.querySelector('.pr-guide')]; }), [false, false, true]);
     // Hizalama: sağa yaslı başlığın yazısı, sütundaki tutarların yazısıyla aynı sağ kenarda (yazdırma görünümü)
     await page.emulateMedia({ media: 'print' });
@@ -244,7 +244,7 @@ srv.listen(0, async () => {
     const r = await page.evaluate(() => {
       const t = S.txns(); for (let i = 0; i < 160; i++) t.push({ id: 'k' + i, type: 'expense', amount: 10 + i, category: ['Market', 'Yiyecek', 'Ulaşım', 'Eğlence', 'Sağlık', 'Faturalar', 'Eğitim', 'Diğer'][i % 8], date: '2027-03-' + String(1 + i % 20).padStart(2, '0'), note: 'Kurmaca işyeri ' + i, accountId: 'b', userId: i % 2 ? 'u_a' : 'u_b', ts: 1000 + i, balanceApplied: true });
       S.saveTxns(t); S.load();
-      const L = App.Report._dbg.layout('2027-03', { txns: true }), P = App.Report._dbg.pages(L), ch = 1123 - 2 * 38, b = L.breaks[0], pb = P.find(p => p.start <= b && b <= p.end + 1);
+      const L = App.Report._dbg.layout('2027-03', { txns: true }), P = App.Report._dbg.pages(L), ch = 1123 - 2 * 38, b = L.breaks[0], pb = P.find(p => p.start <= b + 0.5 && b < p.end - 0.5);   // ekin başladığı sayfa (sınırdaysa sonraki)
       return { pages: P.length, cut: L.ops.filter(o => o.k === 't' && !P.some(p => o.top >= p.start - 1 && o.bot <= p.end + 1)).map(o => o.s), heads: P.filter(p => p.table).length,
         tall: P.filter(p => p.end - p.start + (p.table ? p.table.hH : 0) > ch + 1).length, ek: Math.abs(pb.start - b) < 1 || b - pb.start < ch * 0.35, fold: (() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2027-03'); return [...d.querySelectorAll('.pr-cats tbody tr')].map(x => x.cells[0].textContent.trim()).filter(x => /^Diğer \d+ kalem$/.test(x)); })() };
     });
