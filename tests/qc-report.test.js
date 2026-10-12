@@ -134,7 +134,7 @@ srv.listen(0, async () => {
       ['10 Mart Çarşamba'], ['A101', 'Market', 'Kart', '🙋 Deniz', '−₺800'],
       ['5 Mart Cuma'], ['Migros', 'Market', 'Kart', '🙋 Deniz', '−₺1.200'],
       ['1 Mart Pazartesi'], ['Maaş · SMS\'ten', 'Maaş', 'Vadesiz', '💑 Ece', '+₺30.000']]]);
-    eq('okuma rehberi: yalnız raporda geçen kavramlar ("Gelir − gider" elde kalan para değildir)', r.guide, ['Gelir − gider:', 'Gelir:', 'Gider:', 'Kart borcu ödemesi:', 'İade:', 'Karta yazılır:', 'Tahmini:', 'Gelirin bölünüşü:', 'Planlı:']);
+    eq('okuma rehberi: yalnız raporda geçen kavramlar ("Gelir − gider" elde kalan para değildir)', r.guide, ['Gelir − gider:', 'Gelir:', 'Gider:', 'Kart borcu ödemesi:', 'İade:', 'Karta yazılır:', 'Tahmini:', 'Finans sağlığı:', 'Gelirin bölünüşü:', 'Planlı:']);
     eq('işlemsiz rapor: ek yok', await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2027-03', { txns: false }); return [!!d.querySelector('.pr-txns'), /Ek: /.test(d.textContent), !!d.querySelector('.pr-guide')]; }), [false, false, true]);
     // Hizalama: sağa yaslı başlığın yazısı, sütundaki tutarların yazısıyla aynı sağ kenarda (yazdırma görünümü)
     await page.emulateMedia({ media: 'print' });
@@ -178,7 +178,8 @@ srv.listen(0, async () => {
     await waitReady(page);
     await page.evaluate(() => document.getElementById('rapGo').click()); await page.waitForFunction(() => window.__log.saved.length > 0, null, { timeout: 10000 });
     const sv2 = await fileBytes(page, 'window.__log.saved[0]');
-    eq('işlemsiz PDF daha kısa (ek yok)', (await readPdf(ctx, sv2.bytes))[0] < info[0], true);
+    // Ek az satırlıysa son sayfanın boş kısmına sığabilir: sayfa sayısı artmaz, içerik kısalır
+    eq('işlemsiz PDF daha kısa (ek yok)', [(await readPdf(ctx, sv2.bytes))[0] <= info[0], await page.evaluate(() => App.Report._dbg.layout('2027-03', { txns: false }).height < App.Report._dbg.layout('2027-03', { txns: true }).height - 50)], [true, true]);
     await page.evaluate(() => App.Report.open('2027-03'));
     eq('seçim hatırlanır (bu cihazda)', await page.evaluate(() => [localStorage.getItem('ft_rep_txns'), document.getElementById('rapTxns').checked]), ['0', false]);
     await page.evaluate(() => App.Report.print()); await page.waitForTimeout(300);
