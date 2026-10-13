@@ -430,6 +430,13 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
 .yr-cats{margin-top:12px}.yr-cat{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:7px 0;border-top:1px solid var(--border)}.yr-cat:first-child{border-top:0}
 .yr-cat b{font-weight:700;overflow-wrap:anywhere}.yr-cat span{text-align:right;font-weight:800;white-space:nowrap}.yr-cat small{grid-column:1/-1;font-size:.82rem;color:var(--txt2)}
 @media(max-width:600px){.yr-kpis{grid-template-columns:1fr 1fr}}
+.goal-own{font-size:.82rem;font-weight:700;color:var(--txt2);margin-top:2px}
+.kid-card{padding:16px}.kid-head{display:flex;align-items:center;gap:12px;margin-bottom:6px}.kid-emoji{font-size:2rem;line-height:1}.kid-who{min-width:0}.kid-name{font-size:1.05rem;font-weight:800;overflow-wrap:anywhere}.kid-sub{font-size:.86rem;color:var(--txt2);margin-top:2px}
+.kid-sec{border-top:1px solid var(--border);padding-top:10px;margin-top:10px}.kid-h{font-size:.9rem;font-weight:800;margin-bottom:6px}.kid-line{font-size:.88rem;line-height:1.5;color:var(--txt);overflow-wrap:anywhere}.kid-line.muted{color:var(--txt2)}.kid-line.warn{color:var(--yellow)}
+.kid-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.kid-acts .btn{min-height:40px}
+.kid-cats{display:grid;grid-template-columns:minmax(0,1fr) 26% auto;align-items:center;gap:8px 10px;font-size:.88rem;margin:2px 0 6px}.kid-cat{display:contents}.kc-name{overflow-wrap:anywhere}.kc-bar{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden}.kc-bar i{display:block;height:100%;background:var(--teal);border-radius:4px}.kc-amt{font-weight:700;text-align:right;white-space:nowrap}
+.kid-goal{padding:6px 0}.kg-top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.88rem;margin-bottom:5px}.kg-name{font-weight:700;overflow-wrap:anywhere;min-width:0}.kg-amt{color:var(--txt2);white-space:nowrap}.kg-foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-size:.84rem;color:var(--txt2);margin-top:5px}
+.kid-hint{margin:2px 0 16px}
 .goal-due{font-size:.82rem;color:var(--txt2);margin-top:8px}.goal-eta{font-size:.86rem;color:var(--txt2);margin-top:4px;line-height:1.45}.goal-eta.good{color:var(--green)}.goal-eta.warn{color:var(--yellow)}.goal-eta.bad{color:var(--red)}
 .goal-plan{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:12px 16px;margin-bottom:12px;font-size:.92rem}.goal-plan span{font-size:.86rem;color:var(--txt2)}
 .loan-grid-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:12px}
@@ -849,6 +856,8 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
   </div>
   <div class="sh"><div class="sh-title">Aile Üyeleri</div></div>
   <div id="familyMembers"></div>
+  <div class="sh"><div class="sh-title">👧 Çocuklar</div></div>
+  <div id="kidsPanel"></div>
   <div class="card dashed">
     <div class="sh-title" style="margin-bottom:14px">Yeni Üye Ekle</div>
     <div class="fg c3">
@@ -856,6 +865,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
       <div class="f"><label>Emoji</label><input type="text" id="userEmoji" placeholder="🙋" maxlength="16"/></div>
       <div class="f"><label>Renk</label><input type="color" id="userColor" value="#3b82f6"/></div>
     </div>
+    <label class="sub-check" style="margin:0 0 12px"><input type="checkbox" id="userKid"/> <span>👧 Çocuk (harçlık, kumbara ve yıllık gider takibi)</span></label>
     <button class="btn btn-primary" onclick="App.Users.add()">Üye Ekle</button>
   </div>
   <div class="sh"><div class="sh-title">Cüzdan Özeti</div></div>
@@ -1091,6 +1101,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     </div>
     <div class="fg c3" style="margin-bottom:11px"><div class="f"><label for="gDue">Hedef Tarihi (isteğe bağlı)</label><input type="month" id="gDue"/></div><div class="f" style="grid-column:span 2;align-self:end"><div class="set-sub">Tarih verirseniz her ay ne kadar ayırmanız gerektiği ve hedefin yetişip yetişmeyeceği hesaplanır.</div></div></div>
     <div class="fg c3" style="margin-bottom:11px"><div class="f"><label>Birikim Hesabı</label><select id="gAccount"></select></div><div class="f"><label>Katkı Türü</label><select id="gTxnMode" onchange="App.Goals.onModeChange()"><option value="none">Sadece hedefe yaz</option><option value="expense">Birikim hesabından gider olarak düş</option><option value="transfer">Kaynak hesaptan birikim hesabına transfer</option></select></div><div class="f" id="gSourceWrap" style="display:none"><label>Kaynak Hesap</label><select id="gSource"></select></div></div>
+    <div class="fg c3" id="gOwnerRow" style="display:none;margin-bottom:11px"><div class="f"><label for="gOwner">Kimin Hedefi</label><select id="gOwner"></select></div><div class="f" style="grid-column:span 2;align-self:end"><div class="set-sub">Çocuğun kumbarası Aile › Çocuklar'da da görünür.</div></div></div>
     <button class="btn btn-primary" onclick="App.Goals.add()">Hedef Ekle</button>
   </div>
   <div id="goalsPlan"></div>
@@ -1153,7 +1164,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.12.5</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.13.1</div>
 </section>
 
 </main>
@@ -1351,12 +1362,16 @@ var S=(function(){
     _s.portfolioTargets=obj(_s.portfolioTargets);
     var seenCat={Transfer:1};BASE_EC.concat(BASE_IC).forEach(function(c){seenCat[c]=1});
     _s.customCats=arr(_s.customCats).map(function(c){c=obj(c);return{name:String(c.name||'').trim().slice(0,40),emoji:firstEmoji(c.emoji,'🏷️'),type:c.type==='income'?'income':'expense'}}).filter(function(c){if(!c.name||seenCat[c.name])return false;seenCat[c.name]=1;return true});
-    _s.users=normalizeList(_s.users,'pf_s.users',function(u,i){return{id:cleanStoredId(u.id,'u'),name:String(u.name||('Üye '+(i+1))).slice(0,80),emoji:firstEmoji(u.emoji,'🙋'),color:safeColor(u.color)}} ,invalid);
+    // Çocuk üyede harçlık: tutar, sıklık (hafta/ay), ilk harçlık günü (from), kaynak hesap, işlenmiş son gün (done)
+    function cleanAllowance(a){a=obj(a);var amt=Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(a.amount,0))));if(!(amt>0)||!validDate(a.from))return undefined;
+      return{amount:amt,period:a.period==='month'?'month':'week',from:a.from,accountId:cleanStoredRef(a.accountId),done:validDate(a.done)?a.done:''}}
+    _s.users=normalizeList(_s.users,'pf_s.users',function(u,i){var o={id:cleanStoredId(u.id,'u'),name:String(u.name||('Üye '+(i+1))).slice(0,80),emoji:firstEmoji(u.emoji,'🙋'),color:safeColor(u.color)};
+      if(u.kid===true){o.kid=true;var al=cleanAllowance(u.allowance);if(al)o.allowance=al}return o} ,invalid);
     if(!_s.users.length)_s.users=[{id:'u_self',name:'Ben',emoji:'🙋',color:'#14b8a6'},{id:'u_partner',name:'Eş',emoji:'💑',color:'#ec4899'}];
     if(!_s.activeUser||!_s.users.find(function(u){return u.id===_s.activeUser}))_s.activeUser=_s.users[0].id;
     _a=normalizeList(_a,'pf_a',function(a){var type=AM[a.type]?a.type:'cash';var owner=a.owner==='personal'?'personal':'shared';var existingOpBal=typeof a.openingBalance==='number'?roundMoney(a.openingBalance):null;if(existingOpBal===null)legacyOpening=true;var o={id:cleanStoredId(a.id,'a'),name:String(a.name||'Hesap').slice(0,120),type:type,owner:owner,userId:owner==='personal'?cleanStoredRef(a.userId||_s.activeUser):null,statementDay:a.statementDay>=1&&a.statementDay<=31?parseInt(a.statementDay):null,balance:Math.max(-MAX_MONEY,Math.min(MAX_MONEY,roundMoney(toNum(a.balance,0)))),openingBalance:existingOpBal,ts:toNum(a.ts,Date.now())},l4=cleanLast4(a.last4);if(l4)o.last4=l4;var lim=roundMoney(toNum(a.limit,0));if(type==='card'&&lim>0&&lim<=MAX_MONEY)o.limit=lim;if(type==='card'&&a.payFrom)o.payFrom=cleanStoredRef(a.payFrom);if(type==='card'&&a.limitWith&&a.limitWith!==a.id)o.limitWith=cleanStoredRef(a.limitWith);var dof=parseInt(a.dueOffset);if(type==='card'&&dof>=1&&dof<=40)o.dueOffset=dof;if(type==='card'&&a.cutAnchor&&validDate(a.cutAnchor))o.cutAnchor=a.cutAnchor;if(validDate(a.balAt))o.balAt=a.balAt;return o},invalid);
     _t=normalizeList(_t,'pf_t',function(t){var type=t.type==='expense'?'expense':'income',date=cleanDate(t.date),inst=t.installment?obj(t.installment):null,amt=Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(t.amount,0))));var balApplied=typeof t.balanceApplied==='boolean'?t.balanceApplied:true;if(inst){var created=dateFromTs(t.ts);inst.planId=cleanStoredId(inst.planId,'p');inst.index=Math.max(1,parseInt(inst.index)||1);inst.total=Math.max(inst.index,parseInt(inst.total)||inst.index);inst.totalAmount=Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(inst.totalAmount,amt))));inst.name=String(inst.name||t.category||'Taksit').slice(0,120);inst.startDate=cleanDate(inst.startDate,date);if(typeof inst.balanceApplied!=='boolean')inst.balanceApplied=date<=created;balApplied=inst.balanceApplied}var o={id:cleanStoredId(t.id,'t'),type:type,amount:amt,category:String(t.category||'Diğer').slice(0,80),date:date,note:String(t.note||'').slice(0,500),accountId:cleanStoredRef(t.accountId),userId:ownerRef(t),recurringId:cleanStoredRef(t.recurringId),transferId:cleanStoredRef(t.transferId),ts:toNum(t.ts,Date.now()),balanceApplied:balApplied,installment:inst};if(t.src==='sms'||t.src==='import')o.src=t.src;if(o.type==='income'&&o.category==='Diğer'&&o.src==='sms'&&/^İade(:|$)/.test(o.note))o.category='İade';if(t.src==='sms'&&(t.via==='email'||t.via==='push'))o.via=t.via;if(t.preOpen===true)o.preOpen=true;if(o.type==='income'&&o.category==='İade'&&typeof t.refCat==='string'&&t.refCat.trim()&&t.refCat.trim()!=='İade')o.refCat=t.refCat.trim().slice(0,80);if(t.tags){var tg=cleanTags(t.tags);if(tg.length)o.tags=tg}return o},invalid);
-    _g=normalizeList(_g,'pf_g',function(g){return{id:cleanStoredId(g.id,'g'),name:String(g.name||'Hedef').slice(0,120),target:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(g.target,0)))),emoji:firstEmoji(g.emoji,'🎯'),accountId:cleanStoredRef(g.accountId),sourceAccountId:cleanStoredRef(g.sourceAccountId),txnMode:(g.txnMode==='expense'||g.txnMode==='transfer')?g.txnMode:'none',contributions:normalizeList(g.contributions,'goal.contributions',function(c){return{id:cleanStoredId(c.id,'c'),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(c.amount,0)))),date:cleanDate(c.date),note:String(c.note||'').slice(0,300),accountId:cleanStoredRef(c.accountId),txnId:cleanStoredRef(c.txnId),transferId:cleanStoredRef(c.transferId)}},invalid),done:g.done||null,emergency:!!g.emergency,monthsCovered:toNum(g.monthsCovered,0),baseAvg:toNum(g.baseAvg,0),ts:toNum(g.ts,Date.now()),due:validMonth(g.due)?g.due:undefined}},invalid);
+    _g=normalizeList(_g,'pf_g',function(g){return{id:cleanStoredId(g.id,'g'),name:String(g.name||'Hedef').slice(0,120),target:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(g.target,0)))),emoji:firstEmoji(g.emoji,'🎯'),accountId:cleanStoredRef(g.accountId),sourceAccountId:cleanStoredRef(g.sourceAccountId),txnMode:(g.txnMode==='expense'||g.txnMode==='transfer')?g.txnMode:'none',contributions:normalizeList(g.contributions,'goal.contributions',function(c){return{id:cleanStoredId(c.id,'c'),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(c.amount,0)))),date:cleanDate(c.date),note:String(c.note||'').slice(0,300),accountId:cleanStoredRef(c.accountId),txnId:cleanStoredRef(c.txnId),transferId:cleanStoredRef(c.transferId)}},invalid),done:g.done||null,emergency:!!g.emergency,monthsCovered:toNum(g.monthsCovered,0),baseAvg:toNum(g.baseAvg,0),ts:toNum(g.ts,Date.now()),due:validMonth(g.due)?g.due:undefined,userId:cleanStoredRef(g.userId)||undefined}},invalid);
     _r=normalizeList(_r,'pf_r',function(r){return{id:cleanStoredId(r.id,'r'),type:r.type==='income'?'income':'expense',amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(r.amount,0)))),category:String(r.category||'Diğer').slice(0,80),day:Math.min(31,Math.max(1,parseInt(r.day)||1)),note:String(r.note||'').slice(0,300),accountId:cleanStoredRef(r.accountId),userId:ownerRef(r),isSubscription:!!r.isSubscription,active:r.active!==false,autoLog:!!r.autoLog,autoFrom:validMonth(r.autoFrom)?r.autoFrom:'',autoDone:validMonth(r.autoDone)?r.autoDone:'',ts:toNum(r.ts,Date.now())}},invalid);
     _d=normalizeList(_d,'pf_d',function(d){return{id:cleanStoredId(d.id,'d'),direction:d.direction==='borrowed'?'borrowed':'lent',person:String(d.person||'Kişi').slice(0,120),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(d.amount,0)))),date:cleanDate(d.date),hasDue:d.hasDue===true&&validDate(d.dueDate),dueDate:d.hasDue===true&&validDate(d.dueDate)?d.dueDate:'',note:String(d.note||'').slice(0,300),accountId:cleanStoredRef(d.accountId),txnId:cleanStoredRef(d.txnId),payments:normalizeList(d.payments,'debt.payments',function(p){return{id:cleanStoredId(p.id,'p'),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(p.amount,0)))),date:cleanDate(p.date),txnId:cleanStoredRef(p.txnId)}},invalid),settled:!!d.settled,ts:toNum(d.ts,Date.now())}},invalid);
     _f=normalizeList(_f,'pf_f',function(f){return{id:cleanStoredId(f.id,'yf'),name:String(f.name||'Yıllık gider').slice(0,120),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(f.amount,0)))),dueMonth:Math.min(12,Math.max(1,parseInt(f.dueMonth)||12)),contributed:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(f.contributed,0)))),paidYear:Math.max(0,parseInt(f.paidYear)||0),ts:toNum(f.ts,Date.now())}},invalid);
@@ -1524,6 +1539,7 @@ App.Cashflow=(function(){
     S.recurring().forEach(function(r){if(r.active===false)return;for(var i=0;i<3;i++){var tmn=curM+i,y=curY+Math.floor(tmn/12),m=((tmn%12)+12)%12,last=new Date(y,m+1,0).getDate(),d=y+'-'+String(m+1).padStart(2,'0')+'-'+String(Math.min(r.day,last)).padStart(2,'0');if(logged[r.id+'|'+d.substring(0,7)])continue;add(d,r.note||r.category,r.amount,r.type,r.isSubscription?'Abonelik':'Tekrarlayan',r.accountId)}});
     S.txns().forEach(function(t){if(!isTransfer(t)&&t.date>=today&&!isBalanceApplied(t,today))add(t.date,t.installment?(t.installment.name||t.category):t.category,t.amount,t.type,t.installment?'Taksit':'Planlı',t.accountId)});
     S.fund().forEach(function(f){var nd=App.YearlyFund.nextDue(f);add(nd.date,f.name,f.amount,'expense',nd.overdue?'Yıllık fon (gecikmiş)':'Yıllık fon')});
+    if(App.Kids)App.Kids.upcoming(days).forEach(function(x){add(x.date,x.label,x.amount,'expense','Harçlık',x.accountId)});
     if(App.Loans)App.Loans.upcoming(days).forEach(function(x){if(out.some(function(o){return o.type==='expense'&&(o.src==='Tekrarlayan'||o.src==='Planlı')&&o.date.slice(0,7)===x.date.slice(0,7)&&Math.abs(o.amount-x.amount)<=Math.max(1,x.amount*0.01)}))return;add(x.date,x.label,x.amount,'expense','Kredi taksidi',x.accountId)});
     S.debts().forEach(function(d){if(d.settled||!d.dueDate)return;var paid=(d.payments||[]).reduce(function(s,p){return s+p.amount},0),rem=Math.max(d.amount-paid,0),late=d.dueDate<today;if(rem>0.005)add(late?today:d.dueDate,d.person,rem,d.direction==='lent'?'income':'expense',(d.direction==='lent'?'Alacak':'Borç')+(late?' (gecikmiş)':''))});
     // Kartın bugünkü borcu: kesilmiş ekstrenin kalanı kendi son ödeme gününde, kesimden sonraki harcamalar sonraki ekstrede.
@@ -3422,24 +3438,29 @@ App.Goals=(function(){
     if(txnMode!=='transfer')sourceAccountId='';
     var de=document.getElementById('gDue'),due=de?String(de.value||'').trim():'';if(due&&(!validMonth(due)||due<tm())){App.UI.toast('Hedef tarihi bu ay ya da sonrası olmalı.','err');return}
     var ng={id:gid('g'),name,target,emoji,accountId,sourceAccountId,txnMode,contributions:[],done:null,ts:Date.now()};if(due)ng.due=due;
+    var ow=(document.getElementById('gOwner')||{}).value||'';if(ow&&App.Users.get(ow))ng.userId=ow;
     var goals=S.goals();goals.push(ng);S.saveGoals(goals);
-    document.getElementById('gName').value='';document.getElementById('gTarget').value='';document.getElementById('gEmoji').value='';if(de)de.value='';renderAll();App.UI.toast('Hedef eklendi.');
+    document.getElementById('gName').value='';document.getElementById('gTarget').value='';document.getElementById('gEmoji').value='';if(de)de.value='';var go=document.getElementById('gOwner');if(go)go.value='';renderAll();if(ng.userId&&App.Kids)App.Kids.render();App.UI.toast('Hedef eklendi.');
   }
   function remove(id){
     var g=S.goals().find(function(x){return x.id===id});if(!g)return;
     App.UI.confirmModal({title:'Hedefi Sil',text:'"'+g.name+'" hedefi ve '+(g.contributions||[]).length+' katkı kaydı silinsin mi?\n(Katkılara bağlı işlemler defterde kalır.)',okLabel:'Sil',danger:true},function(){
-      S.saveGoals(S.goals().filter(function(x){return x.id!==id}));renderAll();App.UI.toast('Hedef silindi.');
+      S.saveGoals(S.goals().filter(function(x){return x.id!==id}));renderAll();if(App.Kids)App.Kids.render();App.UI.toast('Hedef silindi.');
     });
   }
   function addContrib(gid_){
     var amt=parseMoney(document.getElementById('ca_'+gid_).value),date=document.getElementById('cd_'+gid_).value,note=document.getElementById('cn_'+gid_).value.trim();
-    if(amt===null){App.UI.toast('Geçerli tutar girin.','err');return}if(!validDate(date)){App.UI.toast('Geçerli tarih seçin.','err');return}
-    var goals=S.goals(),g=goals.find(function(x){return x.id===gid_});if(!g)return;
+    if(contribute(gid_,amt,date,note)){var a=document.getElementById('ca_'+gid_),n=document.getElementById('cn_'+gid_);if(a)a.value='';if(n)n.value=''}
+  }
+  // Katkı kaydı (hedef kartından ve Aile › Çocuklar'daki kumbaradan); başarılıysa true
+  function contribute(gid_,amt,date,note){
+    if(amt===null){App.UI.toast('Geçerli tutar girin.','err');return false}if(!validDate(date)){App.UI.toast('Geçerli tarih seçin.','err');return false}
+    var goals=S.goals(),g=goals.find(function(x){return x.id===gid_});if(!g)return false;
     var txnId='',transferId='',accountId=g.accountId&&App.Accounts.get(g.accountId)?g.accountId:'';
     if(accountId&&g.txnMode==='transfer'){
       // Gerçek transfer: kaynaktan düşer, birikim hesabına girer; gelir/gider toplamlarını şişirmez
       var src=g.sourceAccountId&&App.Accounts.get(g.sourceAccountId)?g.sourceAccountId:(App.Accounts.sharedAccount()||{}).id;
-      if(!src||src===accountId){App.UI.toast('Transfer için birikim hesabından farklı bir kaynak hesap gerekli.','err');return}
+      if(!src||src===accountId){App.UI.toast('Transfer için birikim hesabından farklı bir kaynak hesap gerekli.','err');return false}
       var tr=App.Transactions.createTransfer({from:src,to:accountId,amount:amt,date:date,note:note||('Hedef katkısı: '+g.name),userId:S.settings().activeUser});
       txnId=tr.outId;transferId=tr.transferId;
     }else if(accountId&&g.txnMode==='expense'){
@@ -3451,28 +3472,33 @@ App.Goals=(function(){
     if(txnId){App.Transactions.renderList();App.Transactions.renderRecent();App.Transactions.renderSummaryMetrics();App.Accounts.renderSummary()}
     var total=_total(g);
     if(total>=g.target-0.005&&!g.done){g.done=Date.now();App.UI.toast('"'+g.name+'" hedefine ulaştınız! 🎉')}else App.UI.toast('Katkı eklendi.');
-    S.saveGoals(goals);document.getElementById('ca_'+gid_).value='';document.getElementById('cn_'+gid_).value='';renderAll();
+    S.saveGoals(goals);renderAll();if(App.Kids)App.Kids.render();return true;
   }
   function removeContrib(gid_,cid){
     var goals=S.goals(),g=goals.find(function(x){return x.id===gid_});if(!g)return;
     var cOld=(g.contributions||[]).find(function(c){return c.id===cid});
     if(cOld&&cOld.txnId&&App.Transactions.purge(cOld.txnId)){App.Transactions.renderList();App.Transactions.renderRecent();App.Transactions.renderSummaryMetrics();App.Accounts.renderSummary()}
     g.contributions=g.contributions.filter(function(c){return c.id!==cid});g.done=_total(g)>=g.target-0.005?g.done:null;
-    S.saveGoals(goals);renderAll();App.UI.toast('Katkı silindi.');
+    S.saveGoals(goals);renderAll();if(App.Kids)App.Kids.render();App.UI.toast('Katkı silindi.');
   }
   function edit(id){
     var g=S.goals().find(function(x){return x.id===id});if(!g)return;
-    App.UI.promptModal({title:'Hedefi Düzenle',fields:[{key:'name',label:'Hedef adı',value:g.name},{key:'target',label:'Hedef tutar (₺)',type:'number',value:g.target},{key:'emoji',label:'Emoji',value:g.emoji||'🎯'},{key:'due',label:'Hedef tarihi (isteğe bağlı; boş bırakılabilir)',type:'month',value:g.due||''}]},function(v){
+    App.UI.promptModal({title:'Hedefi Düzenle',fields:[{key:'name',label:'Hedef adı',value:g.name},{key:'target',label:'Hedef tutar (₺)',type:'number',value:g.target},{key:'emoji',label:'Emoji',value:g.emoji||'🎯'},{key:'due',label:'Hedef tarihi (isteğe bağlı; boş bırakılabilir)',type:'month',value:g.due||''}].concat(_ownerOpts(g.userId).length>1?[{key:'owner',label:'Kimin hedefi',type:'select',value:g.userId||'',options:_ownerOpts(g.userId)}]:[])},function(v){
       var name=String(v.name||'').trim().slice(0,120),target=parseMoney(v.target),due=String(v.due||'').trim();
       if(!name){App.UI.toast('Hedef adı girin.','err');return false}if(target===null){App.UI.toast('Geçerli tutar girin.','err');return false}
       // Geçmiş ay yalnız önceden girilmişse kalabilir (tarihi geçmiş hedef)
       if(due&&(!validMonth(due)||(due<tm()&&due!==g.due))){App.UI.toast('Hedef tarihi bu ay ya da sonrası olmalı.','err');return false}
       var goals=S.goals(),x=goals.find(function(y){return y.id===id});if(!x)return;
       x.name=name;x.target=target;x.emoji=firstEmoji(v.emoji,'🎯');if(due)x.due=due;else delete x.due;
+      if(v.owner!==undefined){if(v.owner&&App.Users.get(v.owner))x.userId=v.owner;else delete x.userId}
       var tot=_total(x);x.done=tot>=target-0.005?(x.done||Date.now()):null;
-      S.saveGoals(goals);renderAll();renderEmergencyInfo();App.UI.toast('Hedef güncellendi.');
+      S.saveGoals(goals);renderAll();renderEmergencyInfo();if(App.Kids)App.Kids.render();App.UI.toast('Hedef güncellendi.');
     });
   }
+  // Hedefin sahibi: aile (boş) ya da bir çocuk (kumbara)
+  function _ownerOpts(cur){var o=[{value:'',label:'👨‍👩‍👧 Aile hedefi'}];App.Users.list().forEach(function(u){if(u.kid||u.id===cur)o.push({value:u.id,label:'🐷 Kumbara: '+(u.emoji||'🙋')+' '+u.name})});return o}
+  function _fillOwner(){var row=document.getElementById('gOwnerRow'),el=document.getElementById('gOwner');if(!row||!el)return;var o=_ownerOpts(''),prev=el.value;
+    row.style.display=o.length>1?'':'none';el.innerHTML=o.map(function(x){return'<option value="'+escAttr(x.value)+'">'+esc(x.label)+'</option>'}).join('');el.value=o.some(function(x){return x.value===prev})?prev:''}
   function _mdiff(a,b){var p=a.split('-'),q=b.split('-');return(+q[0]-+p[0])*12+(+q[1]-+p[1])}
   function _ml(m){var p=m.split('-');return MF[+p[1]-1]+' '+p[0]}
   function _dm(ts){var d=new Date(ts);return isFinite(d.getTime())?d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'):''}
@@ -3535,16 +3561,16 @@ App.Goals=(function(){
     el.textContent=base;
   }
   function renderAll(){
-    renderPlan();var goals=S.goals(),el=document.getElementById('goalsGrid');
+    renderPlan();_fillOwner();var goals=S.goals(),el=document.getElementById('goalsGrid');
     if(!goals.length){el.innerHTML='<div style="grid-column:1/-1"><div class="empty"><span class="empty-ico">⭐</span><div class="empty-t">Henüz hedef yok</div></div></div>';return}
     var active=goals.filter(function(g){return!g.done}),done=goals.filter(function(g){return g.done});
     el.innerHTML=[].concat(active,done).map(function(g){
-      var total=_total(g),pct=g.target>0?Math.min((total/g.target)*100,100):0,rem=Math.max(g.target-total,0),isDone=!!g.done,tv=td(),fc=forecast(g),fcc={ok:'good',behind:'warn',late:'bad'}[fc.status]||'';
+      var total=_total(g),pct=g.target>0?Math.min((total/g.target)*100,100):0,rem=Math.max(g.target-total,0),isDone=!!g.done,tv=td(),fc=forecast(g),fcc={ok:'good',behind:'warn',late:'bad'}[fc.status]||'',ow=g.userId?App.Users.get(g.userId):null;
       var ch=g.contributions.length?g.contributions.slice().reverse().map(function(c){return'<div class="contrib-item"><div><span class="ca">+'+fmt(c.amount)+'</span><br/><span class="cd">'+fd(c.date)+(c.note?' · '+esc(c.note):'')+'</span></div><button class="btn-del" onclick="App.Goals.removeContrib(\''+g.id+'\',\''+c.id+'\')">✕</button></div>'}).join(''):'<div style="font-size:.86rem;color:var(--txt3);padding:4px 0">Henüz katkı yok.</div>';
-      return'<div class="goal-card'+(isDone?' done':'')+'"><div class="goal-top"><div><span class="goal-emoji">'+esc(g.emoji||'🎯')+'</span><div class="goal-name">'+esc(g.name)+(isDone?' ✅':'')+'</div><div class="goal-sub">'+fmt(total)+' / '+fmt(g.target)+(isDone?' · Tamamlandı 🎉':' · '+fmt(rem)+' kaldı')+'</div></div><div class="ti-actions"><button class="btn-del" title="Düzenle" aria-label="Hedefi düzenle" onclick="App.Goals.edit(\''+g.id+'\')">✎</button><button class="btn-del" title="Sil" aria-label="Hedefi sil" onclick="App.Goals.remove(\''+g.id+'\')">✕</button></div></div><div class="goal-prog-label"><span class="sv">'+fmtPct(pct)+'</span><span style="color:var(--txt2)">'+fmt(total)+'</span></div><div class="goal-prog-track"><div class="goal-prog-fill" style="width:'+pct+'%"></div></div>'+(fc.due&&fc.status!=='done'?'<div class="goal-due">🗓 Hedef tarihi: '+_ml(fc.due)+(fc.status==='late'?'':' · '+(fc.due===tm()?'bu ay':_mdiff(tm(),fc.due)+' ay kaldı'))+'</div>':'')+(fc.text?'<div class="goal-eta'+(fcc?' '+fcc:'')+'">'+esc(fc.text)+'</div>':'')+'<div class="goal-actions">'+(!isDone?'<button class="btn btn-sm btn-ghost" onclick="App.Goals.togglePanel(\''+g.id+'\')">+ Katkı Ekle</button>':'')+'<button class="btn btn-sm btn-ghost" onclick="App.Goals.togglePanel(\''+g.id+'\')">📋 Geçmiş ('+g.contributions.length+')</button></div><div class="contrib-panel" id="gp_'+g.id+'">'+(!isDone?'<div class="contrib-row"><input type="text" inputmode="decimal" data-money="money" autocomplete="off" id="ca_'+g.id+'" placeholder="Tutar (₺)"/><input type="date" id="cd_'+g.id+'" value="'+tv+'"/><input type="text" id="cn_'+g.id+'" placeholder="Not..."/><button class="btn btn-sm btn-teal" onclick="App.Goals.addContrib(\''+g.id+'\')">Ekle</button></div>':'')+'<div class="contrib-list">'+ch+'</div></div></div>'
+      return'<div class="goal-card'+(isDone?' done':'')+'"><div class="goal-top"><div><span class="goal-emoji">'+esc(g.emoji||'🎯')+'</span><div class="goal-name">'+esc(g.name)+(isDone?' ✅':'')+'</div>'+(ow?'<div class="goal-own">🐷 Kumbara: '+esc(ow.emoji||'🙋')+' '+esc(ow.name)+'</div>':'')+'<div class="goal-sub">'+fmt(total)+' / '+fmt(g.target)+(isDone?' · Tamamlandı 🎉':' · '+fmt(rem)+' kaldı')+'</div></div><div class="ti-actions"><button class="btn-del" title="Düzenle" aria-label="Hedefi düzenle" onclick="App.Goals.edit(\''+g.id+'\')">✎</button><button class="btn-del" title="Sil" aria-label="Hedefi sil" onclick="App.Goals.remove(\''+g.id+'\')">✕</button></div></div><div class="goal-prog-label"><span class="sv">'+fmtPct(pct)+'</span><span style="color:var(--txt2)">'+fmt(total)+'</span></div><div class="goal-prog-track"><div class="goal-prog-fill" style="width:'+pct+'%"></div></div>'+(fc.due&&fc.status!=='done'?'<div class="goal-due">🗓 Hedef tarihi: '+_ml(fc.due)+(fc.status==='late'?'':' · '+(fc.due===tm()?'bu ay':_mdiff(tm(),fc.due)+' ay kaldı'))+'</div>':'')+(fc.text?'<div class="goal-eta'+(fcc?' '+fcc:'')+'">'+esc(fc.text)+'</div>':'')+'<div class="goal-actions">'+(!isDone?'<button class="btn btn-sm btn-ghost" onclick="App.Goals.togglePanel(\''+g.id+'\')">+ Katkı Ekle</button>':'')+'<button class="btn btn-sm btn-ghost" onclick="App.Goals.togglePanel(\''+g.id+'\')">📋 Geçmiş ('+g.contributions.length+')</button></div><div class="contrib-panel" id="gp_'+g.id+'">'+(!isDone?'<div class="contrib-row"><input type="text" inputmode="decimal" data-money="money" autocomplete="off" id="ca_'+g.id+'" placeholder="Tutar (₺)"/><input type="date" id="cd_'+g.id+'" value="'+tv+'"/><input type="text" id="cn_'+g.id+'" placeholder="Not..."/><button class="btn btn-sm btn-teal" onclick="App.Goals.addContrib(\''+g.id+'\')">Ekle</button></div>':'')+'<div class="contrib-list">'+ch+'</div></div></div>'
     }).join('');
   }
-  return{add,edit,remove,addContrib,removeContrib,togglePanel,onModeChange,renderAll,createEmergency,renderEmergencyInfo,avgExpense3mo,refreshDone,forecast,renderPlan}
+  return{add,edit,remove,addContrib,contribute,total:_total,removeContrib,togglePanel,onModeChange,renderAll,createEmergency,renderEmergencyInfo,avgExpense3mo,refreshDone,forecast,renderPlan}
 })();
 
 App.Users=(function(){
@@ -3556,9 +3582,10 @@ App.Users=(function(){
     var emoji=firstEmoji(document.getElementById('userEmoji').value,'🙋');
     var color=safeColor(document.getElementById('userColor').value||'#3b82f6');
     if(!name){App.UI.toast('Ad girin.','err');return}
-    var users=list();users.push({id:gid('u'),name,emoji,color});
+    var kb=document.getElementById('userKid'),nu={id:gid('u'),name,emoji,color};if(kb&&kb.checked)nu.kid=true;
+    var users=list();users.push(nu);
     S.saveSetting('users',users);
-    document.getElementById('userName').value='';document.getElementById('userEmoji').value='';
+    document.getElementById('userName').value='';document.getElementById('userEmoji').value='';if(kb)kb.checked=false;
     App.UI.refreshUserSelects();renderAll();App.UI.toast('Üye eklendi.');
   }
   function edit(id){
@@ -3566,10 +3593,14 @@ App.Users=(function(){
     App.UI.promptModal({title:'Üyeyi Düzenle',fields:[
       {key:'name',label:'Ad',value:u.name},
       {key:'emoji',label:'Emoji',value:u.emoji||'🙋'},
-      {key:'color',label:'Renk',type:'color',value:safeColor(u.color)}
+      {key:'color',label:'Renk',type:'color',value:safeColor(u.color)},
+      {key:'kid',label:'Çocuk mu?',type:'select',value:u.kid?'1':'',options:[{value:'',label:'Hayır'},{value:'1',label:'Evet: harçlık, kumbara, yıllık gider'}]}
     ]},function(v){
       var users=list();var idx=users.findIndex(function(x){return x.id===id});if(idx<0)return;
-      users[idx]={id:id,name:String(v.name||'').trim()||u.name,emoji:firstEmoji(v.emoji,'🙋'),color:safeColor(String(v.color||'').trim())};
+      // Harçlık gibi diğer alanlar korunur; çocuk işareti kalkarsa harçlık da durur (yazılmış harçlıklar kalır)
+      var nu=Object.assign({},users[idx],{name:String(v.name||'').trim()||u.name,emoji:firstEmoji(v.emoji,'🙋'),color:safeColor(String(v.color||'').trim())});
+      if(v.kid==='1')nu.kid=true;else{delete nu.kid;delete nu.allowance}
+      users[idx]=nu;
       S.saveSetting('users',users);App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();renderAll();App.Accounts.renderAll();App.Transactions.renderList();App.Transactions.renderRecent();App.UI.toast('Güncellendi.');
     });
   }
@@ -3583,6 +3614,7 @@ App.Users=(function(){
     var accs=S.accounts();accs.forEach(function(a){if(a.userId===id){a.userId=null;a.owner='shared'}});S.saveAccounts(accs);
     var txns=S.txns();txns.forEach(function(t){if(t.userId===id)t.userId=null});S.saveTxns(txns);
     var recs=S.recurring(),rTouched=false;recs.forEach(function(r){if(r.userId===id){r.userId=null;rTouched=true}});if(rTouched)S.saveRecurring(recs);
+    var gls=S.goals(),gTouched=false;gls.forEach(function(g){if(g.userId===id){delete g.userId;gTouched=true}});if(gTouched)S.saveGoals(gls);
     var newUsers=users.filter(function(u){return u.id!==id});S.saveSetting('users',newUsers);
     if(S.settings().activeUser===id)S.saveSetting('activeUser',newUsers[0].id);
     App.UI.refreshUserSelects();App.UI.syncActiveProfilePill();renderAll();App.Accounts.renderAll();App.Transactions.renderList();App.Transactions.renderRecent();App.Recurring.renderList();App.UI.toast('Üye silindi.');
@@ -3617,10 +3649,11 @@ App.Users=(function(){
     var apc=document.getElementById('activeProfileCard');
     if(apc){var au=active();apc.innerHTML=au?'<div style="display:flex;align-items:center;gap:14px"><div style="font-size:2.5rem">'+esc(au.emoji||'🙋')+'</div><div><div style="font-size:1.15rem;font-weight:800">'+esc(au.name)+'</div><div style="font-size:.86rem;color:var(--txt2);margin-top:2px">Yeni işlemler otomatik bu profile atanır.</div></div></div>':''}
     var fm=document.getElementById('familyMembers');
-    if(fm){fm.innerHTML='<div class="user-grid">'+users.map(function(u){var st=stats(u.id),net=st.income-st.expense;var isA=u.id===act,c=safeColor(u.color);return'<div class="user-card'+(isA?' active':'')+'" style="border-color:'+(isA?'var(--teal)':c+'55')+'"><span class="uc-emoji">'+esc(u.emoji||'🙋')+'</span><div class="uc-name" style="color:'+inkColor(c)+'">'+esc(u.name)+'</div><div class="uc-role">'+(isA?'Aktif Profil':'Üye')+'</div><div class="uc-bal" style="color:'+(net<0?'var(--red)':'var(--green)')+'">'+fmt(net)+'</div><div style="font-size:.82rem;color:var(--txt2);margin-bottom:6px">Bu ay net</div><div class="uc-stats"><div class="uc-stat"><span class="v" style="color:var(--green)">'+fmt(st.income)+'</span><span class="l">Bu ay gelir</span></div><div class="uc-stat"><span class="v" style="color:var(--red)">'+fmt(st.expense)+'</span><span class="l">Bu ay gider</span></div></div><div class="uc-actions"><button class="btn-active '+(isA?'is-active':'')+'" onclick="'+(isA?'':'App.Users.setActive(\''+u.id+'\')')+'">'+(isA?'✓ Aktif':'Aktif yap')+'</button><button class="btn btn-sm btn-ghost" onclick="App.Users.edit(\''+u.id+'\')">Düzenle</button><button class="btn-del" onclick="App.Users.remove(\''+u.id+'\')">Sil</button></div></div>'}).join('')+'</div>'}
+    if(fm){fm.innerHTML='<div class="user-grid">'+users.map(function(u){var st=stats(u.id),net=st.income-st.expense;var isA=u.id===act,c=safeColor(u.color);return'<div class="user-card'+(isA?' active':'')+'" style="border-color:'+(isA?'var(--teal)':c+'55')+'"><span class="uc-emoji">'+esc(u.emoji||'🙋')+'</span><div class="uc-name" style="color:'+inkColor(c)+'">'+esc(u.name)+'</div><div class="uc-role">'+(isA?'Aktif Profil':u.kid?'Çocuk':'Üye')+'</div><div class="uc-bal" style="color:'+(net<0?'var(--red)':'var(--green)')+'">'+fmt(net)+'</div><div style="font-size:.82rem;color:var(--txt2);margin-bottom:6px">Bu ay net</div><div class="uc-stats"><div class="uc-stat"><span class="v" style="color:var(--green)">'+fmt(st.income)+'</span><span class="l">Bu ay gelir</span></div><div class="uc-stat"><span class="v" style="color:var(--red)">'+fmt(st.expense)+'</span><span class="l">Bu ay gider</span></div></div><div class="uc-actions"><button class="btn-active '+(isA?'is-active':'')+'" onclick="'+(isA?'':'App.Users.setActive(\''+u.id+'\')')+'">'+(isA?'✓ Aktif':'Aktif yap')+'</button><button class="btn btn-sm btn-ghost" onclick="App.Users.edit(\''+u.id+'\')">Düzenle</button><button class="btn-del" onclick="App.Users.remove(\''+u.id+'\')">Sil</button></div></div>'}).join('')+'</div>'}
     var ws=document.getElementById('walletSummary');
     // Özet'teki Aile Paneli ile aynı rakamlar: hesaplardaki para ayrı, kart borcu ayrı (karttan düşülmüş tek rakam kafa karıştırıyordu)
     if(ws){var sh=sharedStats();var rows='<div class="wallet-row"><div class="wr-left"><span class="wr-emoji">👨‍👩‍👧</span><div><div class="wr-name">Ortak Cüzdan</div><div class="wr-meta">'+sh.accounts+' hesap · Bu ay '+fmt(sh.income)+' gelir · '+fmt(sh.expense)+' gider'+(sh.cardDebt?' · 💳 kart borcu '+fmt(sh.cardDebt):'')+'</div></div></div><div class="wr-right"><div class="wr-bal '+(sh.cash>=0?'pos':'neg')+'">'+fmt(sh.cash)+'</div><div class="wr-cap">hesaplarda</div></div></div>';rows+=users.map(function(u){var st=stats(u.id),net=st.income-st.expense;return'<div class="wallet-row"><div class="wr-left"><span class="wr-emoji">'+esc(u.emoji||'🙋')+'</span><div><div class="wr-name">'+esc(u.name)+'</div><div class="wr-meta">'+(st.accounts?st.accounts+' kişisel hesap: '+fmt(st.cash)+(st.cardDebt?' · 💳 kart borcu '+fmt(st.cardDebt):'')+' · ':'')+'Bu ay '+fmt(st.income)+' gelir · '+fmt(st.expense)+' gider</div></div></div><div class="wr-right"><div class="wr-bal '+(net>=0?'pos':'neg')+'">'+(net>0?'+':'')+fmt(net)+'</div><div class="wr-cap">bu ay net</div></div></div>'}).join('');ws.innerHTML=rows}
+    if(App.Kids)App.Kids.render();
   }
   function renderFamilyPanel(){
     var el=document.getElementById('ozet-family');if(!el)return;
@@ -3630,6 +3663,151 @@ App.Users=(function(){
     el.innerHTML=cards;
   }
   return{list,active,get,add,edit,remove,setActive,chooseDevice,stats,sharedStats,renderAll,renderFamilyPanel}
+})();
+
+// Çocuklar: harçlık, kumbara (çocuğa ait hedef) ve çocuk başına yıllık gider.
+// Harçlık aileden çıkan giderdir: seçilen nakit/banka hesabından, çocuğun adına (userId), "Harçlık" kategorisinde kendiliğinden yazılır.
+// Kimlik gün başına sabit (al<üye>_<YYYYAAGG>): iki telefon aynı harçlığı yazarsa eşitlemede tek kayıtta birleşir.
+// done: işlenmiş son harçlık günü; yazılan bir harçlık silinirse o gün yeniden yazılmaz. En çok bir yıl geriye yazılır
+App.Kids=(function(){
+  var CAT='Harçlık',WD=['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+  function kids(){return App.Users.list().filter(function(u){return u.kid})}
+  function _iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+  function _d(iso){var p=iso.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+  function _add(iso,n){var x=_d(iso);return _iso(new Date(x.getFullYear(),x.getMonth(),x.getDate()+n))}
+  function _floor(){var x=_d(td());return _iso(new Date(x.getFullYear()-1,x.getMonth(),x.getDate()))}
+  // k. harçlık günü (0: ilk). Aylıkta gün ay sonunu aşarsa ayın son günü (31 → 30 Kasım)
+  function _nth(al,k){var f=_d(al.from);if(al.period!=='month')return _iso(new Date(f.getFullYear(),f.getMonth(),f.getDate()+7*k));
+    var y=f.getFullYear(),m=f.getMonth()+k,last=new Date(y,m+1,0).getDate();return _iso(new Date(y,m,Math.min(f.getDate(),last)))}
+  // from..to (dahil) arasındaki harçlık günleri
+  function dates(al,from,to){var out=[];if(!al||!validDate(al.from)||from>to)return out;var k=0;
+    if(from>al.from){var f=_d(al.from),x=_d(from);k=al.period==='month'?Math.max(0,(x.getFullYear()-f.getFullYear())*12+x.getMonth()-f.getMonth()-1):Math.max(0,Math.floor((x-f)/864e5/7)-1)}
+    for(var n=0;n<800;n++,k++){var d=_nth(al,k);if(d>to)break;if(d>=from)out.push(d)}
+    return out}
+  function _accs(){return S.accounts().filter(function(a){return a.type==='cash'||a.type==='bank'})}
+  function _acc(al){var a=al&&al.accountId?App.Accounts.get(al.accountId):null;return a&&(a.type==='cash'||a.type==='bank')?a:null}
+  function _start(al){var s=al.done&&al.done>=al.from?_add(al.done,1):al.from;return s}
+  function _tid(u,d){return'al'+String(u.id).slice(0,60)+'_'+d.replace(/-/g,'')}
+  function _ensureCat(){if(EC.indexOf(CAT)>=0||IC.indexOf(CAT)>=0)return;var l=(S.settings().customCats||[]).slice();l.push({name:CAT,emoji:'🪙',type:'expense'});S.saveSetting('customCats',l);App.Categories.apply();try{App.UI.initSelects();App.Rules.initSelects()}catch(e){}}
+  // Günü gelmiş, henüz yazılmamış harçlıkları yazar; yazılan sayısını döner
+  function autoRun(){
+    var today=td(),floor=_floor(),users=(S.settings().users||[]).slice(),txns=null,ids={},n=0,changed=false,adj={},shift={};
+    users.forEach(function(u,i){
+      var al=u.kid&&u.allowance,acc=_acc(al);if(!al||!acc)return;
+      var start=_start(al);if(start<floor)start=floor;
+      var ds=dates(al,start,today);if(!ds.length)return;
+      if(!txns){txns=S.txns();txns.forEach(function(t){ids[t.id]=1})}
+      var bs=balanceStart(acc),note=al.period==='month'?'Aylık harçlık':'Haftalık harçlık';
+      ds.forEach(function(d){var id=_tid(u,d);if(!ids[id]){ids[id]=1;
+        // Hesap eklenmeden (ya da bakiyesi elle eşitlenmeden) önceki gün: bakiyeye zaten dahil, güncel bakiye değişmez
+        var pre=!!bs&&d<bs,t={id:id,type:'expense',amount:al.amount,category:CAT,date:d,note:note,accountId:acc.id,userId:u.id,ts:Date.now(),balanceApplied:true};if(pre)t.preOpen=true;
+        txns.unshift(t);n++;if(pre)shift[acc.id]=(shift[acc.id]||0)+al.amount;else adj[acc.id]=(adj[acc.id]||0)-al.amount}});
+      users[i]=Object.assign({},u,{allowance:Object.assign({},al,{done:ds[ds.length-1]})});changed=true;
+    });
+    if(n){_ensureCat();S.saveTxns(txns);Object.keys(shift).forEach(function(k){App.Accounts.shiftOpening(k,shift[k])});Object.keys(adj).forEach(function(k){App.Accounts.adjustBalance(k,adj[k])})}
+    if(changed)S.saveSetting('users',users);
+    return n;
+  }
+  // Nakit akışı için yaklaşan harçlıklar (bugünden itibaren, yazılmamış olanlar)
+  function upcoming(days){
+    var today=td(),end=_add(today,days),out=[];
+    kids().forEach(function(u){var al=u.allowance,acc=_acc(al);if(!al||!acc)return;var st=_start(al);if(st<today)st=today;
+      dates(al,st,end).forEach(function(d){out.push({date:d,label:'🪙 Harçlık: '+u.name,amount:al.amount,accountId:acc.id})})});
+    return out;
+  }
+  function nextDue(al){var st=_start(al),t=td();if(st<t)st=t;return dates(al,st,_add(st,62))[0]||''}
+  // Çocuğun bir yıldaki giderleri (bugüne kadar; upto verilirse o güne kadar). İade, seçilen kategorisinden düşer
+  function yearStats(uid,year,upto){
+    var today=td(),from=year+'-01-01',to=upto||(year+'-12-31'),lim=to<today?to:today,cats={},ref={},first='';
+    S.txns().forEach(function(t){if(t.userId!==uid||isTransfer(t)||t.date<from||t.date>lim)return;
+      if(t.type==='expense'){cats[t.category]=(cats[t.category]||0)+t.amount;if(!first||t.date<first)first=t.date}else if(isRefund(t)&&t.refCat)ref[t.refCat]=(ref[t.refCat]||0)+t.amount});
+    Object.keys(ref).forEach(function(k){if(cats[k])cats[k]=Math.max(0,cats[k]-ref[k])});
+    var list=Object.keys(cats).map(function(k){return{cat:k,amount:roundMoney(cats[k])}}).filter(function(x){return x.amount>0.009}).sort(function(a,b){return b.amount-a.amount});
+    return{total:roundMoney(list.reduce(function(s2,x){return s2+x.amount},0)),cats:list,first:first};
+  }
+  function _when(al){if(al.period==='month'){var dd=+al.from.slice(8);return'her ayın '+dd+'. günü'+(dd>28?' (kısa aylarda son gün)':'')}return'her '+WD[_d(al.from).getDay()]}
+  function _refresh(n){if(n)renderAllViews();else App.Users.renderAll()}
+  function setAllowance(uid){
+    var u=App.Users.get(uid);if(!u||!u.kid)return;var al=u.allowance||{},accs=_accs();
+    if(!accs.length){App.UI.toast('Önce nakit ya da banka hesabı ekleyin (Hesaplar).','err');return}
+    var cur=al.accountId&&accs.some(function(a){return a.id===al.accountId})?al.accountId:(accs.find(function(a){return a.type==='cash'})||accs[0]).id;
+    App.UI.promptModal({title:'🪙 Harçlık: '+u.name,text:'Harçlık, günü gelince seçilen hesaptan "Harçlık" gideri olarak kendiliğinden yazılır. Haftanın ya da ayın günü ilk harçlık gününden alınır.',fields:[
+      {key:'amount',label:'Tutar (₺)',type:'number',value:al.amount||''},
+      {key:'period',label:'Sıklık',type:'select',value:al.period||'week',options:[{value:'week',label:'Haftalık'},{value:'month',label:'Aylık'}]},
+      {key:'from',label:'İlk harçlık günü',type:'date',value:al.from||td()},
+      {key:'acc',label:'Hangi hesaptan',type:'select',value:cur,options:accs.map(function(a){return{value:a.id,label:AM[a.type].i+' '+accLabel(a)}})}
+    ],okLabel:'Kaydet'},function(v){
+      var amt=parseMoney(v.amount),from=String(v.from||'').trim(),acc=App.Accounts.get(v.acc);
+      if(amt===null||!(amt>0)){App.UI.toast('Geçerli tutar girin.','err');return false}
+      if(!validDate(from)){App.UI.toast('Geçerli tarih seçin.','err');return false}
+      if(from<_floor()){App.UI.toast('İlk harçlık günü en çok bir yıl önce olabilir.','err');return false}
+      if(!acc||(acc.type!=='cash'&&acc.type!=='bank')){App.UI.toast('Nakit ya da banka hesabı seçin.','err');return false}
+      var users=(S.settings().users||[]).slice(),i=users.findIndex(function(x){return x.id===uid});if(i<0)return;
+      var old=users[i].allowance||{};
+      users[i]=Object.assign({},users[i],{allowance:{amount:amt,period:v.period==='month'?'month':'week',from:from,accountId:acc.id,done:old.done||''}});
+      S.saveSetting('users',users);_ensureCat();
+      var n=autoRun();_refresh(n);
+      App.UI.toast(n?'Harçlık kaydedildi; geçmiş '+n+' harçlık yazıldı.':'Harçlık kaydedildi.','ok');
+    });
+  }
+  function stopAllowance(uid){
+    var u=App.Users.get(uid);if(!u||!u.allowance)return;
+    App.UI.confirmModal({title:'Harçlığı Durdur',text:u.name+' için harçlık artık yazılmasın mı?\nYazılmış harçlıklar işlemlerde kalır.',okLabel:'Durdur',danger:true},function(){
+      var users=(S.settings().users||[]).slice(),i=users.findIndex(function(x){return x.id===uid});if(i<0)return;
+      var nu=Object.assign({},users[i]);delete nu.allowance;users[i]=nu;S.saveSetting('users',users);_refresh(0);App.UI.toast('Harçlık durduruldu.');
+    });
+  }
+  function addKumbara(uid){
+    var u=App.Users.get(uid);if(!u)return;
+    App.UI.promptModal({title:'🐷 Kumbara: '+u.name,text:'Çocuğun biriktirdiği bir şey için hedef (bisiklet, oyuncak, tatil harçlığı…). Birikim › Hedefler\'de de görünür.',fields:[
+      {key:'name',label:'Ne için',value:''},{key:'target',label:'Hedef tutar (₺)',type:'number',value:''},{key:'emoji',label:'Emoji',value:'🐷'}],okLabel:'Ekle'},function(v){
+      var name=String(v.name||'').trim().slice(0,120),target=parseMoney(v.target);
+      if(!name){App.UI.toast('Hedefin adını girin.','err');return false}if(target===null||!(target>0)){App.UI.toast('Geçerli tutar girin.','err');return false}
+      var goals=S.goals();goals.push({id:gid('g'),name:name,target:target,emoji:firstEmoji(v.emoji,'🐷'),accountId:'',sourceAccountId:'',txnMode:'none',contributions:[],done:null,ts:Date.now(),userId:uid});
+      S.saveGoals(goals);render();App.UI.toast('Kumbara hedefi eklendi.');
+    });
+  }
+  function kumbaraAdd(gid_){
+    var g=S.goals().find(function(x){return x.id===gid_});if(!g)return;
+    App.UI.promptModal({title:(g.emoji||'🐷')+' '+g.name,text:'Kumbaraya konan para. Harçlıktan biriktirilen para için yeni gider yazılmaz (harçlık zaten gider olarak yazıldı).',fields:[
+      {key:'amount',label:'Tutar (₺)',type:'number',value:''},{key:'date',label:'Tarih',type:'date',value:td()},{key:'note',label:'Not (isteğe bağlı)',value:''}],okLabel:'Ekle'},function(v){
+      return App.Goals.contribute(gid_,parseMoney(v.amount),String(v.date||'').trim(),String(v.note||'').trim().slice(0,300))?undefined:false;
+    });
+  }
+  function _card(u){
+    var al=u.allowance,acc=_acc(al),y=+td().slice(0,4),ys=yearStats(u.id,y),py=yearStats(u.id,y-1,(y-1)+td().slice(4)),id=u.id;
+    var h='<div class="card kid-card"><div class="kid-head"><span class="kid-emoji">'+esc(u.emoji||'🙋')+'</span><div class="kid-who"><div class="kid-name">'+esc(u.name)+'</div><div class="kid-sub">Bu yıl '+fmt(ys.total)+' gider'+(ys.total>0?' · ayda ortalama '+fmt(Math.round(ys.total/(+td().slice(5,7)-+(ys.first||td()).slice(5,7)+1))):'')+'</div></div></div>';
+    // Harçlık
+    h+='<div class="kid-sec"><div class="kid-h">🪙 Harçlık</div>';
+    if(al){h+='<div class="kid-line"><b>'+(al.period==='month'?'Aylık ':'Haftalık ')+fmt(al.amount)+'</b> · '+_when(al)+(acc?' · '+AM[acc.type].i+' '+esc(accLabel(acc)):'')+'</div>';
+      if(!acc)h+='<div class="kid-line warn">⚠️ Harçlığın hesabı bulunamadı; harçlık yazılmıyor. Değiştir\'den hesap seçin.</div>';
+      else{var nx=nextDue(al);h+='<div class="kid-line muted">'+(nx?'Sıradaki: '+fd(nx):'')+(al.from>td()?' · ilk harçlık bu gün':'')+'</div>'}
+      h+='<div class="kid-acts"><button class="btn btn-sm btn-ghost" onclick="App.Kids.setAllowance(\''+id+'\')">✎ Değiştir</button><button class="btn btn-sm btn-ghost" onclick="App.Kids.stopAllowance(\''+id+'\')">⏹ Durdur</button></div>'}
+    else h+='<div class="kid-line muted">Harçlık tanımlı değil.</div><div class="kid-acts"><button class="btn btn-sm btn-teal" onclick="App.Kids.setAllowance(\''+id+'\')">＋ Harçlık Ekle</button></div>';
+    h+='</div>';
+    // Bu yılın giderleri
+    h+='<div class="kid-sec"><div class="kid-h">📊 Bu yılın giderleri</div>';
+    if(ys.cats.length){var top=ys.cats.slice(0,5),rest=ys.cats.slice(5).reduce(function(s2,x){return s2+x.amount},0),mx=ys.cats[0].amount;
+      if(rest>0.009)top=top.concat([{cat:'Diğer kategoriler',amount:roundMoney(rest),other:true}]);
+      h+='<div class="kid-cats">'+top.map(function(x){var i=x.other?'📦':ci(x.cat).i,w=Math.max(2,Math.round(x.amount/mx*100));return'<div class="kid-cat"><span class="kc-name">'+i+' '+esc(x.cat)+'</span><span class="kc-bar" aria-hidden="true"><i style="width:'+Math.min(100,w)+'%"></i></span><span class="kc-amt">'+fmt(x.amount)+'</span></div>'}).join('')+'</div>';
+      if(py.total>0.009){var ch=Math.round((ys.total-py.total)/py.total*100);h+='<div class="kid-line muted">Geçen yıl aynı dönem: '+fmt(py.total)+(ch?' · bu yıl '+fmtPct(Math.abs(ch))+(ch>0?' daha fazla':' daha az'):' · aynı')+'</div>'}}
+    else h+='<div class="kid-line muted">Bu yıl çocuk adına gider yok.</div>';
+    h+='</div>';
+    // Kumbara
+    var gs=S.goals().filter(function(g){return g.userId===u.id}).sort(function(a,b){return(a.done?1:0)-(b.done?1:0)});
+    h+='<div class="kid-sec"><div class="kid-h">🐷 Kumbara</div>';
+    h+=gs.map(function(g){var t=App.Goals.total(g),p=g.target>0?Math.min(100,t/g.target*100):0,rem=Math.max(g.target-t,0);
+      return'<div class="kid-goal"><div class="kg-top"><span class="kg-name">'+esc(g.emoji||'🐷')+' '+esc(g.name)+(g.done?' ✅':'')+'</span><span class="kg-amt">'+fmt(t)+' / '+fmt(g.target)+'</span></div><div class="goal-prog-track"><div class="goal-prog-fill" style="width:'+p+'%"></div></div><div class="kg-foot"><span>'+fmtPct(p)+(g.done?' · tamamlandı 🎉':' · '+fmt(rem)+' kaldı')+'</span>'+(g.done?'':'<button class="btn btn-sm btn-ghost" onclick="App.Kids.kumbaraAdd(\''+g.id+'\')">＋ Para Ekle</button>')+'</div></div>'}).join('');
+    if(!gs.length)h+='<div class="kid-line muted">Kumbara hedefi yok.</div>';
+    h+='<div class="kid-acts"><button class="btn btn-sm btn-ghost" onclick="App.Kids.addKumbara(\''+id+'\')">＋ Kumbara Hedefi</button></div></div>';
+    return h+'</div>';
+  }
+  function render(){
+    var el=document.getElementById('kidsPanel');if(!el)return;var ks=kids();
+    if(!ks.length){el.innerHTML='<div class="card"><div class="set-sub">Çocuk üye yok. Yeni Üye Ekle\'de “👧 Çocuk” kutusunu işaretleyin ya da üyeyi ✎ ile düzenleyip “Çocuk mu?” sorusuna Evet deyin. Harçlığı, kumbarası ve yıllık giderleri burada görünür.</div></div>';return}
+    el.innerHTML=ks.map(_card).join('')+'<div class="set-sub kid-hint">ℹ️ Okul, kurs, giyim gibi çocuk için yapılan giderleri eklerken “Kim Yaptı” alanında çocuğu seçin; burada toplanır.</div>';
+  }
+  return{kids,dates,autoRun,upcoming,nextDue,yearStats,setAllowance,stopAllowance,addKumbara,kumbaraAdd,render}
 })();
 
 App.Rules=(function(){
@@ -7361,10 +7539,11 @@ document.addEventListener('DOMContentLoaded',function(){
   S.load();App.Lock.init();App.Categories.apply();App.UI.bindEvents();App.UI.initDates();App.UI.setTheme(S.settings().theme||'dark');App.UI.renderFontPick();App.UI.initSelects();
   var reconciled=App.Transactions.reconcileInstallments();
   var accReconciled=App.Accounts.reconcileAccountBalances();
-  var autoLogged=App.Recurring.autoRun();
+  var autoLogged=App.Recurring.autoRun(),kidsLogged=App.Kids.autoRun();
   if(window.__pfStorageError)App.UI.toast('Bazı veriler kaydedilemedi. Depolama alanını kontrol edin.','err');
   if(reconciled)App.UI.toast('Vadesi gelen planlı işlemler bakiyeye işlendi.','info');
   if(autoLogged)App.UI.toast(autoLogged+' tekrarlayan işlem otomatik kaydedildi.','info');
+  if(kidsLogged)App.UI.toast(kidsLogged+' harçlık kendiliğinden yazıldı.','info');
   App.Accounts.onTypeChange();App.Accounts.onOwnerChange();
   renderAllViews();
   var st=history.state,startPg=st&&st.ftPage&&document.getElementById('page-'+st.ftPage)?st.ftPage:'ozet';
