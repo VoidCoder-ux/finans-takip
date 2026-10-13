@@ -1173,7 +1173,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.13.6</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.13.7</div>
 </section>
 
 </main>
@@ -6715,20 +6715,35 @@ App.Statement=(function(){
     return out;
   }
   // PDF (ya da başlıksız tablo): satır başında tarih, ardından açıklama ve tutar(lar)
+  // Ay adıyla yazılmış tarih ("02 Eylül 2026", "2 EYL 2026") → 02.09.2026
+  var TRM=['oca','sub','mar','nis','may','haz','tem','agu','eyl','eki','kas','ara'];
+  function _trDate(l){return l.replace(/(\d{1,2})\s+([A-Za-zÇĞİÖŞÜçğıöşüÂâ]{3,9})\.?\s+(\d{4})(?!\d)/g,function(m0,d,mo,y){var k=TRM.indexOf(f(mo).slice(0,3));return k<0?m0:String(d).padStart(2,'0')+'.'+String(k+1).padStart(2,'0')+'.'+y})}
+  var DT=/(\d{1,2}[./]\d{1,2}[./]\d{2,4})(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?(?:\s+\d{1,2}[./]\d{1,2}[./]\d{2,4})?\s+(.*)$/;
   function _fromLines(lines){
     var out=[],re=/[-+]?\d{1,3}(?:\.\d{3})*,\d{2}(?:\s?[-+])?(?!\d)/g;
     lines.forEach(function(line){
-      var l=line.replace(/\s*\|\s*/g,'  '),m=/^\s*(\d{1,2}[./]\d{1,2}[./]\d{2,4})(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?(?:\s+\d{1,2}[./]\d{1,2}[./]\d{2,4})?\s+(.*)$/.exec(l);if(!m)return;
+      var l=_trDate(line.replace(/\s*\|\s*/g,'  ')),m=new RegExp('^\\s*'+DT.source).exec(l);
+      // Taksit bilgisi alt satırda: "1.599,90 TL'lik işlemin 3 / 3 taksidi" → üstteki satıra
+      var ti=/([\d.,]+)\s*TL'?\s*l[iı]k\s+i[sş]lemin\s+(\d{1,2})\s*\/\s*(\d{1,2})\s+taksid/i.exec(line);
+      if(!m&&ti&&out.length){var pv=out[out.length-1];if(!pv.inst){var k=+ti[2],n=+ti[3];if(k>=1&&n>=2&&k<=n){pv.inst={k:k,n:n};pv.desc+=' ('+k+'/'+n+' taksit)'}}return}
+      // Tarih satır başında değil: önündeki yazıya yapışmış (sayfa altı yazısı). Önünde tutar olmayan uzun bir yazıdan sonraki son tarih alınır
+      if(!m){var g=/(\d{1,2}[./]\d{1,2}[./]\d{4})\s+(?=[A-Za-zÇĞİÖŞÜçğıöşü*])/g,y,last=null;while((y=g.exec(l)))last=y;
+        if(last&&last.index>=20&&!re.test(l.slice(0,last.index)))m=DT.exec(l.slice(last.index));re.lastIndex=0}
+      if(!m)return;
       var date=_date(m[1]);if(!date)return;var rest=m[2],am=[],x;re.lastIndex=0;
       while((x=re.exec(rest)))am.push({s:x[0],at:x.index});
       if(!am.length)return;
       var a=_amt(am[0].s);if(!a||!a.v)return;
       var desc=rest.slice(0,am[0].at).replace(/\s+/g,' ').replace(/\s+(TL|TRY)$/i,'').trim();
-      var bal=am.length>1?_amt(am[am.length-1].s):null;
+      // Son tutar bakiye olabilir; "394,57 / 1" (kalan tutar / taksit) bakiye değildir
+      var lz=am.length>1?am[am.length-1]:null,bal=lz&&!/^\s*\/\s*\d/.test(rest.slice(lz.at+lz.s.length))?_amt(lz.s):null;
       out.push({date:date,desc:desc,amount:a.v,sign:0,raw:a.neg?-1:a.pos?1:0,balance:bal?bal.v*(bal.neg?-1:1):null});
     });
     return out;
   }
+  // Kart ekstresinin kesim tarihi ("Hesap Kesim Tarihi : 27 Eylül 2026"); sonraki ayınki değil
+  function _cutDate(lines){var c='';(lines||[]).some(function(line){var l=f(line);if(!/hesap kesim tarihi/.test(l)||/sonraki/.test(l))return false;var m=/(\d{1,2}[./]\d{1,2}[./]\d{4})/.exec(_trDate(line));if(m)c=_date(m[1]);return!!c});return c}
+  function _monthBack(iso){var p=iso.split('-'),y=+p[0],m=+p[1]-2,d=+p[2],last=new Date(y,m+1,0).getDate(),x=new Date(y,m,Math.min(d,last));return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')}
   // Bakiye sütunu varsa yön bakiyedeki değişimden çıkarılır (dosya eskiden yeniye ya da yeniden eskiye olabilir)
   function _signFromBalance(rs){
     var fw=0,bw=0,i;for(i=1;i<rs.length;i++){var a=rs[i-1],b=rs[i];if(a.balance==null||b.balance==null)continue;
@@ -6741,13 +6756,16 @@ App.Statement=(function(){
   var INC=/(maas|gelen|yatirilan|yatan|alacak|iade|faiz geliri|havale gelen|eft gelen|fast gelen|virman gelen|para yatirma|nakit yatirma|kira geliri)/;
   // sign: +1 hesaba giren, −1 çıkan (borç/alacak sütunu ya da bakiye değişimi). raw: tutarın kendi işareti —
   // hesap ekstresinde eksi = çıkan; kart ekstresinde eksi = ödeme/iade (giren), işaretsiz = harcama.
-  // hasNeg: hesap ekstresinde çıkanlar eksiyle yazılmışsa işaretsiz satır girendir
-  function _type(r,isCard,hasNeg){
+  // hasNeg: hesap ekstresinde çıkanlar eksiyle yazılmışsa işaretsiz satır girendir. hasUns: kart ekstresinde işaretsiz satır (harcama)
+  // varsa "+" ile yazılan satır ödeme/iadedir (Yapı Kredi: "ÖDEME-İNTERNET BANKACILIĞI +11.000,00")
+  function _type(r,isCard,hasNeg,hasUns){
     if(r.sign)return r.sign>0?'income':'expense';
-    if(r.raw)return isCard?(r.raw<0?'income':'expense'):(r.raw<0?'expense':'income');
+    if(r.raw)return isCard?(r.raw<0||hasUns?'income':'expense'):(r.raw<0?'expense':'income');
     if(!isCard&&hasNeg)return'income';
-    var d=f(r.desc),k=bankKind(d);if(INC.test(d)||(isCard&&CARDPAY.test(d))||k==='loanIn'||k==='depInt'||(k==='invest'&&/(satim|satis|satildi)/.test(d)))return'income';return'expense';
+    var d=f(r.desc),k=bankKind(d);if(INC.test(d)||(isCard&&_isPay(d,true))||k==='loanIn'||k==='depInt'||(k==='invest'&&/(satim|satis|satildi)/.test(d)))return'income';return'expense';
   }
+  // Kart borcu ödemesi satırı; kart ekstresinde "ÖDEME-…" ile başlayan satır da (internet/mobil bankacılık, şube, ATM)
+  function _isPay(d,isCard){return CARDPAY.test(d)||(!!isCard&&/^odeme\b/.test(d))}
   // Kendi hesaplarınız arası: virman / "hesaplar arası" ya da havale-FAST satırında bir aile üyesinin bankada görünen adı
   function _own(desc){var d=f(desc);return/(virman|hesaplar arasi|kendi hesab)/.test(d)||(/(fast|eft|havale|transfer|iban|para gonder|para gel|gelen|giden)/.test(d)&&!!App.Users.byBankName(desc))}
   // Ekstredeki kart ödemesinin gittiği kart: açıklamadaki son 4 hane, yoksa ekstrenin bankasındaki tek kart. Bulunamazsa tahmin
@@ -6759,14 +6777,15 @@ App.Statement=(function(){
   function _cardsKnown(){return S.accounts().some(function(a){return a.type==='card'})}
   function _cat(r,type){
     if(_own(r.desc))return'Transfer';
-    if(CARDPAY.test(f(r.desc))){var acc=App.Accounts.get(_meta.accountId),isCard=acc?acc.type==='card':_meta.isCardDoc;if(isCard||_cardsKnown())return'Transfer';if(type==='expense'&&EC.indexOf('Kredi Kartı Ödemesi')>=0)return'Kredi Kartı Ödemesi'}
+    var acc0=App.Accounts.get(_meta.accountId),isCard0=acc0?acc0.type==='card':_meta.isCardDoc;
+    if(_isPay(f(r.desc),isCard0)){var acc=acc0,isCard=isCard0;if(isCard||_cardsKnown())return'Transfer';if(type==='expense'&&EC.indexOf('Kredi Kartı Ödemesi')>=0)return'Kredi Kartı Ödemesi'}
     // Kredi kullanımı, yatırım alım-satımı, nakit avans: aktarım; kredi taksidi ve mevduat faizi kendi kategorisinde
     var bkd=bankKind(f(r.desc));if(bkd==='loanIn'||bkd==='invest'||bkd==='advance')return'Transfer';
     if(bkd==='loanPay'&&type==='expense'&&EC.indexOf('Kredi Ödemesi')>=0)return'Kredi Ödemesi';if(bkd==='depInt'&&type==='income'&&IC.indexOf('Yatırım')>=0)return'Yatırım';
     if(type==='income')return/maas/.test(f(r.desc))?'Maaş':/\b(iade|iptal)/.test(f(r.desc))?'İade':'Diğer';
     var probe={type:'expense',amount:r.amount,category:'Diğer',note:r.desc};App.Rules.apply(probe);if(probe._ruleApplied)return probe.category;
     var b=App.Receipt.brand(r.desc);if(b)return b.category;var h=App.Receipt.hint(r.desc);if(h)return h;
-    if(CARDPAY.test(f(r.desc))&&EC.indexOf('Kredi Kartı Ödemesi')>=0)return'Kredi Kartı Ödemesi';
+    if(_isPay(f(r.desc),isCard0)&&EC.indexOf('Kredi Kartı Ödemesi')>=0)return'Kredi Kartı Ödemesi';
     if(/(fatura|elektrik|dogalgaz|igdas|iski|aski|izsu|enerjisa|turkcell|vodafone|turk telekom|superonline|internet)/.test(f(r.desc))&&EC.indexOf('Faturalar')>=0)return'Faturalar';
     return'Diğer';
   }
@@ -6782,6 +6801,10 @@ App.Statement=(function(){
     var rs=data.rows?_fromTable(data.rows):null;if(!rs||!rs.length)rs=_fromLines(data.lines||(data.rows||[]).map(function(r){return r.join('  ')}));
     var ft=f(text),isCardDoc=/(kredi karti|kart ekstre|hesap ozeti|son odeme tarihi|asgari odeme|donem borcu|kart numarasi)/.test(ft)&&!/(hesap hareketleri|iban|vadesiz)/.test(ft);
     rs=rs.filter(function(r){return!SKIP.test(f(r.desc))});
+    // Taksidin 2., 3. … ayı alışveriş günüyle yazılır (ör. 21 Temmuz, 3/3); o gün yazılırsa gider yanlış aya düşer, önceki taksitle de
+    // karışır. Kesim tarihi bulunursa dönemden önceki tarihli taksit satırı kesim gününe yazılır
+    var cut=isCardDoc?_cutDate(data.lines):'';
+    if(cut){var ps=_monthBack(cut);rs.forEach(function(r){var i=r.inst||_inst(r.desc);if(i&&i.k>1&&r.date<=ps){r.orig=r.date;r.date=cut}})}
     _signFromBalance(rs);
     return{rows:rs,isCardDoc:isCardDoc,accountId:_guessAccount(text,isCardDoc)};
   }
@@ -6803,8 +6826,8 @@ App.Statement=(function(){
   function _build(){
     var acc=App.Accounts.get(_meta.accountId),isCard=acc?acc.type==='card':_meta.isCardDoc,start=balanceStart(acc),today=td();
     // Kart ödemesi satırı atlanmaz: kart uygulamadaysa karta aktarım, değilse kart ödemesi gideri (atlanırsa hesap bakiyesi bankadan sapar)
-    var neg=_rows.some(function(r){return r.raw<0});
-    _rows.forEach(function(r){r.type=_type(r,isCard,neg);if(r.flip)r.type=r.type==='income'?'expense':'income';r.category=r.userCat||_cat(r,r.type);var cp=CARDPAY.test(f(r.desc));r.on=true;r.cardpay=cp;r.pre=!!start&&r.date<start&&r.date<=today});
+    var neg=_rows.some(function(r){return r.raw<0}),uns=_rows.some(function(r){return!r.raw&&!r.sign});
+    _rows.forEach(function(r){r.type=_type(r,isCard,neg,uns);if(r.flip)r.type=r.type==='income'?'expense':'income';r.category=r.userCat||_cat(r,r.type);var cp=_isPay(f(r.desc),isCard);r.on=true;r.cardpay=cp;r.pre=!!start&&r.date<start&&r.date<=today});
     _dupes(_rows,_meta.accountId);
   }
   // Bakiye başlangıcı: hesabın eklendiği gün mü, bakiyenin elle eşitlendiği gün mü
