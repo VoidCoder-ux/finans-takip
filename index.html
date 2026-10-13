@@ -1173,7 +1173,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.13.7</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.13.8</div>
 </section>
 
 </main>
@@ -6649,17 +6649,26 @@ App.Statement=(function(){
     });
   }
   var _cut={pages:0};
+  // Bazı bankaların PDF'inde (Akbank Axess) yazı tipinin Unicode tablosu yok; metin EBCDIC kodlu gelir ("Á§¢¢@ÇÖ..."). Türkçe harfler
+  // yazı tipine göre farklı kodlarda (ı ğ ş İ Ş). Sayfa böyleyse (boşluk "@", rakamlar "ð…ù") parçalar tabloyla çözülür
+  var EBC="                                                             \u015f   \u00a0\u00e2\u00e4\u00e0\u00e1\u00e3\u00e5\u00e7\u00f1\u00a2.<(+|&\u00e9\u00ea\u00eb\u00e8\u00ed\u00ee\u00ef\u00ec\u00df!$*);\u00ac-/\u00c2\u00c4\u00c0\u00c1\u00c3\u00c5\u00c7\u00d1\u00a6,%_>?\u00f8\u00c9\u00ca\u00cb\u00c8\u00cd\u00ce\u00cf\u00cc`:#@'=\"\u00d8abcdefghi\u00ab\u00bb\u00f0\u00fd\u00fe\u00b1\u00b0jklmnopqr\u00aa\u00ba\u00e6\u00b8\u00c6\u00a4\u00b5~stuvwxyz\u015f\u0131\u0130\u00dd\u0131\u015e^\u011f\u0131\u0131\u0130\u00a7\u015f\u0131\u00bd\u00be[]\u015e\u0131\u0130\u015f{ABCDEFGHI\u00ad\u00f4\u00f6\u00f2\u00f3\u00f5}JKLMNOPQR\u00b9\u00fb\u00fc\u00f9\u00fa\u00ff\\\u00f7STUVWXYZ\u00b2\u00d4\u00d6\u00d2\u00d3\u00d50123456789\u00b3\u00db\u00dc\u00d9\u00da ";
+  function _ebc(s){return String(s).replace(/[\s\S]/g,function(c){var o=c.charCodeAt(0);return o<256?EBC.charAt(o):o===0x3BC?'ş':c})}
+  function _isEbc(s){var eb=(s.match(/[@\u00F0-\u00F5\u00F7-\u00F9]/g)||[]).length,asc=(s.match(/[0-9a-z]/g)||[]).length,dg=(s.match(/[0-9]/g)||[]).length;return eb>=10&&eb>asc&&dg*5<eb}
+  function _plain(s){return/[0-9A-Za-z]{3}/.test(s)&&!/[\u0080-\u00FF@]/.test(s)}   // aynı sayfada düz yazılmış parça (ör. "Sayfa 1 / 2") çözülmez
   function _readPdf(u8){
     return App.Receipt._debug.pdfLib().then(function(lib){return _openPdf(lib,u8,'',0)}).then(function(doc){
       var pages=[];for(var i=1;i<=Math.min(doc.numPages,40);i++)pages.push(i);_cut.pages=doc.numPages>40?doc.numPages:0;
-      return pages.reduce(function(pr,i){return pr.then(function(acc){return doc.getPage(i).then(function(pg){return pg.getTextContent()}).then(function(tc){
-        // Aynı yükseklikteki parçalar bir satır; aralarındaki boşluk büyükse sütun ayracı (" | ")
-        var items=tc.items.filter(function(x){return x.str&&x.str.trim()}).map(function(x){return{s:x.str,x:x.transform[4],y:Math.round(x.transform[5]),w:x.width||0}});
-        items.sort(function(a,b){return b.y-a.y||a.x-b.x});var lines=[],cur=null;
-        items.forEach(function(it){if(!cur||Math.abs(cur.y-it.y)>2){cur={y:it.y,parts:[]};lines.push(cur)}cur.parts.push(it)});
-        lines.forEach(function(l){l.parts.sort(function(a,b){return a.x-b.x});var s='',end=null;l.parts.forEach(function(p){if(end!==null)s+=p.x-end>12?' | ':(p.x-end>1.5?' ':'');s+=p.s;end=p.x+p.w});acc.push(s.replace(/\s+/g,' ').trim())});
-        return acc})})},Promise.resolve([]));
+      return pages.reduce(function(pr,i){return pr.then(function(acc){return doc.getPage(i).then(function(pg){return pg.getTextContent()}).then(function(tc){return acc.concat(_pageLines(tc.items))})})},Promise.resolve([]));
     });
+  }
+  // Aynı yükseklikteki parçalar bir satır; aralarındaki boşluk büyükse sütun ayracı (" | ")
+  function _pageLines(raw){
+    var items=raw.filter(function(x){return x.str&&x.str.trim()}).map(function(x){return{s:x.str,x:x.transform[4],y:Math.round(x.transform[5]),w:x.width||0}});
+    if(_isEbc(items.map(function(x){return x.s}).join('')))items.forEach(function(x){if(!_plain(x.s))x.s=_ebc(x.s)});
+    items.sort(function(a,b){return b.y-a.y||a.x-b.x});var lines=[],cur=null,acc=[];
+    items.forEach(function(it){if(!cur||Math.abs(cur.y-it.y)>2){cur={y:it.y,parts:[]};lines.push(cur)}cur.parts.push(it)});
+    lines.forEach(function(l){l.parts.sort(function(a,b){return a.x-b.x});var s='',end=null;l.parts.forEach(function(p){if(end!==null)s+=p.x-end>12?' | ':(p.x-end>1.5?' ':'');s+=p.s;end=p.x+p.w});acc.push(s.replace(/\s+/g,' ').trim())});
+    return acc;
   }
   function read(file){
     var name=String(file.name||'').toLowerCase();
@@ -6675,7 +6684,7 @@ App.Statement=(function(){
   }
   // ---- Satırları anlamlandırma ----
   function _amt(v){
-    var s=String(v==null?'':v).replace(/\s|₺|TL|TRY/gi,'').replace(/^'/,'');if(!s)return null;
+    var s=String(v==null?'':v).replace(/\s|₺|TL|TRY/gi,'').replace(/^'/,'').replace(/\(([-+])\)$/,'$1');if(!s)return null;
     var neg=/^-|-$|^\(.*\)$/.test(s),pos=/^\+|\+$/.test(s);s=s.replace(/^[-+(]|[-+)]$/g,'');
     if(!/^\d[\d.,]*$/.test(s))return null;
     var c=s.lastIndexOf(','),d=s.lastIndexOf('.');
@@ -6699,7 +6708,7 @@ App.Statement=(function(){
     return null;
   }
   var SKIP=/(onceki donem|devreden|devir|donem borcu|toplam|asgari|son odeme|hesap ozeti|ekstre borcu|acilis bakiyesi|kapanis bakiyesi|kullanilabilir limit|kart limiti|^bakiye$)/;
-  var CARDPAY=/(odeme.*tesekkur|tesekkur ederiz|hesaptan odeme|kart(i)? (borc )?odeme|kredi karti odeme|otomatik odeme talimat|borc odeme|ekstre odeme)/;
+  var CARDPAY=/(odeme.*tesekkur|tesekkur ederiz|hesaptan odeme|kart(i)? (borc )?odeme|kredi karti odeme|otomatik odeme talimat|borc odeme|ekstre odeme|odemeniz icin te)/;
   function _fromTable(rows){
     var t=_table(rows);if(!t)return null;var c=t.col,out=[];
     rows.slice(t.start).forEach(function(r){
@@ -6718,9 +6727,13 @@ App.Statement=(function(){
   // Ay adıyla yazılmış tarih ("02 Eylül 2026", "2 EYL 2026") → 02.09.2026
   var TRM=['oca','sub','mar','nis','may','haz','tem','agu','eyl','eki','kas','ara'];
   function _trDate(l){return l.replace(/(\d{1,2})\s+([A-Za-zÇĞİÖŞÜçğıöşüÂâ]{3,9})\.?\s+(\d{4})(?!\d)/g,function(m0,d,mo,y){var k=TRM.indexOf(f(mo).slice(0,3));return k<0?m0:String(d).padStart(2,'0')+'.'+String(k+1).padStart(2,'0')+'.'+y})}
-  var DT=/(\d{1,2}[./]\d{1,2}[./]\d{2,4})(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?(?:\s+\d{1,2}[./]\d{1,2}[./]\d{2,4})?\s+(.*)$/;
+  // Açıklama tarihe bitişik olabilir ("15/09/2026İNTERNET ŞB")
+  var DT=/(\d{1,2}[./]\d{1,2}[./](?:\d{4}|\d{2})(?!\d))(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?(?:\s+\d{1,2}[./]\d{1,2}[./]\d{2,4})?\s*(.*)$/;
+  // Tutar: 1.234,56 ya da İngilizce biçim 1,234.56 (Akbank Axess); eksi/artı önde, sonda ya da "(-)" olarak. Belgede hangisi çoksa o
+  var AMT_TR=/[-+]?\d{1,3}(?:\.\d{3})*,\d{2}(?:\s?\([-+]\)|\s?[-+])?(?!\d)/g,AMT_EN=/[-+]?\d{1,3}(?:,\d{3})*\.\d{2}(?:\s?\([-+]\)|\s?[-+])?(?!\d|[.,]\d)/g;
   function _fromLines(lines){
-    var out=[],re=/[-+]?\d{1,3}(?:\.\d{3})*,\d{2}(?:\s?[-+])?(?!\d)/g;
+    var tr=0,en=0;lines.forEach(function(l){tr+=(String(l).match(AMT_TR)||[]).length;en+=(String(l).match(AMT_EN)||[]).length});
+    var out=[],re=new RegExp((en>tr?AMT_EN:AMT_TR).source,'g');
     lines.forEach(function(line){
       var l=_trDate(line.replace(/\s*\|\s*/g,'  ')),m=new RegExp('^\\s*'+DT.source).exec(l);
       // Taksit bilgisi alt satırda: "1.599,90 TL'lik işlemin 3 / 3 taksidi" → üstteki satıra
@@ -6805,7 +6818,7 @@ App.Statement=(function(){
     // karışır. Kesim tarihi bulunursa dönemden önceki tarihli taksit satırı kesim gününe yazılır
     var cut=isCardDoc?_cutDate(data.lines):'';
     if(cut){var ps=_monthBack(cut);rs.forEach(function(r){var i=r.inst||_inst(r.desc);if(i&&i.k>1&&r.date<=ps){r.orig=r.date;r.date=cut}})}
-    _signFromBalance(rs);
+    if(isCardDoc)rs.forEach(function(r){r.balance=null});else _signFromBalance(rs);   // kart ekstresinde son sütun bakiye değil (puan, chip-para)
     return{rows:rs,isCardDoc:isCardDoc,accountId:_guessAccount(text,isCardDoc)};
   }
   // Taksit satırı ("MIGROS 3/6 TAKSIT"): kaçıncı taksit / toplam. Banka satırı ya alışveriş günüyle ya ekstre günüyle yazar
@@ -6906,7 +6919,7 @@ App.Statement=(function(){
     close();renderAllViews();App.UI.toast([list.length?list.length+' işlem eklendi ('+acc.name+')':'',npre?npre+' tanesi başlangıç bakiyesine zaten dahil, bakiye değişmedi':'',upd?upd+' kayda işyeri adı ve kategori eklendi':'',npair?npair+' aktarım öbür hesapla eşleşti':'',nsp?nsp+' kredi taksidi faiz ve anapara olarak ayrıldı':''].filter(Boolean).join(' · ')+'.','ok');
   }
   return{pick:pick,onFile:onFile,read:read,open:open,close:close,toggle:toggle,all:all,flip:flip,flipAll:flipAll,setCat:setCat,setAccount:setAccount,commit:commit,
-    _analyze:_analyze,_load:function(name,data){var a=_analyze(data);_file=name;_meta={accountId:a.accountId,isCardDoc:a.isCardDoc};_rows=a.rows.map(function(r,i){return Object.assign({i:i},r)});_build();return{rows:_rows,meta:_meta}}};
+    _analyze:_analyze,_pageLines:_pageLines,_load:function(name,data){var a=_analyze(data);_file=name;_meta={accountId:a.accountId,isCardDoc:a.isCardDoc};_rows=a.rows.map(function(r,i){return Object.assign({i:i},r)});_build();return{rows:_rows,meta:_meta}}};
 })();
 
 // ---- Aylık analiz: nereye gitti, nereden geldi, dikkat edilecekler ----
