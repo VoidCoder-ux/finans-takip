@@ -443,6 +443,13 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
 .po-sum{display:flex;flex-direction:column;gap:4px;background:var(--bg3);border-radius:var(--r);padding:12px;margin-top:12px;font-size:.92rem;line-height:1.45}.po-cmp{font-size:.86rem;color:var(--txt2)}
 .po-list{margin:12px 0 0;padding-left:22px;display:flex;flex-direction:column;gap:8px}.po-list li{font-size:.9rem}.po-list li::marker{font-weight:800;color:var(--txt2)}
 .po-name{font-weight:700;overflow-wrap:anywhere}.po-meta{font-size:.82rem;color:var(--txt2)}.po-when{font-size:.9rem;margin-top:2px}.po-when small{display:block;font-size:.82rem;color:var(--txt2)}
+.pd-card{padding:16px}.pd-title{font-weight:800;font-size:1rem}.pd-sub{font-size:.82rem;color:var(--txt2);margin-top:2px;overflow-wrap:anywhere}
+.pd-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:12px 0 4px}.pd-sum>div{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;min-width:0}
+.pd-sum span{display:block;font-size:.82rem;color:var(--txt2);font-weight:700}.pd-sum b{font-size:1rem;white-space:nowrap}.pd-sum b.pos{color:var(--green)}.pd-sum small{display:block;font-size:.82rem;color:var(--txt2);margin-top:1px}
+.pd-free{grid-column:1/-1;border-color:var(--teal)!important}.pd-free b{font-size:1.25rem;color:var(--teal)}.pd-free.neg{border-color:var(--red)!important}.pd-free.neg b{color:var(--red)}
+.pd-h{font-size:.86rem;font-weight:800;color:var(--txt2);text-transform:uppercase;letter-spacing:.04em;margin:14px 0 4px}
+.pd-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)}.pd-main{flex:1;min-width:0}.pd-lbl{font-size:.92rem;font-weight:700;overflow-wrap:anywhere}.pd-amt{font-weight:800;white-space:nowrap}
+.pd-row.done .pd-amt{color:var(--green)}.pd-btn{margin-top:8px}.pd-note{font-size:.86rem;color:var(--txt2);line-height:1.45;margin-top:6px}
 .hl-card{padding:16px}.hl-top{display:flex;align-items:center;gap:14px}.hl-score{display:flex;align-items:baseline;justify-content:center;gap:2px;min-width:88px;padding:10px 12px;border-radius:var(--r2);border:2px solid var(--border2);background:var(--bg3)}
 .hl-score b{font-size:2rem;font-weight:800;line-height:1}.hl-score span{font-size:.86rem;color:var(--txt2);font-weight:700}.hl-score.hl-good{border-color:var(--green)}.hl-score.hl-ok{border-color:var(--teal)}.hl-score.hl-warn{border-color:var(--yellow)}.hl-score.hl-bad{border-color:var(--red)}
 .hl-head{min-width:0}.hl-label{font-size:1.1rem;font-weight:800}.hl-label.hl-good{color:var(--green)}.hl-label.hl-ok{color:var(--teal)}.hl-label.hl-warn{color:var(--yellow)}.hl-label.hl-bad{color:var(--red)}.hl-sub{font-size:.86rem;color:var(--txt2);margin-top:2px}
@@ -781,6 +788,8 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
   </div>
   <input type="file" id="receiptFile" accept="image/*,application/pdf,.pdf" style="display:none" aria-label="Fiş fotoğrafı" onchange="App.Receipt.onFile(this)"/>
   <div id="ozet-cardbars"></div>
+  <div class="sh" data-sec="ozet-payday"><div class="sh-title">💼 Maaş Planı</div></div>
+  <div id="ozet-payday"></div>
   <div class="sh" data-sec="ozet-health"><div class="sh-title">❤️ Finans Sağlığı</div></div>
   <div id="ozet-health"></div>
   <div class="sh" data-sec="cashflowMini"><div class="sh-title">⏳ Yaklaşan Ödemeler</div><div class="sh-link" onclick="App.Cashflow.open()">Detay →</div></div>
@@ -1144,7 +1153,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.12.4</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.12.5</div>
 </section>
 
 </main>
@@ -1576,7 +1585,7 @@ App.UI=(function(){
   // diğerleri açıldıklarında güncel veriyle çizilir: veri büyüdükçe telefon yorulmasın
   function renderPage(pg){
     if(pg==='istatistikler')App.Charts.refresh();
-    if(pg==='ozet'){if(App.Insights)App.Insights.renderMonthCard();if(App.Health)App.Health.render();App.Transactions.renderRecent();App.Recurring.renderOzet();App.Cashflow.renderMini();App.WeeklySummary.render();App.Users.renderFamilyPanel();App.Notifications.syncBtn();App.NetWorth.render()}
+    if(pg==='ozet'){if(App.Insights)App.Insights.renderMonthCard();if(App.Payday)App.Payday.render();if(App.Health)App.Health.render();App.Transactions.renderRecent();App.Recurring.renderOzet();App.Cashflow.renderMini();App.WeeklySummary.render();App.Users.renderFamilyPanel();App.Notifications.syncBtn();App.NetWorth.render()}
     if(pg==='hesaplar')App.Accounts.renderAll();
     if(pg==='islemler')App.Transactions.renderList();
     if(pg==='borclar'){App.Debts.renderAll();if(App.Loans){App.Loans.render();App.Loans.renderPlan()}}
@@ -3348,6 +3357,56 @@ App.Health=(function(){
   }
   function render(){var el=document.getElementById('ozet-health');if(el)el.innerHTML=card()}
   return{compute:compute,card:card,render:render};
+})();
+
+// ---- Maaş planı ("önce kendine öde") ----
+// Ay sonuna kadar: nakit ve banka hesaplarındaki para + gelecek gelir − ödenecekler (kart ekstreleri, kredi taksitleri,
+// tekrarlayan ödemeler, planlı kayıtlar, borç vadeleri; Nakit Akışı ile aynı liste) − önce ayrılacaklar (50/30/20 birikim
+// hedefinin bu ay kalanı, yıllık giderlerin bu ayki payı) = harcanabilir. Birikim ve yatırım hesaplarındaki para harcanabilir sayılmaz
+App.Payday=(function(){
+  var LIQ={cash:1,bank:1};
+  function plan(){
+    var m=tm(),today=td(),p=m.split('-'),dim=new Date(+p[0],+p[1],0).getDate(),end=m+'-'+String(dim).padStart(2,'0'),left=Math.round((new Date(end+'T12:00:00')-new Date(today+'T12:00:00'))/864e5)+1;
+    var cash=roundMoney(S.accounts().reduce(function(s,a){return s+(LIQ[a.type]?a.balance||0:0)},0));
+    var items=App.Cashflow.items(left).filter(function(x){return x.date<=end&&!x.card}),inc=[],pay=[];
+    items.forEach(function(x){(x.type==='income'?inc:pay).push({label:x.label,sub:fd(x.date)+' · '+x.src,amount:x.amount,date:x.date})});
+    // Kesim günü girilmemiş kartın borcu ödeme günü bilinmediği için bugünden düşülür (Nakit Akışı ile aynı)
+    var noCut=0;App.Cards.cards().forEach(function(c){if(!c.statementDay&&(c.balance||0)<0)noCut-=c.balance});noCut=roundMoney(noCut);
+    if(noCut>0.009)pay.unshift({label:'💳 Kesim günü girilmemiş kart borcu',sub:'ödeme günü bilinmiyor',amount:noCut,date:today});
+    // Önce ayrılacaklar: birikim hedefinin kalanı (bu ayın geliri × hedef oranı − bu ay biriken) ve yıllık giderlerin bu ayki payı
+    var sp=App.Split.compute(m),incAll=roundMoney(sp.income+inc.reduce(function(s,x){return s+x.amount},0)),r=sp.rates.save,target=roundMoney(incAll*r/100),saved=roundMoney(Math.max(0,sp.moved)+sp.saveExp+sp.goals),set=[];
+    var toSave=roundMoney(Math.max(0,target-saved));
+    if(incAll>0)set.push({key:'save',label:'🐖 Birikim (hedef %'+r+')',sub:'gelirin %'+r+' kadarı '+fmt(target)+(saved>0.009?' · bu ay ayrılan '+fmt(saved):''),amount:toSave});
+    S.fund().forEach(function(f){var nd=App.YearlyFund.nextDue(f);if(nd.date.slice(0,7)===m)return;var per=roundMoney(Math.max(f.amount-(f.contributed||0),0)/nd.monthsLeft);if(per>0.009)set.push({key:'fund',label:'📅 '+f.name,sub:'yıllık gider · '+MF[f.dueMonth-1]+' '+nd.year+' için bu ayın payı',amount:per})});
+    var sum=function(a){return roundMoney(a.reduce(function(s,x){return s+x.amount},0))},P=sum(pay),I=sum(inc),A=sum(set),free=roundMoney(cash+I-P-A);
+    var gd=0;S.goals().forEach(function(g){if(!g.due||g.done)return;var f=App.Goals.forecast(g);if(f.status!=='done'&&f.status!=='late')gd+=f.need});
+    return{month:m,daysLeft:left,cash:cash,income:inc,incomeTotal:I,payments:pay,paymentsTotal:P,setAside:set,setAsideTotal:A,free:free,perDay:left>0?roundMoney(free/left):free,received:sp.income,target:target,saved:saved,toSave:toSave,goalNeed:roundMoney(gd)};
+  }
+  function _row(x,cls){return'<div class="pd-row'+(cls?' '+cls:'')+'"><div class="pd-main"><div class="pd-lbl">'+esc(x.label)+'</div>'+(x.sub?'<div class="pd-sub">'+esc(x.sub)+'</div>':'')+'</div><div class="pd-amt">'+fmt(x.amount)+'</div></div>'}
+  function render(){
+    var el=document.getElementById('ozet-payday');if(!el)return;var o=plan(),sv=S.accounts().some(function(a){return a.type==='savings'}),MAX=6;
+    var h='<div class="card pd-card"><div class="pd-head"><div><div class="pd-title">'+MF[+o.month.slice(5)-1]+' sonuna kadar ('+o.daysLeft+' gün)</div><div class="pd-sub">Bu ay gelen '+fmt(o.received)+(o.incomeTotal>0.009?' · gelecek '+fmt(o.incomeTotal):'')+'</div></div></div>';
+    h+='<div class="pd-sum"><div><span>Hesaplarda</span><b>'+fmt(o.cash)+'</b></div>'+(o.incomeTotal>0.009?'<div><span>+ Gelecek</span><b class="pos">'+fmt(o.incomeTotal)+'</b></div>':'')+'<div><span>− Ödenecek</span><b>'+fmt(o.paymentsTotal)+'</b></div><div><span>− Önce ayır</span><b>'+fmt(o.setAsideTotal)+'</b></div>'+
+      '<div class="pd-free'+(o.free<0?' neg':'')+'"><span>= Harcanabilir</span><b>'+(o.free<0?'−'+fmt(-o.free):fmt(o.free))+'</b><small>'+(o.free<0?'ödemelere ve birikime yetmiyor':'günde '+fmt(o.perDay))+'</small></div></div>';
+    if(o.setAside.length){h+='<div class="pd-h">1 · Önce kendine öde</div>'+o.setAside.map(function(x){return _row(x,x.key==='save'&&x.amount<=0.009?'done':'')}).join('');
+      if(o.toSave>0.009&&sv)h+='<button class="btn btn-sm btn-primary pd-btn" onclick="App.Payday.transfer()">🐖 '+fmt(o.toSave)+' birikime aktar</button>';
+      if(o.goalNeed>0.009)h+='<div class="pd-note">Tarihli hedefler için ayda '+fmt(o.goalNeed)+' gerekiyor'+(o.goalNeed>o.target+0.5?'; birikim hedefini aşıyor.':'; birikimin bir kısmını hedeflere ayırın.')+'</div>'}
+    if(o.payments.length){h+='<div class="pd-h">2 · Ay sonuna kadar ödenecekler</div>'+o.payments.slice(0,MAX).map(function(x){return _row(x)}).join('')+(o.payments.length>MAX?'<div class="pd-note">ve '+(o.payments.length-MAX)+' ödeme daha (Yaklaşan Ödemeler).</div>':'')}
+    h+='<div class="pd-h">3 · Kalan</div><div class="pd-note">'+(o.free<0?'Bu ay '+fmt(-o.free)+' açık var: harcamayı kısın ya da birikim hedefini bu ay azaltın.':'Ay sonuna kadar harcanabilir '+fmt(o.free)+' (günde '+fmt(o.perDay)+'). Market, ulaşım gibi günlük harcamalar bundan.')+'</div>';
+    el.innerHTML=h+'<div class="hl-note">Kartla yapılacak harcamalar ödeme gününde ekstreden düşülür. Birikim ve yatırım hesaplarındaki para harcanabilir sayılmaz.</div></div>';
+  }
+  // Önce kendine öde: birikim hedefinin kalanını birikim hesabına aktar
+  function transfer(){
+    var o=plan(),accs=S.accounts(),from=accs.filter(function(a){return LIQ[a.type]}),to=accs.filter(function(a){return a.type==='savings'});
+    if(!from.length||!to.length){App.UI.toast('Aktarım için banka/nakit ve birikim hesabı gerekli.','info');return}
+    var opt=function(l){return l.map(function(a){return{value:a.id,label:(AM[a.type]||{i:'💰'}).i+' '+accLabel(a)}})},src=from.slice().sort(function(a,b){return(b.balance||0)-(a.balance||0)})[0];
+    App.UI.promptModal({title:'🐖 Birikime Aktar',text:'Önce kendine öde: bu ayın birikim hedefinin kalanı '+fmt(o.toSave)+'.',fields:[{key:'amount',label:'Tutar (₺)',type:'number',value:o.toSave},{key:'from',label:'Nereden',type:'select',value:src.id,options:opt(from)},{key:'to',label:'Nereye',type:'select',value:to[0].id,options:opt(to)}],okLabel:'Aktar'},function(v){
+      var amt=parseMoney(v.amount);if(amt===null){App.UI.toast('Geçerli tutar girin.','err');return false}if(!App.Accounts.get(v.from)||!App.Accounts.get(v.to)||v.from===v.to){App.UI.toast('Hesapları seçin.','err');return false}
+      App.Transactions.createTransfer({from:v.from,to:v.to,amount:amt,date:td(),note:'Birikim (maaş planı)',userId:S.settings().activeUser});
+      if(typeof renderAllViews==='function')renderAllViews();else render();App.UI.toast(fmt(amt)+' birikime aktarıldı.');
+    });
+  }
+  return{plan:plan,render:render,transfer:transfer};
 })();
 
 App.Goals=(function(){
