@@ -85,14 +85,15 @@ srv.listen(0, async () => {
   ]);
   const r1 = await load('hesap_hareketleri.xlsx', x1, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   eq('xlsx: account guessed from bank name (Yapı Kredi, not card)', r1.acc, 'a_ykb');
-  eq('xlsx: rows, signs, categories, card payment unchecked', r1.rows, [
+  // Kart ödemesi satırı atlanmaz: uygulamada kart var → aktarım (gelir/gider değil); bu bankanın kartı olmadığından kart borcuna dokunulmaz
+  eq('xlsx: rows, signs, categories, card payment as transfer', r1.rows, [
     [true, 'MAAŞ ÖDEMESİ ACME A.Ş.', '+₺45.000,00', 'Maaş'],
     [true, 'FAST GİDEN AHMET Y.', '−₺2.000,00', 'Diğer'],
     [true, 'MIGROS KADIKOY', '−₺312,75', 'Market'],
-    [false, 'KREDİ KARTI ÖDEMESİ kart ödemesi', '−₺5.000,00', 'Kredi Kartı Ödemesi']]);
+    [true, 'KREDİ KARTI ÖDEMESİ kart ödemesi · aktarım', '−₺5.000,00', 'Transfer']]);
   await page.click('#stmtOk'); await page.waitForTimeout(200);
-  eq('xlsx: 3 added to the account with src=import, owner = account owner', await page.evaluate(() => S.txns().filter(t => t.src === 'import').map(t => [t.date, t.type, t.amount, t.accountId, t.userId]).sort()), [['2026-09-25', 'income', 45000, 'a_ykb', 'u_self'], ['2026-09-26', 'expense', 2000, 'a_ykb', 'u_self'], ['2026-09-27', 'expense', 312.75, 'a_ykb', 'u_self']]);
-  eq('xlsx: balance moved by +42687,25', await page.evaluate(() => App.Accounts.get('a_ykb').balance), 62687.25);
+  eq('xlsx: 4 added to the account with src=import, owner = account owner', await page.evaluate(() => S.txns().filter(t => t.src === 'import').map(t => [t.date, t.type, t.amount, t.accountId, t.userId]).sort()), [['2026-09-25', 'income', 45000, 'a_ykb', 'u_self'], ['2026-09-26', 'expense', 2000, 'a_ykb', 'u_self'], ['2026-09-27', 'expense', 312.75, 'a_ykb', 'u_self'], ['2026-09-28', 'expense', 5000, 'a_ykb', 'u_self']]);
+  eq('xlsx: balance moved by +37687,25 = ekstrenin son bakiyesi; kart ödemesi gider sayılmadı, kart borcu değişmedi (yalnız SMS ile gelen 245,50)', await page.evaluate(() => [App.Accounts.get('a_ykb').balance, App.Transactions.monthTotals('2026-09').expense >= 2312.75 && !S.txns().some(t => t.src === 'import' && t.amount === 5000 && t.category !== 'Transfer'), App.Accounts.get('a_axess').balance]), [57687.25, true, -245.5]);
   const again = await load('hesap_hareketleri.xlsx', x1, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   eq('xlsx again: everything already recorded → nothing preselected', again.rows.map(r => r[0]), [false, false, false, false]);
   eq('xlsx again: add button disabled', await page.evaluate(() => document.getElementById('stmtOk').disabled), true);
@@ -105,8 +106,9 @@ srv.listen(0, async () => {
   const pdf = await pdfPage.pdf({ format: 'A4' }); await pdfPage.close();
   const r2 = await load('ekstre.pdf', pdf, 'application/pdf');
   eq('pdf: card account guessed from masked card number', r2.acc, 'a_axess');
-  eq('pdf: card statement rows', r2.rows.map(r => [r[0], r[1].replace(/ (zaten kayıtlı|kart ödemesi)$/, ''), r[2], r[3]]), [
-    [false, 'ÖDEME - TEŞEKKÜR EDERİZ', '+₺5.000,00', 'Diğer'],
+  // Kart ekstresindeki ödeme satırı: kartın borcunu düşüren aktarım olarak seçili (atlanırsa kart bakiyesi bankadan sapar)
+  eq('pdf: card statement rows', r2.rows.map(r => [r[0], r[1].replace(/ (zaten kayıtlı|kart ödemesi · aktarım|kart ödemesi)$/, ''), r[2], r[3]]), [
+    [true, 'ÖDEME - TEŞEKKÜR EDERİZ', '+₺5.000,00', 'Transfer'],
     [false, 'MIGROS KADIKOY', '−₺245,50', 'Market'],
     [true, 'STARBUCKS BAGDAT CAD', '−₺145,00', 'Yiyecek'],
     [true, 'TRENDYOL.COM 2/6 TAKSIT', '−₺300,00', 'Diğer'],
@@ -118,7 +120,7 @@ srv.listen(0, async () => {
   await page.evaluate(() => App.Statement.flip(4));
   eq('flip back', await page.evaluate(() => document.querySelectorAll('#stmtList .stmt-amt')[4].textContent), '+₺899,90');
   await page.click('#stmtOk'); await page.waitForTimeout(200);
-  eq('pdf: 3 added to the card, owner = card owner', await page.evaluate(() => S.txns().filter(t => t.src === 'import' && t.accountId === 'a_axess').map(t => [t.type, t.amount, t.userId]).sort((a, b) => a[1] - b[1])), [['expense', 145, 'u_partner'], ['expense', 300, 'u_partner'], ['income', 899.9, 'u_partner']]);
+  eq('pdf: 4 added to the card (ödeme aktarım), owner = card owner', await page.evaluate(() => S.txns().filter(t => t.src === 'import' && t.accountId === 'a_axess').map(t => [t.type, t.amount, t.userId, t.category === 'Transfer']).sort((a, b) => a[1] - b[1])), [['expense', 145, 'u_partner', false], ['expense', 300, 'u_partner', false], ['income', 899.9, 'u_partner', false], ['income', 5000, 'u_partner', true]]);
 
   // 3) Excel görünümlü .xls (HTML tablo) Borç/Alacak sütunlarıyla
   const html = '<html><body><table><tr><td>Tarih</td><td>Açıklama</td><td>Borç</td><td>Alacak</td><td>Bakiye</td></tr><tr><td>02.10.2026</td><td>ELEKTRİK FATURASI ENERJİSA</td><td>850,40</td><td></td><td>9.149,60</td></tr><tr><td>03.10.2026</td><td>GELEN EFT MEHMET K.</td><td></td><td>1.500,00</td><td>10.649,60</td></tr></table></body></html>';

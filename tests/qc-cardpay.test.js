@@ -51,31 +51,32 @@ srv.listen(0, async () => {
     const { page, ctx } = await open({ pf_a: [{ id: 'b', name: 'Vadesiz', type: 'bank', owner: 'shared', balance: 10000, openingBalance: 10000, ts: at('2026-10-01') }, { id: 'c', name: 'Kart', type: 'card', owner: 'shared', balance: -36000, openingBalance: -36000, ts: at('2026-10-01') }], pf_t: [] });
     const lines = ['Yapı Kredi Kredi Kartı Hesap Özeti', '10.09.2026 MIGROS KADIKOY 4.500,00', '20.09.2026 TEKNOSA 2.500,00', '28.09.2026 ÖDEME - TEŞEKKÜR EDERİZ -9.000,00', '01.10.2026 SOK MARKET 100,00', '05.10.2026 A101 200,00'];
     const pv = await importStmt(page, 'c', lines, true);
-    eq('önizleme: eylül satırları "bakiye değişmez", ödeme işaretsiz, eklendiği gün (1 Ekim) normal', pv.badges, [['MIGROS KADIKOY', 'bakiye değişmez', true], ['TEKNOSA', 'bakiye değişmez', true], ['ÖDEME - TEŞEKKÜR EDERİZ', 'kart ödemesi', false], ['SOK MARKET', '', true], ['A101', '', true]]);
-    eq('önizleme özeti: bakiyeye etkisi yalnız ekim satırları (−300), not eklenme tarihini söyler', [/bakiyeye etkisi −₺300,00/.test(pv.sum), /2 satır, hesabı uygulamaya eklediğiniz 01 Ekim 2026 tarihinden önce/.test(pv.sum), /bakiyeyi değiştirmez/.test(pv.sum)], [true, true, true]);
-    // bakiye −36.000 − 100 − 200 = −36.300; açılış −36.000 + 7.000 = −29.000 (eylül başı borcu); eylül gideri 7.000, ekim 300
-    eq('ekleme sonrası: kart −36.300, açılış −29.000', await acc(page, 'c'), [-36300, -29000]);
-    eq('eylül gideri 7.000, ekim gideri 300 (ödeme gider değil, eklenmedi)', [await exp(page, '2026-09'), await exp(page, '2026-10')], [7000, 300]);
-    eq('işaretli satır sayısı 2 (yalnız eylül)', await page.evaluate(() => S.txns().filter(t => t.preOpen).map(t => t.date).sort()), ['2026-09-10', '2026-09-20']);
+    // Kart ödemesi satırı da seçili gelir (aktarım: gelir/gider değil); atlanırsa kartın eylül başı borcu yanlış hesaplanıyordu
+    eq('önizleme: eylül satırları "bakiye değişmez", ödeme aktarım olarak seçili, eklendiği gün (1 Ekim) normal', pv.badges, [['MIGROS KADIKOY', 'bakiye değişmez', true], ['TEKNOSA', 'bakiye değişmez', true], ['ÖDEME - TEŞEKKÜR EDERİZ', 'kart ödemesi · aktarım', true], ['SOK MARKET', '', true], ['A101', '', true]]);
+    eq('önizleme özeti: bakiyeye etkisi yalnız ekim satırları (−300), not eklenme tarihini söyler', [/bakiyeye etkisi −₺300,00/.test(pv.sum), /3 satır, hesabı uygulamaya eklediğiniz 01 Ekim 2026 tarihinden önce/.test(pv.sum), /bakiyeyi değiştirmez/.test(pv.sum)], [true, true, true]);
+    // bakiye −36.000 − 100 − 200 = −36.300; eylül başı borcu 36.000 − 7.000 (eylül harcaması) + 9.000 (eylül ödemesi) = 38.000 → açılış −38.000; eylül gideri 7.000, ekim 300
+    eq('ekleme sonrası: kart −36.300, açılış −38.000', await acc(page, 'c'), [-36300, -38000]);
+    eq('eylül gideri 7.000, ekim gideri 300 (ödeme gider değil, aktarım)', [await exp(page, '2026-09'), await exp(page, '2026-10')], [7000, 300]);
+    eq('işaretli satır sayısı 3 (eylül harcamaları ve ödemesi)', await page.evaluate(() => S.txns().filter(t => t.preOpen).map(t => t.date).sort()), ['2026-09-10', '2026-09-20', '2026-09-28']);
     await page.reload(); await page.waitForTimeout(300);
-    eq('yenileme sonrası aynı (bakiye = açılış + hareketler mutabakatı)', await acc(page, 'c'), [-36300, -29000]);
+    eq('yenileme sonrası aynı (bakiye = açılış + hareketler mutabakatı)', await acc(page, 'c'), [-36300, -38000]);
     eq('eski borç (C): eklerken girilen 36.000 korunur, ödeme yok → 36.000 kaldı', await page.evaluate(() => App.Cards.oldDebt('c')), { start: 36000, since: '2026-10-01', paid: 0, left: 36000 });
     eq('işlem listesinde "bakiye değişmedi" etiketi 2 satırda', await page.evaluate(() => { App.UI.nav('islemler'); document.getElementById('fMonth').value = ''; App.Transactions.renderList(); return [...document.querySelectorAll('#txnList .ti')].filter(x => /bakiye değişmedi/.test(x.textContent)).length; }), 2);
     eq('eylül raporu: satır açıklaması bakiyenin neden değişmediğini söyler', await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2026-09'); return [...d.querySelectorAll('.pr-txns tr')].filter(r => /MIGROS/.test(r.textContent)).map(r => /kart eklenmeden önce; kart borcunu değiştirmedi/.test(r.textContent)); }), [true]);
     // Hesaplar tablosu: ay başında, giren, çıkan, ay sonunda; kart sonradan eklendi ama eylül satırları olduğu için eylül raporunda
-    eq('eylül raporu hesap satırı: ay başı −29.000, çıkan 7.000, ay sonu borç 36.000 (o güne geri hesaplanan), eski borç notu yok', await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2026-09'); const r = [...d.querySelectorAll('.pr-accs tbody tr')].find(x => /Kart/.test(x.cells[0].textContent)); return [[...r.cells].slice(1).map(c => c.textContent), /Uygulamadan önceki borç/.test(d.textContent)]; }), [['−₺29.000', '—', '−₺7.000', '−₺36.000'], false]);
+    eq('eylül raporu hesap satırı: ay başı −38.000, giren 9.000 (ödeme), çıkan 7.000, ay sonu borç 36.000 (o güne geri hesaplanan), eski borç notu yok', await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2026-09'); const r = [...d.querySelectorAll('.pr-accs tbody tr')].find(x => /Kart/.test(x.cells[0].textContent)); return [[...r.cells].slice(1).map(c => c.textContent), /Uygulamadan önceki borç/.test(d.textContent)]; }), [['−₺38.000', '+₺9.000', '−₺7.000', '−₺36.000'], false]);
     // Silme ve geri alma: bakiye değişmez, açılış geri kayar
     const mig = await page.evaluate(() => S.txns().find(t => /MIGROS/.test(t.note)).id);
     const removed = await page.evaluate(id => { const t = JSON.parse(JSON.stringify(S.txns().find(x => x.id === id))); App.Transactions.purge(id); return t; }, mig);
-    eq('eylül satırı silindi: kart −36.300 kalır, açılış −33.500, eylül gideri 2.500', [await acc(page, 'c'), await exp(page, '2026-09')], [[-36300, -33500], 2500]);
+    eq('eylül satırı silindi: kart −36.300 kalır, açılış −42.500, eylül gideri 2.500', [await acc(page, 'c'), await exp(page, '2026-09')], [[-36300, -42500], 2500]);
     await page.evaluate(t => App.Transactions.restore([t]), removed);
-    eq('geri alındı: açılış −29.000, eylül gideri 7.000', [await acc(page, 'c'), await exp(page, '2026-09')], [[-36300, -29000], 7000]);
+    eq('geri alındı: açılış −38.000, eylül gideri 7.000', [await acc(page, 'c'), await exp(page, '2026-09')], [[-36300, -38000], 7000]);
     const tek = await page.evaluate(() => S.txns().find(t => /TEKNOSA/.test(t.note)).id);
     await editTx(page, tek, { amount: '3000' });
-    eq('eylül satırının tutarı 2.500 → 3.000: kart yine −36.300, açılış −28.500, eylül 7.500', [await acc(page, 'c'), await exp(page, '2026-09')], [[-36300, -28500], 7500]);
+    eq('eylül satırının tutarı 2.500 → 3.000: kart yine −36.300, açılış −37.500, eylül 7.500', [await acc(page, 'c'), await exp(page, '2026-09')], [[-36300, -37500], 7500]);
     await editTx(page, tek, { date: '2026-10-02' });
     // eklendikten sonraki bir güne taşındı: artık normal hareket, borca eklenir (−36.300 − 3.000)
-    eq('tarihi 2 Ekim\'e taşındı: normal harekete döner, kart −39.300, açılış −31.500', [await acc(page, 'c'), await page.evaluate(id => !!S.txns().find(t => t.id === id).preOpen, tek)], [[-39300, -31500], false]);
+    eq('tarihi 2 Ekim\'e taşındı: normal harekete döner, kart −39.300, açılış −40.500', [await acc(page, 'c'), await page.evaluate(id => !!S.txns().find(t => t.id === id).preOpen, tek)], [[-39300, -40500], false]);
     eq('eylül 4.500, ekim 3.300', [await exp(page, '2026-09'), await exp(page, '2026-10')], [4500, 3300]);
     await ctx.close();
   }
