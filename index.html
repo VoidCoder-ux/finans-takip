@@ -430,6 +430,11 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
 .yr-cats{margin-top:12px}.yr-cat{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:7px 0;border-top:1px solid var(--border)}.yr-cat:first-child{border-top:0}
 .yr-cat b{font-weight:700;overflow-wrap:anywhere}.yr-cat span{text-align:right;font-weight:800;white-space:nowrap}.yr-cat small{grid-column:1/-1;font-size:.82rem;color:var(--txt2)}
 @media(max-width:600px){.yr-kpis{grid-template-columns:1fr 1fr}}
+.bl-intro{font-size:.86rem;color:var(--txt2);margin:-4px 0 10px}
+.bl-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:8px 0;border-top:1px solid var(--border);font-size:.9rem}.bl-name{font-weight:700;overflow-wrap:anywhere}.bl-amt{font-weight:800;text-align:right;white-space:nowrap}.bl-none{font-weight:600;color:var(--txt3)}.bl-sub{grid-column:1/-1;font-size:.84rem;color:var(--txt2);line-height:1.45}.bl-row.warn .bl-sub{color:var(--yellow)}
+.bl-total{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:8px 0;border-top:2px solid var(--border2);font-size:.9rem;font-weight:700}.bl-total b{text-align:right;white-space:nowrap}.bl-note{margin-top:8px}
+.fi-sum{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:6px}.fi-sum>div{flex:1 1 130px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px}.fi-lbl{display:block;font-size:.8rem;color:var(--txt2);margin-bottom:2px}.fi-sum b{font-size:1.25rem}
+.fi-vs{font-size:.88rem;font-weight:700;margin-bottom:6px;color:var(--txt2)}.fi-vs.up{color:var(--red)}.fi-vs.down{color:var(--green)}
 .goal-own{font-size:.82rem;font-weight:700;color:var(--txt2);margin-top:2px}
 .kid-card{padding:16px}.kid-head{display:flex;align-items:center;gap:12px;margin-bottom:6px}.kid-emoji{font-size:2rem;line-height:1}.kid-who{min-width:0}.kid-name{font-size:1.05rem;font-weight:800;overflow-wrap:anywhere}.kid-sub{font-size:.86rem;color:var(--txt2);margin-top:2px}
 .kid-sec{border-top:1px solid var(--border);padding-top:10px;margin-top:10px}.kid-h{font-size:.9rem;font-weight:800;margin-bottom:6px}.kid-line{font-size:.88rem;line-height:1.5;color:var(--txt);overflow-wrap:anywhere}.kid-line.muted{color:var(--txt2)}.kid-line.warn{color:var(--yellow)}
@@ -1066,6 +1071,8 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
   <div class="an-grid" id="statsWhere"></div>
   <div id="statsSplit"></div>
   <div id="statsTags"></div>
+  <div id="statsBills"></div>
+  <div id="statsInfl"></div>
   <div class="stats-grid">
     <div class="chart-card"><div class="chart-title">Harcama Dağılımı</div><div class="chart-wrap"><canvas id="cDonut"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">6 Aylık Trend</div><div class="chart-wrap"><canvas id="cBar"></canvas></div></div>
@@ -1164,7 +1171,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.13.1</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.13.2</div>
 </section>
 
 </main>
@@ -3976,7 +3983,7 @@ App.Charts=(function(){
     var c=document.getElementById(id);if(!c)return;
     var ctx=c.getContext('2d');canvasMsg(ctx,msg);
   }
-  function refresh(){var month=document.getElementById('statMonth').value||tm();var cats=App.Transactions.catTotals(month);_summary(month,cats);if(App.Split)App.Split.renderStats(month);if(App.Tags)App.Tags.render();if(App.YearSum)App.YearSum.render();if(!window.Chart){if(_d){_d.destroy();_d=null}if(_b){_b.destroy();_b=null}_drawMsg('cDonut','Grafik kütüphanesi yüklenemedi');_drawMsg('cBar','Grafik kütüphanesi yüklenemedi');var cc=document.getElementById('cmpContent');if(cc)cc.innerHTML='<div class="empty"><span class="empty-ico">📊</span><div class="empty-t">Grafik kütüphanesi yüklenemedi</div></div>';var st=document.getElementById('statsTable');if(st)st.innerHTML='<div class="empty"><span class="empty-ico">📊</span><div class="empty-t">Grafik kütüphanesi yüklenemedi</div></div>';return}_donut(cats);_bar(App.Transactions.last6(month));_compare(month);_table(month,cats)}
+  function refresh(){var month=document.getElementById('statMonth').value||tm();var cats=App.Transactions.catTotals(month);_summary(month,cats);if(App.Split)App.Split.renderStats(month);if(App.Tags)App.Tags.render();if(App.Bills)App.Bills.renderStats(month);if(App.FamInf)App.FamInf.renderStats(month);if(App.YearSum)App.YearSum.render();if(!window.Chart){if(_d){_d.destroy();_d=null}if(_b){_b.destroy();_b=null}_drawMsg('cDonut','Grafik kütüphanesi yüklenemedi');_drawMsg('cBar','Grafik kütüphanesi yüklenemedi');var cc=document.getElementById('cmpContent');if(cc)cc.innerHTML='<div class="empty"><span class="empty-ico">📊</span><div class="empty-t">Grafik kütüphanesi yüklenemedi</div></div>';var st=document.getElementById('statsTable');if(st)st.innerHTML='<div class="empty"><span class="empty-ico">📊</span><div class="empty-t">Grafik kütüphanesi yüklenemedi</div></div>';return}_donut(cats);_bar(App.Transactions.last6(month));_compare(month);_table(month,cats)}
   function _pct(v){return fmtPct(v,1)}
   function _daysInMonth(m){var p=m.split('-');return new Date(+p[0],+p[1],0).getDate()}
   function _summary(month,cats){
@@ -4358,6 +4365,96 @@ App.WeeklySummary=(function(){
     el.innerHTML='<div class="week-card"><div class="week-head"><div><div class="week-title">Son 7 Gün</div><div class="week-sub">'+range+'</div></div><div class="week-total">'+fmt(total)+'</div></div><div class="week-bars">'+bars+'</div></div>';
   }
   return{render}
+})();
+
+// Faturalar: "Faturalar" kategorisindeki giderler notuna bakılarak türüne ayrılır (Enerjisa → Elektrik, İGDAŞ → Doğalgaz…);
+// adı elektrik, su, doğalgaz… olan kategori de o türdür. Her tür seçilen ayda geçen yılın aynı ayıyla (TÜFE ile birlikte) ve son
+// 3 ayın ortalamasıyla karşılaştırılır. Elektrik ve doğalgaz mevsime göre değiştiğinden yalnız geçen yılla kıyaslanır
+App.Bills=(function(){
+  var TYPES=[
+    {k:'phone',n:'Telefon',i:'📱',rx:/\b(turkcell|bimcell|pttcell|mobil|gsm|cep tel\w*|hat faturasi|telefon\w*)\b|\bvodafone\b(?! ?net)/},
+    {k:'net',n:'İnternet',i:'🌐',rx:/\b(internet|superonline|turknet|turk ?telekom|ttnet|kablonet|fiber|millenicom|vodafone ?net|adsl|vdsl)\b/},
+    {k:'gas',n:'Doğalgaz',i:'🔥',rx:/\b(dogal ?gaz\w*|igdas|baskentgaz|izmirgaz|aksa|enerya|bursagaz|kayserigaz|palen|egegaz|gazdas|esgaz|gaz)\b/},
+    {k:'elec',n:'Elektrik',i:'⚡',rx:/\b(elektrik\w*|enerjisa|ck enerji|ck bogazici|aydem|gediz|toroslar|uludag elektrik|osmangazi elektrik|dicle elektrik|vangolu|meram elektrik|camlibel|sepas|coruh elektrik|yesilirmak elektrik|kcetas)\b/},
+    {k:'water',n:'Su',i:'💧',rx:/\b(su|su faturasi|iski|aski|izsu|buski|maski|asat|deski|koski|saski|kaski|meski|gaski|suski|su idaresi)\b/}
+  ],OTHER={k:'other',n:'Diğer faturalar',i:'🧾'},SEASONAL={gas:1,elec:1},ORDER=['elec','water','gas','net','phone','other'];
+  function _fold(s){return String(s||'').toLocaleLowerCase('tr-TR').replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[âà]/g,'a').replace(/î/g,'i').replace(/û/g,'u')}
+  function info(k){return TYPES.find(function(x){return x.k===k})||OTHER}
+  // Gider bir fatura mı, hangi tür? Önce kategori adı, sonra (Faturalar kategorisinde) not
+  function typeOf(t){
+    if(!t||t.type!=='expense'||isTransfer(t))return null;var c=_fold(t.category),i;
+    for(i=0;i<TYPES.length;i++)if(TYPES[i].rx.test(c))return TYPES[i].k;
+    if(t.category!=='Faturalar')return null;var n=_fold(t.note);
+    for(i=0;i<TYPES.length;i++)if(TYPES[i].rx.test(n))return TYPES[i].k;
+    return'other';
+  }
+  // {tür: {ay: tutar}} — bugüne kadar
+  function byMonth(){var o={},today=td();S.txns().forEach(function(t){if(t.date>today)return;var k=typeOf(t);if(!k)return;var m=t.date.slice(0,7);o[k]=o[k]||{};o[k][m]=(o[k][m]||0)+t.amount});return o}
+  function _ml(m){var p=m.split('-');return MF[+p[1]-1]+' '+p[0]}
+  function _mn(m){return MF[+m.split('-')[1]-1]}
+  // Seçilen ay için tür başına karşılaştırma; flag: 'yoy' (geçen yıla göre TÜFE'nin 20 puandan fazla üzerinde) ya da 'avg'
+  function compare(month){
+    var bm=byMonth(),ly=shiftMonth(month,-12),cpi=App.FamInf?App.FamInf.cpiYoY(month):null,lim=cpi?cpi.rate+0.20:0.50,rows=[];
+    ORDER.map(info).forEach(function(T){var o=bm[T.k];if(!o)return;
+      var any=false;for(var i=0;i<=12;i++)if(o[shiftMonth(month,-i)])any=true;if(!any)return;
+      var cur=roundMoney(o[month]||0),prev=roundMoney(o[ly]||0),h=[];for(var j=1;j<=3;j++){var v=o[shiftMonth(month,-j)];if(v)h.push(v)}
+      var avg=h.length?roundMoney(h.reduce(function(s2,x){return s2+x},0)/h.length):0,chg=cur>0&&prev>0?cur/prev-1:null,flag='',text='';
+      if(chg!==null&&chg>lim&&cur-prev>=200){flag='yoy';text=_mn(month)+': '+fmt(cur)+' · geçen yıl '+_mn(ly)+' '+fmt(prev)+' ('+fmtPct(Math.round(chg*100))+' fazla'+(cpi?'; TÜFE '+fmtPct(Math.round(cpi.rate*100)):'')+').'}
+      else if(!prev&&!SEASONAL[T.k]&&cur>0&&avg>0&&cur>avg*1.5&&cur-avg>=200){flag='avg';text=_mn(month)+': '+fmt(cur)+' · son '+h.length+' ayın ortalaması '+fmt(avg)+' ('+fmtPct(Math.round((cur/avg-1)*100))+' fazla).'}
+      rows.push({k:T.k,n:T.n,i:T.i,cur:cur,ly:prev,avg:avg,chg:chg,flag:flag,text:text});
+    });
+    return{month:month,ly:ly,cpi:cpi,rows:rows,total:roundMoney(rows.reduce(function(s2,r){return s2+r.cur},0)),totalLy:roundMoney(rows.reduce(function(s2,r){return s2+r.ly},0))};
+  }
+  function alerts(month){return compare(month).rows.filter(function(r){return r.flag})}
+  function renderStats(month){
+    var el=document.getElementById('statsBills');if(!el)return;if(month>tm()){el.innerHTML='';return}
+    var c=compare(month);if(!c.rows.length){el.innerHTML='';return}
+    var h='<div class="an-card bl-card"><div class="chart-title">🧾 Faturalar · '+_ml(month)+'</div>';
+    h+='<div class="bl-intro">Geçen yılın aynı ayıyla karşılaştırma'+(c.cpi?' · TÜFE yıllık '+fmtPct(Math.round(c.cpi.rate*100))+' ('+_ml(c.cpi.month)+')':'')+'</div>';
+    h+=c.rows.map(function(r){var sub=[];
+      if(r.ly>0)sub.push('Geçen yıl '+_mn(c.ly)+': '+fmt(r.ly)+(r.chg!==null?' · '+(Math.round(r.chg*100)===0?'aynı':fmtPct(Math.abs(Math.round(r.chg*100)))+(r.chg>0?' arttı':' azaldı')):''));
+      else sub.push('Geçen yıl '+_mn(c.ly)+' kaydı yok');
+      if(r.avg>0)sub.push('son 3 ay ortalaması '+fmt(r.avg));
+      return'<div class="bl-row'+(r.flag?' warn':'')+'"><span class="bl-name">'+r.i+' '+esc(r.n)+'</span><span class="bl-amt">'+(r.cur>0?fmt(r.cur):'<span class="bl-none">bu ay yok</span>')+'</span><span class="bl-sub">'+(r.flag?'⚠️ ':'')+sub.join(' · ')+'</span></div>'}).join('');
+    if(c.rows.length>1)h+='<div class="bl-total"><span>Toplam</span><b>'+fmt(c.total)+'</b><span class="bl-sub">Geçen yıl '+_mn(c.ly)+': '+fmt(c.totalLy)+'</span></div>';
+    h+='<div class="set-sub bl-note">Faturalar kategorisindeki giderler notundaki kurum adıyla ayrılır (Enerjisa, İGDAŞ, İSKİ, Türk Telekom…). Tanınmayanlar "Diğer faturalar"da.</div>';
+    el.innerHTML=h+'</div>';
+  }
+  return{TYPES,typeOf,byMonth,compare,alerts,renderStats,info}
+})();
+
+// Ailenin kendi enflasyonu: market, kira ve faturaya son 3 ayda ödenen, geçen yılın aynı 3 ayına göre ne kadar arttı; TÜFE ile.
+// İçinde bulunulan ay bitmediğinden son 3 tamamlanmış ay alınır. Harcama artışı, alınan miktar değişmediyse fiyat artışına yakındır
+App.FamInf=(function(){
+  var GROUPS=[{k:'market',n:'Market',i:'🛒'},{k:'rent',n:'Kira',i:'🏠'},{k:'bills',n:'Faturalar',i:'🧾'}];
+  // Grup anahtarı; faturalar türüyle (b:elec…): yalnız iki dönemde de kaydı olan türler karşılaştırılır
+  function _g(t){if(t.type!=='expense'||isTransfer(t))return'';if(t.category==='Market')return'market';
+    if(/\bkira\b/.test(String(t.category||'').toLocaleLowerCase('tr-TR')))return'rent';var b=App.Bills.typeOf(t);return b?'b:'+b:''}
+  // TÜFE yıllık değişim: ay için (veri yoksa son veri ayı)
+  function cpiYoY(m){var c=App.Inflation.data(),lm=App.Inflation.latestMonth(),u=m>lm?lm:m,a=c[u],b=c[shiftMonth(u,-12)];return a&&b?{rate:a/b-1,month:u}:null}
+  function _ml(m){var p=m.split('-');return MF[+p[1]-1]+' '+p[0]}
+  function _range(a,b){var p=a.split('-'),q=b.split('-');return p[0]===q[0]?MF[+p[1]-1]+'–'+MF[+q[1]-1]+' '+q[0]:_ml(a)+'–'+_ml(b)}
+  function compute(month){
+    var end=month>=tm()?shiftMonth(tm(),-1):month,start=shiftMonth(end,-2),lyS=shiftMonth(start,-12),lyE=shiftMonth(end,-12),cur={},prev={};
+    S.txns().forEach(function(t){var m=t.date.slice(0,7),k;if(m>end||m<lyS||(m>lyE&&m<start))return;k=_g(t);if(!k)return;var o=m>=start?cur:prev;o[k]=(o[k]||0)+t.amount});
+    Object.keys(cur).concat(Object.keys(prev)).forEach(function(k){if(k.indexOf('b:')!==0)return;var c=cur[k]||0,p=prev[k]||0;if(c>0&&p>0){cur.bills=(cur.bills||0)+c;prev.bills=(prev.bills||0)+p}delete cur[k];delete prev[k]});
+    var rows=GROUPS.map(function(G){var c=roundMoney(cur[G.k]||0),p=roundMoney(prev[G.k]||0);return{k:G.k,n:G.n,i:G.i,cur:c,prev:p,rate:c>0&&p>0?c/p-1:null}}).filter(function(r){return r.cur>0||r.prev>0});
+    var both=rows.filter(function(r){return r.rate!==null}),sc=both.reduce(function(s2,r){return s2+r.cur},0),sp=both.reduce(function(s2,r){return s2+r.prev},0);
+    return{start:start,end:end,lyStart:lyS,lyEnd:lyE,rows:rows,rate:sp>0?sc/sp-1:null,cpi:cpiYoY(end)};
+  }
+  function renderStats(month){
+    var el=document.getElementById('statsInfl');if(!el)return;if(month>tm()){el.innerHTML='';return}
+    var o=compute(month);if(o.rate===null){el.innerHTML='';return}
+    var pc=function(r){var v=Math.round(r*100);return v===0?'aynı':fmtPct(Math.abs(v))+(v>0?' arttı':' azaldı')};
+    var cp=o.cpi?Math.round(o.cpi.rate*100):null,me=Math.round(o.rate*100),vs=cp===null?'':me>cp+5?'TÜFE\'nin üzerinde':me<cp-5?'TÜFE\'nin altında':'TÜFE\'ye yakın',lvl=cp===null?'':me>cp+5?' up':me<cp-5?' down':'';
+    var h='<div class="an-card fi-card"><div class="chart-title">📈 Aile enflasyonu</div><div class="bl-intro">'+_range(o.start,o.end)+', geçen yılın aynı aylarına göre</div>';
+    h+='<div class="fi-sum'+lvl+'"><div><span class="fi-lbl">Sizin sepetiniz</span><b>'+(me>0?'+':'')+fmtPct(me)+'</b></div>'+(cp!==null?'<div><span class="fi-lbl">TÜFE yıllık ('+_ml(o.cpi.month)+')</span><b>'+(cp>0?'+':'')+fmtPct(cp)+'</b></div>':'')+'</div>';
+    if(vs)h+='<div class="fi-vs'+lvl+'">'+vs+'</div>';
+    h+=o.rows.map(function(r){return'<div class="bl-row"><span class="bl-name">'+r.i+' '+r.n+'</span><span class="bl-amt">'+(r.rate!==null?pc(r.rate):'—')+'</span><span class="bl-sub">'+fmt(r.cur)+(r.prev>0?' · geçen yıl '+fmt(r.prev):' · geçen yıl kaydı yok')+'</span></div>'}).join('');
+    h+='<div class="set-sub bl-note">Sepet: market, kira ve faturalar (her ikisinde de kaydı olanlar). Harcamadaki artış fiyat artışıyla aynı değildir: daha çok ya da daha az aldıysanız fark eder.'+(!o.cpi?' TÜFE verisi bulunamadı; Ayarlar › Enflasyon\'dan girin.':'')+'</div>';
+    el.innerHTML=h+'</div>';
+  }
+  return{compute,cpiYoY,renderStats}
 })();
 
 App.Inflation=(function(){
@@ -6519,6 +6616,10 @@ App.Insights=(function(){
       if(s5.want>s5.target.want+0.5)warn('yellow','🎈','İstekler hedefin üzerinde','İstek harcaması '+fmt(s5.want)+', gelire oranı '+spX(s5.pct.want)+' (hedef %'+sr.want+', '+fmt(s5.target.want)+'). Fazlası '+fmt(roundMoney(s5.want-s5.target.want))+'.');
       if(s5.need>s5.target.need+0.5)warn('info','🏠','İhtiyaçlar hedefin üzerinde','İhtiyaç harcaması '+fmt(s5.need)+', gelire oranı '+spX(s5.pct.need)+' (hedef %'+sr.need+', '+fmt(s5.target.need)+'). Kira, fatura gibi sabit giderler yüksekse oranları Bütçe sayfasında değiştirebilirsiniz.');
       if(!isCur&&s5.save>=0&&s5.save<s5.target.save-0.5)warn('yellow','🐖','Birikim hedefin altında','Birikim '+fmt(s5.save)+', gelire oranı '+spX(s5.pct.save)+' (hedef %'+sr.save+', '+fmt(s5.target.save)+'). Eksik '+fmt(roundMoney(s5.target.save-s5.save))+'.')}
+    // 4d) Faturalar: geçen yılın aynı ayından TÜFE'nin 20 puandan fazla üzerinde ya da (geçen yıl kaydı yoksa) son 3 ayın ortalamasının 1,5 katı
+    // Fatura türü uyarısı varsa genel "Faturalar harcaması arttı" uyarısı tekrar olur, kaldırılır
+    var bAl=App.Bills?App.Bills.alerts(month):[];if(bAl.length)for(var wi=W.length-1;wi>=0;wi--)if(W[wi].title==='Faturalar harcaması arttı')W.splice(wi,1);
+    bAl.forEach(function(r){warn('yellow',r.i,(r.k==='other'?'Diğer faturalar ':r.n+' faturası ')+(r.flag==='yoy'?'geçen yıldan çok yüksek':'beklenenden yüksek'),r.text)});
     // 4c) Tarihli birikim hedefleri: geride kalan ya da tarihi geçen (bugünkü durum; yalnız içinde bulunulan ayda)
     if(isCur)S.goals().forEach(function(g){if(!g.due)return;var f=App.Goals.forecast(g),ml=MF[+g.due.slice(5)-1]+' '+g.due.slice(0,4);
       if(f.status==='late')warn('yellow','🎯',g.name+' hedefinin tarihi geçti','Hedef tarihi '+ml+' · '+fmt(f.rem)+' eksik.');
