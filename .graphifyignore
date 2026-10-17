@@ -1,1 +1,4 @@
 vendor/
+index.html
+icons/
+tests/fixtures/

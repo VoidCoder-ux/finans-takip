@@ -1,113 +1,103 @@
 # Graph Report - finans-takip  (2026-10-17)
 
 ## Corpus Check
-- 77 files · ~205,784 words
+- 78 files · ~157,342 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: (none) 4, .example 1, .toml 1)
 
 ## Summary
-- 1740 nodes · 4855 edges · 92 communities (86 shown, 6 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 100 edges (avg confidence: 0.88)
-- Token cost: 0 input · 0 output
-
-## Graph Freshness
-- Built from commit: `39a3c592`
-- Run `git rev-parse HEAD` and compare to check if the graph is stale.
-- Run `graphify update .` after code changes (no API cost).
+- 1777 nodes · 4914 edges · 87 communities (84 shown, 3 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 110 edges (avg confidence: 0.84)
+- Token cost: 203,156 input · 0 output
 
 ## Community Hubs (Navigation)
-- index.js
-- qc-budget-period.test.js
-- gmail-script.test.js
-- ui-scan.js
-- statement-import.test.js
-- Diğer Bulgular
-- qc-split.test.js
-- text-overlap.test.js
-- browser-behavior.test.js
-- cards.test.js
-- market-e2e.test.js
-- insights.test.js
-- qc-audit.test.js
-- qc-dupes.test.js
-- bank-sms.test.js
-- qc-calendar.test.js
-- qc-health.test.js
-- qc-kids.test.js
-- qc-moves.test.js
-- qc-payday.test.js
-- qc-visual.js
-- qc-bank.test.js
-- qc-bills.test.js
-- qc-flow.test.js
-- qc-reconcile.test.js
-- qc-report.test.js
-- qc-data.test.js
-- qc-stmt-akbank.test.js
-- qc-tags.test.js
-- qc-transfers.test.js
-- readability.test.js
-- ref_fs
-- ozet-summary.test.js
-- qc-cardpay.test.js
-- qc-finance.test.js
-- qc-goals.test.js
-- Finans Takip — Cloudflare kurulumu
-- index.html.js
-- manifest.json
-- scripts
-- qc-loans.test.js
-- receipt-pdf.test.js
-- ref_path
-- qc-push.test.js
-- Aile Kasası — Yayın Öncesi Kalite Denetimi (#5)
-- qc-audit7.test.js
-- Aile Kasası — Yayın Öncesi Kalite Denetimi (#4)
-- xss-scan.js
-- Finans Takip — Denetim Raporu #3
-- gen-vapid.mjs
-- url
-- CLAUDE.md
-- run-all.sh
-- qc-files.test.js
-- qc-stmt-format.test.js
-- quality-regression.test.js
-- refreshRates
-- date-math.test.js
-- build
-- render
-- join
-- normalize
-- toast
-- plan
-- get
-- renderAll
-- _rh
-- fmt
-- nav
-- test
-- base
-- one
-- renderCard
-- qc-ideas.test.js
-- edit
-- compute
-- prepare
-- importCSVFile
-- ref_http
-- _renderChart
-- _round
-- td
-- decrypt
-- isTransfer
-- qc-cards.test.js
-- qc-finance2.test.js
-- normalize
-- graphify-update.js
-- receipt-e2e.test.js
-- roundMoney
-- sms-e2e.test.js
-- data
+- Uygulama: genel yardımcılar ve Excel
+- Eşitleme, e-posta ve push kurulumu
+- Worker sunucu API'si
+- İşlem ekle/düzenle ve bakiye
+- Kredi, borç ve maaş planı
+- Sayfa çizimi ve listeler
+- Nakit akışı ve ay toplamları
+- Bütçe, istatistik ve ay özeti
+- Worker belgeleri ve yayın hattı
+- Pencereler, para girişi, hedef katkısı
+- Para biçimi ve kart ödemesi
+- HTML kaçış ve seçim kutuları
+- Eşitleme birleştirme ve PDF rapor
+- Kart ve bildirim testleri
+- Tekrarlayan işlemler
+- graphify aracı ve eşitleme testi
+- Banka SMS ayrıştırıcı
+- Yazı çakışma testi
+- Gmail betiği testi
+- Banka mesajı onay kuyruğu
+- QA denetim raporu bulguları
+- Fiş okutma (kamera/PDF)
+- Ödeme hesabı ve kamera testleri
+- Öneri testleri
+- Tarayıcı davranış testi
+- Piyasa verisi testleri
+- Ekstre içe aktarma testi
+- Kart testleri
+- Uyarı motoru testleri
+- Çift kayıt testleri
+- Kart ekstre tarihleri
+- Banka SMS testi
+- Hesap denetimi testi
+- Sağlık puanı testi
+- Çocuklar testi
+- Banka hareketleri testi
+- Maaş günü testi
+- Görsel tarama
+- Çok ajanlı denetim raporu (2)
+- Yayın öncesi kalite raporu (4)
+- Eşitleme uçtan uca testleri
+- Banka kanal testleri
+- Fatura ve enflasyon testi
+- Takvim testi
+- Para akışı testi
+- Mutabakat testi
+- 50/30/20 testi
+- Etiket testi
+- Aktarım testi
+- Okunabilirlik testi
+- Gezinme ve acil durum
+- Özet sayfası testi
+- Finans hesap testi
+- Hedef testi
+- Rapor testi
+- Akbank ekstre testi
+- Kalite regresyon testi
+- Banka mesajı ve aktarım bulguları (5)
+- PWA manifest
+- Veri testi
+- Worker paket ayarları
+- Bütçe dönemi testi
+- Kart ödemesi testi
+- Kredi testi
+- Fiş PDF testi
+- Ekstre PDF ayrıştırma
+- Fiş metni ve karekod
+- Denetim 7 testi
+- Veri temizleme (normalize)
+- Tarih hesap testi
+- Dosya testi
+- Finans hesap testi 2
+- Push bildirim testi
+- Ekstre biçim testi
+- Arayüz taraması
+- Denetim raporu 3
+- Takvim (ICS) ve yaklaşan ödemeler
+- XSS taraması
+- Döviz/altın kurları
+- CSV içe aktarma
+- Fiş uçtan uca testi
+- SMS uçtan uca testi
+- graphify kuralları
+- Yedekleme
+- Tam test paketi kuralı
+- Belirsiz not ve çift kayıt
+- VAPID anahtar üretimi
 
 ## God Nodes (most connected - your core abstractions)
 1. `td()` - 104 edges
@@ -116,391 +106,399 @@
 4. `render()` - 90 edges
 5. `roundMoney()` - 84 edges
 6. `test()` - 84 edges
-7. `fmt()` - 77 edges
+7. `fmt()` - 76 edges
 8. `add()` - 71 edges
 9. `edit()` - 70 edges
 10. `compute()` - 70 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `FT-008` --references--> `fd()`  [INFERRED]
-  docs/qa-denetim-raporu.md → graphify-src/index.html.js
-- `FT-010` --references--> `addPayment()`  [INFERRED]
-  docs/qa-denetim-raporu.md → graphify-src/index.html.js
-- `FT-009` --references--> `period()`  [INFERRED]
-  docs/qa-denetim-raporu.md → graphify-src/index.html.js
-- `Sayfalar` --references--> `fund()`  [INFERRED]
-  docs/qa-denetim-raporu.md → graphify-src/index.html.js
-- `1. Kapsam ve doğrulama tablosu` --references--> `cards()`  [INFERRED]
-  docs/denetim-raporu-4.md → graphify-src/index.html.js
+- `compute()` --indirect_call--> `D()`  [INFERRED]
+  graphify-src/index.html.js → tests/qc-ideas.test.js
+- `tests/run-all.sh Full Test Run` --semantically_similar_to--> `Local Development and Testing`  [INFERRED] [semantically similar]
+  .github/workflows/test.yml → worker/README.md
+- `add()` --indirect_call--> `amt()`  [INFERRED]
+  graphify-src/index.html.js → tests/qc-stmt-akbank.test.js
+- `edit()` --indirect_call--> `acc()`  [INFERRED]
+  graphify-src/index.html.js → tests/browser-behavior.test.js
+- `_refresh()` --indirect_call--> `c()`  [INFERRED]
+  graphify-src/index.html.js → tests/qc-goals.test.js
 
 ## Import Cycles
 - None detected.
 
-## Communities (92 total, 6 thin omitted)
+## Hyperedges (group relationships)
+- **Bank Transaction Ingest Channels into Inbox** — worker_readme_bank_sms_ingest, worker_readme_bank_notification_ingest, worker_readme_gmail_apps_script, worker_readme_inbox, worker_readme_cross_channel_dedup [EXTRACTED 1.00]
+- **CI Test-then-Deploy Pipeline** — _github_workflows_deploy_workflow, _github_workflows_deploy_test, _github_workflows_test_workflow, _github_workflows_deploy_deploy, _github_workflows_deploy_wrangler_deploy [EXTRACTED 1.00]
+- **Real-Time Encrypted Sync** — worker_readme_device_sync, worker_readme_client_side_encryption, worker_readme_durable_object_websocket, worker_readme_field_level_merge, worker_readme_vault_api [INFERRED 0.85]
+- **Banka SMS/E-posta Ayrıştırma Düzeltmeleri** — docs_denetim_raporu_4_sms_tekrar_denetimi_f6, docs_denetim_raporu_4_sms_taksit_plani_f7, docs_denetim_raporu_4_sms_kutusu_ack_korumasi_f10, docs_denetim_raporu_5_faiz_aidat_gider_g3, docs_denetim_raporu_5_provizyon_onay_g4, docs_denetim_raporu_5_maas_ikramiye_g5, docs_denetim_raporu_5_onay_kuyrugu [INFERRED 0.85]
+- **Gider Sayılmayan Hesaplar Arası Aktarım Modeli** — docs_denetim_raporu_3_hesaplar_arasi_transfer, docs_denetim_raporu_4_aktarim_turu_f8, docs_denetim_raporu_5_virman_onay_g8 [INFERRED 0.85]
+- **Yayın Öncesi Kalite Kapısı** — docs_denetim_raporu_4_tam_test_ci_f23, docs_denetim_raporu_4_aile_kabul_testi, docs_denetim_raporu_4_geri_donus_plani, docs_denetim_raporu_4_kosullu_hazir_karari [EXTRACTED 1.00]
 
-### Community 0 - "index.js"
+## Communities (87 total, 3 thin omitted)
+
+### Community 0 - "Uygulama: genel yardımcılar ve Excel"
+Cohesion: 0.03
+Nodes (100): _accOptions(), _accs(), all(), _body(), _brand(), byBankName(), byMonth(), _calAmt() (+92 more)
+
+### Community 1 - "Eşitleme, e-posta ve push kurulumu"
+Cohesion: 0.05
+Nodes (83): aesKey(), _aiReady(), api(), available(), b64u(), _bar(), _cache(), canvasMsg() (+75 more)
+
+### Community 2 - "Worker sunucu API'si"
 Cohesion: 0.06
 Nodes (66): RFC-8030, RFC-8292, b64url(), bearer(), cors(), fetch(), HttpError, istanbulDay() (+58 more)
 
-### Community 1 - "qc-budget-period.test.js"
-Cohesion: 0.14
-Nodes (10): fs, http, path, pw, R, SEED, srv, T (+2 more)
-
-### Community 2 - "gmail-script.test.js"
+### Community 3 - "İşlem ekle/düzenle ve bakiye"
 Cohesion: 0.10
-Nodes (14): crypto, { execFileSync }, fs, google(), http, MSGS, path, pw (+6 more)
+Nodes (58): activeTagFor(), add(), addAccQuick(), addExpense(), addInternal(), addPlan(), _addTransfer(), adjustBalance() (+50 more)
 
-### Community 3 - "ui-scan.js"
+### Community 4 - "Kredi, borç ve maaş planı"
+Cohesion: 0.09
+Nodes (47): alerts(), _bal(), balanceAt(), _card(), _cfg(), _cl(), compute(), dateMonth() (+39 more)
+
+### Community 5 - "Sayfa çizimi ve listeler"
+Cohesion: 0.09
+Nodes (46): active(), addPayment(), _adopt(), _after(), applyExisting(), _bankTxn(), _bannerHtml(), _calItem() (+38 more)
+
+### Community 6 - "Nakit akışı ve ay toplamları"
+Cohesion: 0.13
+Nodes (39): allTimeTotals(), _bin(), build(), delta(), cards(), catNet(), catRange(), causes() (+31 more)
+
+### Community 7 - "Bütçe, istatistik ve ay özeti"
+Cohesion: 0.10
+Nodes (36): adjust(), _applyCpi(), average(), calNav(), catTotals(), closeMonthCard(), _compare(), deltaCell() (+28 more)
+
+### Community 8 - "Worker belgeleri ve yayın hattı"
+Cohesion: 0.08
+Nodes (34): deploy job, Secret Presence and Format Check, deploy.yml test job (reusable test.yml), Cloudflare Deploy Workflow, Write database_id and VAPID_SUBJECT into wrangler.toml, npx wrangler deploy, Local .dev.vars with Fake Keys and Mock Market URLs, test job (+26 more)
+
+### Community 9 - "Pencereler, para girişi, hedef katkısı"
+Cohesion: 0.12
+Nodes (35): addContrib(), addKumbara(), _askPdfPassword(), close(), closeModal(), contribute(), editCpi(), editPrice() (+27 more)
+
+### Community 10 - "Para biçimi ve kart ödemesi"
+Cohesion: 0.15
+Nodes (33): accLabel(), _actions(), _barCls(), confirmPay(), _dd(), detail(), exportCSV(), fd() (+25 more)
+
+### Community 11 - "HTML kaçış ve seçim kutuları"
 Cohesion: 0.18
-Nodes (9): fs, http, iso(), path, pw, R, seed(), srv (+1 more)
+Nodes (32): _accOpts(), _bars(), _catOpts(), ci(), esc(), escAttr(), _fillLimitWith(), _fillOwner() (+24 more)
 
-### Community 4 - "statement-import.test.js"
-Cohesion: 0.12
-Nodes (12): crc32(), esc(), fs, http, path, pw, R, srv (+4 more)
+### Community 12 - "Eşitleme birleştirme ve PDF rapor"
+Cohesion: 0.08
+Nodes (29): _btn(), collect(), _content(), db(), fileMode(), generate(), generateMonth(), _generic() (+21 more)
 
-### Community 5 - "Diğer Bulgular"
+### Community 13 - "Kart ve bildirim testleri"
 Cohesion: 0.06
-Nodes (33): 1. Uygulama Envanteri, Butonlar, Diğer Bulgular, Düzeltme Sonrası Regresyon Listesi, Finans Takip QA / PWA / Finansal Hesaplama Denetimi, Formlar ve Alanlar, FT-001, FT-002 (+25 more)
+Nodes (26): base(), open(), open(), open(), open(), at(), fs, http (+18 more)
 
-### Community 6 - "qc-split.test.js"
-Cohesion: 0.12
-Nodes (12): bal, fs, G, http, path, pw, R, SEED (+4 more)
+### Community 14 - "Tekrarlayan işlemler"
+Cohesion: 0.16
+Nodes (26): _account(), _addD(), autoRun(), _dueDate(), _ensureCat(), f2days(), freq(), inkColor() (+18 more)
 
-### Community 7 - "text-overlap.test.js"
+### Community 15 - "graphify aracı ve eşitleme testi"
+Cohesion: 0.08
+Nodes (12): { execFileSync }, path, path, TODAY, path, { execSync }, fs, OUT (+4 more)
+
+### Community 16 - "Banka SMS ayrıştırıcı"
+Cohesion: 0.16
+Nodes (22): _amounts(), _bank(), bankKind(), _cands(), _cardsKnown(), _cat(), _category(), csvSafe() (+14 more)
+
+### Community 17 - "Yazı çakışma testi"
 Cohesion: 0.10
 Nodes (17): commonModals, configs, datasets, denseModals, denseSeed, firstModals, firstMonthSeed(), fs (+9 more)
 
-### Community 8 - "browser-behavior.test.js"
-Cohesion: 0.36
-Nodes (17): acc(), balances(), eq(), iso(), monthShift(), openApp(), reload(), run() (+9 more)
+### Community 18 - "Gmail betiği testi"
+Cohesion: 0.10
+Nodes (14): crypto, { execFileSync }, fs, google(), http, MSGS, path, pw (+6 more)
 
-### Community 9 - "cards.test.js"
-Cohesion: 0.13
-Nodes (15): cut1, cut2, day(), dayD(), fs, futMonth, http, iso() (+7 more)
+### Community 19 - "Banka mesajı onay kuyruğu"
+Cohesion: 0.18
+Nodes (20): accept(), _cardPay(), _dupeXfer(), ingest(), one(), _isMail(), _isPre(), _isPush() (+12 more)
 
-### Community 10 - "market-e2e.test.js"
-Cohesion: 0.16
-Nodes (10): TEFAS, TEFAS_LEGACY, TRUNCGIL, hits, http, mock, path, { TCMB, TRUNCGIL, TEFAS, CPI } (+2 more)
-
-### Community 11 - "insights.test.js"
-Cohesion: 0.13
-Nodes (13): d(), fs, http, iso(), M, now, path, pw (+5 more)
-
-### Community 12 - "qc-audit.test.js"
-Cohesion: 0.15
-Nodes (13): at(), bank(), card(), fs, http, path, pay(), pw (+5 more)
-
-### Community 13 - "qc-dupes.test.js"
-Cohesion: 0.12
-Nodes (11): ACC(), fs, http, path, pw, R, RECV, seed() (+3 more)
-
-### Community 14 - "bank-sms.test.js"
-Cohesion: 0.12
-Nodes (10): fs, http, now, path, pw, R, srv, today (+2 more)
-
-### Community 15 - "qc-calendar.test.js"
-Cohesion: 0.12
-Nodes (12): A, fs, http, path, pw, R, REC, SEED (+4 more)
-
-### Community 16 - "qc-health.test.js"
-Cohesion: 0.12
-Nodes (12): bal, fs, http, ME, path, pw, R, SEED (+4 more)
-
-### Community 17 - "qc-kids.test.js"
-Cohesion: 0.12
-Nodes (13): AL, bal, fs, http, NTS, path, pw, R (+5 more)
-
-### Community 18 - "qc-moves.test.js"
-Cohesion: 0.12
-Nodes (12): ACC(), fs, http, LOAN, path, pw, R, RECV (+4 more)
-
-### Community 19 - "qc-payday.test.js"
-Cohesion: 0.12
-Nodes (12): bal, fs, http, ME, path, pw, R, SEED (+4 more)
-
-### Community 20 - "qc-visual.js"
-Cohesion: 0.12
-Nodes (13): auditSrc, configs, fs, http, pages, path, pre, pw (+5 more)
-
-### Community 21 - "qc-bank.test.js"
-Cohesion: 0.12
-Nodes (9): fs, http, now, path, pw, R, srv, today (+1 more)
-
-### Community 22 - "qc-bills.test.js"
-Cohesion: 0.13
-Nodes (13): CPI, F(), fs, http, path, pw, R, SEED (+5 more)
-
-### Community 23 - "qc-flow.test.js"
-Cohesion: 0.13
-Nodes (13): A, at(), fs, http, path, pw, R, SEED (+5 more)
-
-### Community 24 - "qc-reconcile.test.js"
-Cohesion: 0.13
-Nodes (11): ACC(), fs, http, path, pw, R, seed(), srv (+3 more)
-
-### Community 25 - "qc-report.test.js"
-Cohesion: 0.13
-Nodes (11): A, fs, http, path, pw, R, SEED, srv (+3 more)
-
-### Community 26 - "qc-data.test.js"
+### Community 20 - "QA denetim raporu bulguları"
 Cohesion: 0.14
-Nodes (10): fs, http, os, path, pw, R, srv, TMP (+2 more)
+Nodes (19): CSV Dedup İmzası (userId eksik), Açılış Bakiyesi Geçmişten Türetme, F2 İleri Tarihli Kayıt Planlı Bildirimi, FT-001 Gelecek Tarihli İşlem Bakiyeyi Değiştiriyor, FT-003 CSV Import Hesap Kolonunu Okumuyor, FT-004 İşlemde Hesap Seçimi Yok, FT-005 Bakiye Drift (openingBalance Eksik), FT-006 API Anahtarı localStorage'da (+11 more)
 
-### Community 27 - "qc-stmt-akbank.test.js"
-Cohesion: 0.14
-Nodes (12): CP, ebc(), fs, http, PAGE, path, pw, R (+4 more)
+### Community 21 - "Fiş okutma (kamera/PDF)"
+Cohesion: 0.19
+Nodes (19): _ai(), _begin(), _busy(), _found(), _frame(), go(), _hint(), onFile() (+11 more)
 
-### Community 28 - "qc-tags.test.js"
-Cohesion: 0.12
-Nodes (11): A, fs, http, path, pw, R, SEED, srv (+3 more)
-
-### Community 29 - "qc-transfers.test.js"
-Cohesion: 0.13
-Nodes (11): ACC(), fs, http, path, pw, R, RECV, seed() (+3 more)
-
-### Community 30 - "readability.test.js"
-Cohesion: 0.14
-Nodes (12): cutDay, day(), fs, http, iso(), now, path, pw (+4 more)
-
-### Community 31 - "ref_fs"
+### Community 22 - "Ödeme hesabı ve kamera testleri"
 Cohesion: 0.11
 Nodes (13): fs, http, path, pw, R, srv, fs, http (+5 more)
 
-### Community 32 - "ozet-summary.test.js"
-Cohesion: 0.14
-Nodes (12): fs, http, iso(), now, path, pw, R, srv (+4 more)
-
-### Community 33 - "qc-cardpay.test.js"
-Cohesion: 0.16
-Nodes (11): at(), fs, http, path, pay(), pw, R, srv (+3 more)
-
-### Community 34 - "qc-finance.test.js"
-Cohesion: 0.14
-Nodes (11): day(), fs, http, iso(), now, path, pw, R (+3 more)
-
-### Community 35 - "qc-goals.test.js"
-Cohesion: 0.13
-Nodes (11): c(), fs, G, http, path, pw, R, SEED (+3 more)
-
-### Community 36 - "Finans Takip — Cloudflare kurulumu"
-Cohesion: 0.13
-Nodes (14): API özeti, Banka e-postalarıyla otomatik kayıt (Gmail), Banka SMS'leriyle otomatik kayıt (iPhone Kestirmeler), Banka uygulaması bildirimleriyle otomatik kayıt (iPhone, iOS 27+), Ekstre içe aktarma, Finans Takip — Cloudflare kurulumu, Fiş okutma, Geliştirme ve test (+6 more)
-
-### Community 37 - "index.html.js"
-Cohesion: 0.03
-Nodes (94): _accs(), alerts(), _bankTxn(), _brand(), byMonth(), calPick(), _cl(), _cmp() (+86 more)
-
-### Community 38 - "manifest.json"
-Cohesion: 0.14
-Nodes (13): background_color, categories, description, display, icons, id, lang, name (+5 more)
-
-### Community 39 - "scripts"
-Cohesion: 0.14
-Nodes (13): wrangler, devDependencies, wrangler, name, private, scripts, db:init, db:local (+5 more)
-
-### Community 40 - "qc-loans.test.js"
-Cohesion: 0.14
-Nodes (11): fs, http, L, path, pw, R, SEED, srv (+3 more)
-
-### Community 41 - "receipt-pdf.test.js"
-Cohesion: 0.19
-Nodes (11): fs, http, imagePdf(), path, pdf(), pw, R, srv (+3 more)
-
-### Community 43 - "qc-push.test.js"
-Cohesion: 0.17
-Nodes (9): ACCS, fs, http, path, pw, R, srv, TYPES (+1 more)
-
-### Community 44 - "Aile Kasası — Yayın Öncesi Kalite Denetimi (#5)"
-Cohesion: 0.17
-Nodes (11): 10. Karar: **Şu koşullarla hazır**, 1. Kapsam ve doğrulama tablosu, 2. Bulunan ve düzeltilen sorunlar, 3. Karar gerektiren konular, 4. Çalıştırılan testler, 5. Gerçek cihaz / dış hizmet olmadan doğrulanamayanlar, 6. Kayıp ya da çalınan telefon (yeni), 7. Aile kabul testi (~20 dakika) (+3 more)
-
-### Community 45 - "qc-audit7.test.js"
-Cohesion: 0.15
-Nodes (9): ACC, fs, http, path, pw, R, srv, TYPES (+1 more)
-
-### Community 46 - "Aile Kasası — Yayın Öncesi Kalite Denetimi (#4)"
-Cohesion: 0.18
-Nodes (10): 1. Kapsam ve doğrulama tablosu, 2. Bulunan ve düzeltilen sorunlar, 3. Karar gerektiren konular, 4. Çalıştırılan testler, 5. Gerçek cihaz / dış hizmet olmadan doğrulanamayanlar, 6. Aile kabul testi (ilk kurulumdan, ~20 dakika), 7. Yedek, geçiş ve geri dönüş planı, 8. Değişiklik özeti (+2 more)
-
-### Community 47 - "xss-scan.js"
-Cohesion: 0.20
-Nodes (9): fs, http, iso(), path, pw, R, seed(), srv (+1 more)
-
-### Community 48 - "Finans Takip — Denetim Raporu #3"
-Cohesion: 0.33
-Nodes (5): 1. Hesaplama ve veri hataları (düzeltildi), 2. Eklenen özellikler, 3. Arayüz / erişilebilirlik taraması, 4. Bilinen sınırlar (açık), Finans Takip — Denetim Raporu #3
-
-### Community 50 - "url"
-Cohesion: 0.25
-Nodes (5): copy(), db(), req(), url(), ASSETS
-
-### Community 53 - "qc-files.test.js"
-Cohesion: 0.17
-Nodes (8): fs, http, path, pw, R, srv, today, TYPES
-
-### Community 54 - "qc-stmt-format.test.js"
-Cohesion: 0.17
-Nodes (9): fs, http, LINES, path, pw, R, SEED, srv (+1 more)
-
-### Community 55 - "quality-regression.test.js"
-Cohesion: 0.16
-Nodes (6): escAttrT(), escT(), jsAttrT(), ok(), parseMoney(), roundMoney()
-
-### Community 56 - "refreshRates"
-Cohesion: 0.22
-Nodes (8): Ayıklanan Yanlış Pozitifler (ajan hataları), Finans Takip — Çok Ajanlı Denetim Raporu #2, Kritik / Yüksek — Doğrulanmış Gerçek Bulgular, Orta / Düşük — Doğrulanmış (Açık), Skor Tablosu (doğrulanmış), Sonraki Öneriler (açık), _parseTruncgil(), read()
-
-### Community 58 - "build"
-Cohesion: 0.15
-Nodes (26): _bin(), build(), delta(), cardDues(), cards(), _cut(), _dupes(), group() (+18 more)
-
-### Community 59 - "render"
-Cohesion: 0.12
-Nodes (27): _account(), activeTagFor(), add(), addExpense(), _adopt(), _after(), _applyFunds(), _bankNames() (+19 more)
-
-### Community 60 - "join"
-Cohesion: 0.12
-Nodes (43): _accOpts(), _bars(), _catOpts(), ci(), _compare(), deltaCell(), esc(), escAttr() (+35 more)
-
-### Community 61 - "normalize"
-Cohesion: 0.07
-Nodes (40): FT-013, all(), applyA11y(), bindEvents(), _body(), checkDueBills(), _collapsed(), daysUntil() (+32 more)
-
-### Community 62 - "toast"
-Cohesion: 0.13
-Nodes (37): Bu Turda Uygulanan Düzeltmeler (1–5), accLabel(), addKumbara(), _askPdfPassword(), close(), closeModal(), confirmModal(), confirmPay() (+29 more)
-
-### Community 63 - "plan"
-Cohesion: 0.29
-Nodes (10): byBankName(), _cfg(), editRates(), _goalByCat(), label(), _own(), plan(), rates() (+2 more)
-
-### Community 64 - "get"
-Cohesion: 0.14
-Nodes (34): accept(), addAccQuick(), addInternal(), addPlan(), _addTransfer(), adjustBalance(), _apply(), autoPair() (+26 more)
-
-### Community 65 - "renderAll"
-Cohesion: 0.13
-Nodes (34): addContrib(), addPayment(), applyExisting(), chooseDevice(), contribute(), createEmergency(), _doRemove(), download() (+26 more)
-
-### Community 66 - "_rh"
-Cohesion: 0.30
-Nodes (15): _addD(), _dueDate(), f2days(), freq(), key(), _lastDue(), _loggedIn(), _logOther() (+7 more)
-
-### Community 67 - "fmt"
-Cohesion: 0.11
-Nodes (31): _actions(), _barCls(), _calAmt(), _calItem(), _dd(), detail(), _dh(), fd() (+23 more)
-
-### Community 68 - "nav"
-Cohesion: 0.16
-Nodes (23): _ai(), _begin(), _busy(), _canvas(), _found(), _frame(), go(), guessCategory() (+15 more)
-
-### Community 69 - "test"
-Cohesion: 0.09
-Nodes (42): _amounts(), _amt(), _analyze(), _bank(), bankKind(), _bestCand(), byBank(), _cands() (+34 more)
-
-### Community 70 - "base"
-Cohesion: 0.10
-Nodes (17): base(), open(), open(), open(), open(), device(), open(), open() (+9 more)
-
-### Community 71 - "one"
-Cohesion: 0.14
-Nodes (22): _cardPay(), dismiss(), dismissAll(), _dupeXfer(), ingest(), one(), _isMail(), _isPush() (+14 more)
-
-### Community 72 - "renderCard"
-Cohesion: 0.08
-Nodes (55): _aiReady(), api(), available(), _cache(), change(), clearFilters(), _closeLive(), configured() (+47 more)
-
-### Community 73 - "qc-ideas.test.js"
+### Community 23 - "Öneri testleri"
 Cohesion: 0.12
 Nodes (14): at(), bank(), card(), D(), fs, http, path, pw (+6 more)
 
-### Community 74 - "edit"
-Cohesion: 0.21
-Nodes (19): _accOptions(), allTags(), _catOptions(), edit(), _editInstallment(), _editInternal(), _editLoanPay(), _editTransfer() (+11 more)
+### Community 24 - "Tarayıcı davranış testi"
+Cohesion: 0.36
+Nodes (17): acc(), balances(), eq(), iso(), monthShift(), openApp(), reload(), run() (+9 more)
 
-### Community 75 - "compute"
-Cohesion: 0.16
-Nodes (27): average(), calNav(), _card(), catNet(), catTotals(), closeMonthCard(), compute(), dueIn() (+19 more)
+### Community 25 - "Piyasa verisi testleri"
+Cohesion: 0.14
+Nodes (7): hits, http, mock, path, { TCMB, TRUNCGIL, TEFAS, CPI }, path, { TCMB, TRUNCGIL, TEFAS, TEFAS_LEGACY, CPI }
 
-### Community 76 - "prepare"
-Cohesion: 0.21
-Nodes (13): _btn(), fileMode(), generate(), generateMonth(), _opts(), _pages(), pdfFile(), prepare() (+5 more)
+### Community 26 - "Ekstre içe aktarma testi"
+Cohesion: 0.12
+Nodes (12): crc32(), esc(), fs, http, path, pw, R, srv (+4 more)
 
-### Community 77 - "importCSVFile"
-Cohesion: 0.09
-Nodes (23): _colIdx(), csvAmount(), csvFold(), csvText(), _ebc(), importCSV(), importCSVFile(), col() (+15 more)
+### Community 27 - "Kart testleri"
+Cohesion: 0.13
+Nodes (15): cut1, cut2, day(), dayD(), fs, futMonth, http, iso() (+7 more)
 
-### Community 78 - "ref_http"
+### Community 28 - "Uyarı motoru testleri"
+Cohesion: 0.13
+Nodes (13): d(), fs, http, iso(), M, now, path, pw (+5 more)
+
+### Community 29 - "Çift kayıt testleri"
+Cohesion: 0.12
+Nodes (11): ACC(), fs, http, path, pw, R, RECV, seed() (+3 more)
+
+### Community 30 - "Kart ekstre tarihleri"
+Cohesion: 0.15
+Nodes (17): _acc(), _cut(), _d(), dates(), _due(), _floor(), group(), info() (+9 more)
+
+### Community 31 - "Banka SMS testi"
+Cohesion: 0.12
+Nodes (10): fs, http, now, path, pw, R, srv, today (+2 more)
+
+### Community 32 - "Hesap denetimi testi"
+Cohesion: 0.15
+Nodes (13): at(), bank(), card(), fs, http, path, pay(), pw (+5 more)
+
+### Community 33 - "Sağlık puanı testi"
+Cohesion: 0.12
+Nodes (12): bal, fs, http, ME, path, pw, R, SEED (+4 more)
+
+### Community 34 - "Çocuklar testi"
+Cohesion: 0.12
+Nodes (13): AL, bal, fs, http, NTS, path, pw, R (+5 more)
+
+### Community 35 - "Banka hareketleri testi"
+Cohesion: 0.12
+Nodes (12): ACC(), fs, http, LOAN, path, pw, R, RECV (+4 more)
+
+### Community 36 - "Maaş günü testi"
+Cohesion: 0.12
+Nodes (12): bal, fs, http, ME, path, pw, R, SEED (+4 more)
+
+### Community 37 - "Görsel tarama"
+Cohesion: 0.12
+Nodes (13): auditSrc, configs, fs, http, pages, path, pre, pw (+5 more)
+
+### Community 38 - "Çok ajanlı denetim raporu (2)"
+Cohesion: 0.14
+Nodes (15): AI Proxy URL Doğrulama (SSRF), Borç settled Float Toleransı, Çoklu Sekme storage Senkronizasyonu, CSP Meta Etiketi, İstemciden DeepSeek API Anahtarı Riski, Finans Takip Çok Ajanlı Denetim Raporu #2, Notification.requestPermission catch İşleyicisi, parseMoney (min .01) (+7 more)
+
+### Community 39 - "Yayın öncesi kalite raporu (4)"
+Cohesion: 0.17
+Nodes (14): Aile Kabul Testi, Asgari Ödeme Mevzuatı (BDDK), F14 Bağlantı Kapatma Sunucu Onayı, Aile Kasası Yayın Öncesi Kalite Denetimi #4, Yedek, Geçiş ve Geri Dönüş Planı, K1 İade Kategorisi (Gideri Azaltır), F3 Gelecek Taksitlerin Kalan Limitten Düşülmesi, F12 Net Servette Gelecek Taksit Yükümlülüğü (+6 more)
+
+### Community 40 - "Eşitleme uçtan uca testleri"
 Cohesion: 0.12
 Nodes (6): http, path, TODAY, TOMORROW, crypto, http
 
-### Community 79 - "_renderChart"
-Cohesion: 0.47
-Nodes (6): _bar(), canvasMsg(), cv(), _donut(), _drawMsg(), _renderChart()
+### Community 41 - "Banka kanal testleri"
+Cohesion: 0.12
+Nodes (9): fs, http, now, path, pw, R, srv, today (+1 more)
 
-### Community 80 - "_round"
-Cohesion: 0.22
-Nodes (14): collect(), _content(), _generic(), _listKey(), mergeList(), visit(), mergeRecord(), mergeSnapshot() (+6 more)
+### Community 42 - "Fatura ve enflasyon testi"
+Cohesion: 0.13
+Nodes (13): CPI, F(), fs, http, path, pw, R, SEED (+5 more)
 
-### Community 81 - "td"
+### Community 43 - "Takvim testi"
+Cohesion: 0.12
+Nodes (12): A, fs, http, path, pw, R, REC, SEED (+4 more)
+
+### Community 44 - "Para akışı testi"
+Cohesion: 0.13
+Nodes (13): A, at(), fs, http, path, pw, R, SEED (+5 more)
+
+### Community 45 - "Mutabakat testi"
+Cohesion: 0.13
+Nodes (11): ACC(), fs, http, path, pw, R, seed(), srv (+3 more)
+
+### Community 46 - "50/30/20 testi"
+Cohesion: 0.12
+Nodes (12): bal, fs, G, http, path, pw, R, SEED (+4 more)
+
+### Community 47 - "Etiket testi"
+Cohesion: 0.12
+Nodes (11): A, fs, http, path, pw, R, SEED, srv (+3 more)
+
+### Community 48 - "Aktarım testi"
+Cohesion: 0.13
+Nodes (11): ACC(), fs, http, path, pw, R, RECV, seed() (+3 more)
+
+### Community 49 - "Okunabilirlik testi"
+Cohesion: 0.14
+Nodes (12): cutDay, day(), fs, http, iso(), now, path, pw (+4 more)
+
+### Community 50 - "Gezinme ve acil durum"
+Cohesion: 0.18
+Nodes (15): applyA11y(), avgExpense3mo(), bindEvents(), createEmergency(), handleShortcut(), moneyHint(), nav(), _pdfBlob() (+7 more)
+
+### Community 51 - "Özet sayfası testi"
+Cohesion: 0.14
+Nodes (12): fs, http, iso(), now, path, pw, R, srv (+4 more)
+
+### Community 52 - "Finans hesap testi"
+Cohesion: 0.14
+Nodes (11): day(), fs, http, iso(), now, path, pw, R (+3 more)
+
+### Community 53 - "Hedef testi"
+Cohesion: 0.13
+Nodes (11): c(), fs, G, http, path, pw, R, SEED (+3 more)
+
+### Community 54 - "Rapor testi"
+Cohesion: 0.13
+Nodes (11): A, fs, http, path, pw, R, SEED, srv (+3 more)
+
+### Community 55 - "Akbank ekstre testi"
+Cohesion: 0.14
+Nodes (12): CP, ebc(), fs, http, PAGE, path, pw, R (+4 more)
+
+### Community 56 - "Kalite regresyon testi"
+Cohesion: 0.16
+Nodes (6): escAttrT(), escT(), jsAttrT(), ok(), parseMoney(), roundMoney()
+
+### Community 57 - "Banka mesajı ve aktarım bulguları (5)"
+Cohesion: 0.16
+Nodes (13): Hesaplar Arası Transfer (İki Bağlı Bacak), F8 Onay Kuyruğunda Aktarım (Gider Değil) Türü, F6 SMS Tekrar Denetimi (İşyeri Adı), Aile Kasası Yayın Öncesi Kalite Denetimi #5, G3 Faiz/Aidat SMS'i Gider Okunur, G9 Gmail Betiği Sayfalama, G1 Testlerde Kurmaca Ad, G5 Aynı Ay Maaş + İkramiye Ayrı Kayıt (+5 more)
+
+### Community 58 - "PWA manifest"
+Cohesion: 0.14
+Nodes (13): background_color, categories, description, display, icons, id, lang, name (+5 more)
+
+### Community 59 - "Veri testi"
+Cohesion: 0.14
+Nodes (10): fs, http, os, path, pw, R, srv, TMP (+2 more)
+
+### Community 60 - "Worker paket ayarları"
+Cohesion: 0.14
+Nodes (13): wrangler, devDependencies, wrangler, name, private, scripts, db:init, db:local (+5 more)
+
+### Community 61 - "Bütçe dönemi testi"
+Cohesion: 0.14
+Nodes (10): fs, http, path, pw, R, SEED, srv, T (+2 more)
+
+### Community 62 - "Kart ödemesi testi"
+Cohesion: 0.16
+Nodes (11): at(), fs, http, path, pay(), pw, R, srv (+3 more)
+
+### Community 63 - "Kredi testi"
+Cohesion: 0.14
+Nodes (11): fs, http, L, path, pw, R, SEED, srv (+3 more)
+
+### Community 64 - "Fiş PDF testi"
+Cohesion: 0.19
+Nodes (11): fs, http, imagePdf(), path, pdf(), pw, R, srv (+3 more)
+
+### Community 65 - "Ekstre PDF ayrıştırma"
+Cohesion: 0.21
+Nodes (13): _amt(), _analyze(), byBank(), _cutDate(), _date(), _fromLines(), _fromTable(), _guessAccount() (+5 more)
+
+### Community 66 - "Fiş metni ve karekod"
+Cohesion: 0.21
+Nodes (13): _bestCand(), _canvas(), _cleanName(), _fixNum(), guessCategory(), _isSure(), _merchant(), _merge() (+5 more)
+
+### Community 67 - "Denetim 7 testi"
+Cohesion: 0.15
+Nodes (9): ACC, fs, http, path, pw, R, srv, TYPES (+1 more)
+
+### Community 68 - "Veri temizleme (normalize)"
+Cohesion: 0.26
+Nodes (12): arr(), cleanDate(), cleanLast4(), cleanStoredId(), cleanStoredRef(), dateFromTs(), normalize(), cleanAllowance() (+4 more)
+
+### Community 70 - "Dosya testi"
 Cohesion: 0.17
-Nodes (25): _acc(), active(), autoRun(), buildCalendar(), causes(), _d(), dates(), debts() (+17 more)
+Nodes (8): fs, http, path, pw, R, srv, today, TYPES
 
-### Community 82 - "decrypt"
-Cohesion: 0.20
-Nodes (12): aesKey(), b64u(), cleanUrl(), codeOf(), decrypt(), encrypt(), _newIds(), parseCode() (+4 more)
-
-### Community 83 - "isTransfer"
-Cohesion: 0.29
-Nodes (14): Hesaplama / Render / Entegrasyon Fonksiyonları, allTimeTotals(), avgExpense3mo(), catRange(), essentialAvg(), flowOf(), isRefund(), isTransfer() (+6 more)
-
-### Community 84 - "qc-cards.test.js"
-Cohesion: 0.17
-Nodes (9): at(), fs, http, path, pw, R, srv, TYPES (+1 more)
-
-### Community 85 - "qc-finance2.test.js"
+### Community 71 - "Finans hesap testi 2"
 Cohesion: 0.17
 Nodes (9): ACCS, fs, http, path, pw, R, srv, TYPES (+1 more)
 
-### Community 86 - "normalize"
-Cohesion: 0.23
-Nodes (12): arr(), cleanDate(), cleanLast4(), cleanStoredId(), cleanStoredRef(), dateFromTs(), normalize(), cleanAllowance() (+4 more)
+### Community 72 - "Push bildirim testi"
+Cohesion: 0.17
+Nodes (9): ACCS, fs, http, path, pw, R, srv, TYPES (+1 more)
 
-### Community 87 - "graphify-update.js"
-Cohesion: 0.12
-Nodes (10): { execFileSync }, path, path, { execSync }, fs, OUT, path, R (+2 more)
+### Community 73 - "Ekstre biçim testi"
+Cohesion: 0.17
+Nodes (9): fs, http, LINES, path, pw, R, SEED, srv (+1 more)
 
-### Community 88 - "receipt-e2e.test.js"
+### Community 74 - "Arayüz taraması"
+Cohesion: 0.18
+Nodes (9): fs, http, iso(), path, pw, R, seed(), srv (+1 more)
+
+### Community 75 - "Denetim raporu 3"
+Cohesion: 0.18
+Nodes (11): Çeyrek/Tam Altın 22 Ayar Katsayısı, Bütçe Devri ve Limit Geçmişi, Cloudflare Worker Uçtan Uca Şifreli Eşitleme, CSV Türkçe Excel ve Banka Ekstresi Uyumu, Finans Takip Denetim Raporu #3, Ekran Kilidi PIN (PBKDF2), Silinen İşlemi Geri Alma, TÜFE Serisi TCMB Zincirleme (+3 more)
+
+### Community 76 - "Takvim (ICS) ve yaklaşan ödemeler"
+Cohesion: 0.20
+Nodes (11): addMonths(), buildCalendar(), cardDues(), daysUntil(), _dt(), _event(), exportAll(), _nextDay() (+3 more)
+
+### Community 77 - "XSS taraması"
+Cohesion: 0.20
+Nodes (9): fs, http, iso(), path, pw, R, seed(), srv (+1 more)
+
+### Community 78 - "Döviz/altın kurları"
+Cohesion: 0.25
+Nodes (9): ensureFreshRates(), _fetchFrankfurter(), _fetchTruncgil(), manual(), _mergeRates(), _parseTruncgil(), read(), refreshRates() (+1 more)
+
+### Community 79 - "CSV içe aktarma"
+Cohesion: 0.29
+Nodes (8): csvAmount(), csvFold(), csvText(), importCSV(), importCSVFile(), col(), _parseCSV(), parseCSVText()
+
+### Community 80 - "Fiş uçtan uca testi"
 Cohesion: 0.25
 Nodes (4): crypto, http, mock, reply
 
-### Community 89 - "roundMoney"
-Cohesion: 0.20
-Nodes (12): _bal(), balanceAt(), _history(), _instDue(), monthly(), _moved(), reconcileAccountBalances(), reconcileInstallments() (+4 more)
+### Community 82 - "graphify kuralları"
+Cohesion: 0.47
+Nodes (3): graphify Rules (CLAUDE.md), graphify-out Knowledge Graph, vendor/ Excluded via .graphifyignore
 
-### Community 91 - "data"
-Cohesion: 0.39
-Nodes (9): adjust(), _applyCpi(), cpiYoY(), data(), forecast(), indexAt(), isStale(), latestMonth() (+1 more)
+### Community 83 - "Yedekleme"
+Cohesion: 0.40
+Nodes (5): copy(), download(), maybeRemind(), snapshot(), url()
+
+### Community 84 - "Tam test paketi kuralı"
+Cohesion: 0.50
+Nodes (3): F23 Her PR'da Tam Test Paketi (test.yml), G2 GitHub Pages İkinci Kopya, run-all.sh script
+
+### Community 85 - "Belirsiz not ve çift kayıt"
+Cohesion: 0.50
+Nodes (4): _dupes(), _place(), _vague(), vagueNote()
+
+## Ambiguous Edges - Review These
+- `Finans Takip Denetim Raporu #3` → `FT-012 Fon/Hisse Güncel Fiyat Eksik`  [AMBIGUOUS]
+  docs/qa-denetim-raporu.md · relation: conceptually_related_to
 
 ## Knowledge Gaps
-- **3 isolated node(s):** `wrangler`, `RFC-8030`, `RFC-8292`
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 753 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **6 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **31 isolated node(s):** `wrangler`, `RFC-8030`, `RFC-8292`, `vendor/ Excluded via .graphifyignore`, `Playwright + Chromium Setup` (+26 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 722 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `items()` connect `build` to `_rh`, `fmt`, `index.html.js`, `qc-ideas.test.js`, `edit`, `td`, `isTransfer`, `roundMoney`, `render`, `join`, `normalize`, `toast`, `plan`?**
-  _High betweenness centrality (0.295) - this node is a cross-community bridge._
+- **Why does `items()` connect `Nakit akışı ve ay toplamları` to `Uygulama: genel yardımcılar ve Excel`, `Kredi, borç ve maaş planı`, `Sayfa çizimi ve listeler`, `Para biçimi ve kart ödemesi`, `HTML kaçış ve seçim kutuları`, `Takvim (ICS) ve yaklaşan ödemeler`, `Tekrarlayan işlemler`, `Gezinme ve acil durum`, `Öneri testleri`, `Kart ekstre tarihleri`?**
+  _High betweenness centrality (0.286) - this node is a cross-community bridge._
 - **Are the 3 inferred relationships involving `render()` (e.g. with `_card()` and `cv()`) actually correct?**
   _`render()` has 3 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `wrangler`, `RFC-8030`, `RFC-8292` to the rest of the system?**
-  _3 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `index.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.05964912280701754 - nodes in this community are weakly interconnected._
-- **Why does `base()` connect `base` to `test`, `index.html.js`, `renderCard`, `edit`, `compute`, `qc-cards.test.js`, `plan`?**
-  _High betweenness centrality (0.071) - this node is a cross-community bridge._
-- **Should `qc-budget-period.test.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.14285714285714285 - nodes in this community are weakly interconnected._
-- **Why does `Finans Takip — Çok Ajanlı Denetim Raporu #2` connect `refreshRates` to `toast`?**
-  _High betweenness centrality (0.030) - this node is a cross-community bridge._
+  _31 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Uygulama: genel yardımcılar ve Excel` be split into smaller, more focused modules?**
+  _Cohesion score 0.02734877734877735 - nodes in this community are weakly interconnected._
+- **Why does `base()` connect `Kart ve bildirim testleri` to `Uygulama: genel yardımcılar ve Excel`, `Eşitleme, e-posta ve push kurulumu`, `İşlem ekle/düzenle ve bakiye`, `Kredi, borç ve maaş planı`, `Bütçe, istatistik ve ay özeti`, `Banka SMS ayrıştırıcı`?**
+  _High betweenness centrality (0.076) - this node is a cross-community bridge._
+- **Should `Eşitleme, e-posta ve push kurulumu` be split into smaller, more focused modules?**
+  _Cohesion score 0.0502497796062298 - nodes in this community are weakly interconnected._
+
+### Low-confidence Hints
+_AMBIGUOUS edges — the extractor was unsure. Verify before acting on these._
+
+- **What is the exact relationship between `Finans Takip Denetim Raporu #3` and `FT-012 Fon/Hisse Güncel Fiyat Eksik`?**
+  _Edge tagged AMBIGUOUS (relation: conceptually_related_to) - confidence is low._

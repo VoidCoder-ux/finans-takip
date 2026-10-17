@@ -40,3 +40,4 @@ npm-debug.log*
 # graphify (Claude için kod haritası): yerel önbellek ve görsel sayfa depoya girmez
 graphify-out/cache/
 graphify-out/graph.html
+graphify-out/.graphify_python
