@@ -36,3 +36,7 @@ npm-debug.log*
 # Yerel test sunucusu (wrangler dev) verileri
 .ci-dev/
 .wrangler/
+
+# graphify (Claude için kod haritası): yerel önbellek ve görsel sayfa depoya girmez
+graphify-out/cache/
+graphify-out/graph.html

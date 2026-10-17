@@ -10,3 +10,8 @@ node_modules
 .github
 .ci-dev
 .wrangler
+
+# graphify dosyaları sunulmaz
+graphify-out
+.graphifyignore
+.claude
