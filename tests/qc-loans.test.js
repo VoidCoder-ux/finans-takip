@@ -48,9 +48,9 @@ srv.listen(0, async () => {
     [['2027-01-15', 16500, 12857.89, 3642.11, 296357.89], ['2027-02-15', 16500, 12701.79, 3798.21, 292559.68]]);
   eq('ay sonunu aşan taksit günü (31 Ocak → 28 Şubat)', await page.evaluate(() => App.Loans.schedule({ principal: 3000, term: 3, first: '2027-01-31', installment: 1000, rate: 0, tax: false, prepay: [] }).map(x => x.date)), ['2027-01-31', '2027-02-28', '2027-03-31']);
 
-  // 2) Erken kapatma tahmini: kalan anapara + işlemiş faiz + ücret (taşıt: kalan 26 > 24 ay → %1; konut %2)
+  // 2) Erken kapatma tahmini: kalan anapara + işlemiş faiz + ücret (taşıt tüketici kredisi: ücret yok; konut kalan 82 > 36 ay → %2)
   eq('erken kapatma tahmini', await page.evaluate(() => S.loans().map(l => { const p = App.Loans.payoff(l); return [p.days, p.accrued, p.feeRate, p.fee, p.total, p.saving]; })),
-    [[5, 1826.45, 0.01, 2556.88, 260071.47, 168928.46], [15, 15512.8, 0.02, 22240.57, 1149781.74, 1668407.97]]);
+    [[5, 1826.45, 0, 0, 257514.59, 171485.34], [15, 15512.8, 0.02, 22240.57, 1149781.74, 1668407.97]]);
 
   // 3) Krediler sekmesi
   await page.evaluate(() => { App.UI.nav('borclar'); App.UI.subTab('borclar', 'loans'); }); await page.waitForTimeout(100);
@@ -99,7 +99,7 @@ srv.listen(0, async () => {
 
   // 9) Erken kapat: kapanan kredi aktif değil, net servete ve nakit akışına girmez; yeniden açılabilir
   await page.evaluate(() => App.Loans.close('ln1')); await page.waitForTimeout(50);
-  eq('kapama penceresi tahmini tutarla açılır', await page.evaluate(() => [document.querySelector('.app-dialog-holder [data-pkey="amount"]').value, /yaklaşık ₺168\.928,46 faizden kurtulursunuz/.test(document.querySelector('.app-dialog-holder').textContent)]), ['260071,47', true]);
+  eq('kapama penceresi tahmini tutarla açılır', await page.evaluate(() => [document.querySelector('.app-dialog-holder [data-pkey="amount"]').value, /yaklaşık ₺171\.485,34 faizden kurtulursunuz/.test(document.querySelector('.app-dialog-holder').textContent), /Tüketici kredisinde erken ödeme ücreti alınmaz/.test(document.querySelector('.app-dialog-holder').textContent)]), ['257514,59', true, true]);
   await modal({ amount: '260.071,47', date: '2027-10-20' });
   eq('kapandı', [await page.evaluate(() => { const l = S.loans()[0], s = App.Loans.state(l); return [l.closed, s.active, s.bal, s.paid, s.count, App.Loans.payoff(l)]; }), await page.evaluate(() => App.NetWorth.compute().loans)],
     [[{ date: '2027-10-20', amount: 260071.47 }, false, 0, 10, 10, null], 1212028.37]);
