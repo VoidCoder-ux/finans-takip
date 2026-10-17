@@ -1,17 +1,17 @@
 # Graph Report - finans-takip  (2026-10-17)
 
 ## Corpus Check
-- 73 files · ~165,837 words
+- 74 files · ~169,343 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: (none) 4, .example 1, .toml 1)
 
 ## Summary
-- 967 nodes · 1242 edges · 53 communities (49 shown, 4 thin omitted)
+- 981 nodes · 1258 edges · 61 communities (56 shown, 5 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 17 edges (avg confidence: 0.9)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `0a278b34`
+- Built from commit: `e0970754`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -42,7 +42,7 @@
 - qc-flow.test.js
 - qc-reconcile.test.js
 - qc-report.test.js
-- qc-split.test.js
+- qc-data.test.js
 - qc-stmt-akbank.test.js
 - qc-tags.test.js
 - qc-transfers.test.js
@@ -61,7 +61,7 @@
 - ref_path
 - qc-push.test.js
 - Aile Kasası — Yayın Öncesi Kalite Denetimi (#5)
-- qc-notify.test.js
+- qc-audit7.test.js
 - Aile Kasası — Yayın Öncesi Kalite Denetimi (#4)
 - xss-scan.js
 - Finans Takip — Denetim Raporu #3
@@ -69,6 +69,14 @@
 - sw.js
 - CLAUDE.md
 - run-all.sh
+- qc-files.test.js
+- qc-stmt-format.test.js
+- quality-regression.test.js
+- Finans Takip — Çok Ajanlı Denetim Raporu #2
+- date-math.test.js
+- 1. Uygulama Envanteri
+- Kritik Finans Hataları
+- Hesaplama / Render / Entegrasyon Fonksiyonları
 
 ## God Nodes (most connected - your core abstractions)
 1. `route()` - 22 edges
@@ -89,15 +97,15 @@
   docs/qa-denetim-raporu.md → tests/date-math.test.js
 - `Hesaplama / Render / Entegrasyon Fonksiyonları` --references--> `reconcileInstallments()`  [INFERRED]
   docs/qa-denetim-raporu.md → tests/quality-regression.test.js
+- `Ayıklanan Yanlış Pozitifler (ajan hataları)` --references--> `esc()`  [INFERRED]
+  docs/denetim-raporu-2.md → tests/statement-import.test.js
 - `FT-008` --references--> `validDate()`  [INFERRED]
-  docs/qa-denetim-raporu.md → tests/quality-regression.test.js
-- `Hesaplama / Render / Entegrasyon Fonksiyonları` --references--> `validDate()`  [INFERRED]
   docs/qa-denetim-raporu.md → tests/quality-regression.test.js
 
 ## Import Cycles
 - None detected.
 
-## Communities (53 total, 4 thin omitted)
+## Communities (61 total, 5 thin omitted)
 
 ### Community 0 - "index.js"
 Cohesion: 0.08
@@ -116,16 +124,16 @@ Cohesion: 0.18
 Nodes (9): fs, http, iso(), path, pw, R, seed(), srv (+1 more)
 
 ### Community 4 - "statement-import.test.js"
-Cohesion: 0.06
-Nodes (26): Ayıklanan Yanlış Pozitifler (ajan hataları), Bu Turda Uygulanan Düzeltmeler (1–5), Finans Takip — Çok Ajanlı Denetim Raporu #2, Kritik / Yüksek — Doğrulanmış Gerçek Bulgular, Orta / Düşük — Doğrulanmış (Açık), Skor Tablosu (doğrulanmış), Sonraki Öneriler (açık), Sayfa Bazlı Kapsama Notları (+18 more)
+Cohesion: 0.12
+Nodes (13): Sayfa Bazlı Kapsama Notları, crc32(), esc(), fs, http, path, pw, R (+5 more)
 
 ### Community 5 - "Diğer Bulgular"
-Cohesion: 0.05
-Nodes (31): 1. Uygulama Envanteri, Butonlar, Diğer Bulgular, Düzeltme Sonrası Regresyon Listesi, Finans Takip QA / PWA / Finansal Hesaplama Denetimi, Formlar ve Alanlar, FT-001, FT-002 (+23 more)
+Cohesion: 0.20
+Nodes (10): Diğer Bulgular, FT-006, FT-007, FT-009, FT-010, FT-011, FT-012, FT-013 (+2 more)
 
 ### Community 6 - "ref_http"
 Cohesion: 0.05
-Nodes (19): fs, http, path, pw, R, srv, today, TYPES (+11 more)
+Nodes (19): bal, fs, G, http, path, pw, R, SEED (+11 more)
 
 ### Community 7 - "text-overlap.test.js"
 Cohesion: 0.10
@@ -203,9 +211,9 @@ Nodes (11): ACC(), fs, http, path, pw, R, seed(), srv (+3 more)
 Cohesion: 0.12
 Nodes (11): A, fs, http, path, pw, R, SEED, srv (+3 more)
 
-### Community 26 - "qc-split.test.js"
-Cohesion: 0.12
-Nodes (12): bal, fs, G, http, path, pw, R, SEED (+4 more)
+### Community 26 - "qc-data.test.js"
+Cohesion: 0.13
+Nodes (10): fs, http, os, path, pw, R, srv, TMP (+2 more)
 
 ### Community 27 - "qc-stmt-akbank.test.js"
 Cohesion: 0.14
@@ -224,8 +232,8 @@ Cohesion: 0.14
 Nodes (12): cutDay, day(), fs, http, iso(), now, path, pw (+4 more)
 
 ### Community 31 - "ref_fs"
-Cohesion: 0.04
-Nodes (31): fs, http, path, pw, R, srv, fs, http (+23 more)
+Cohesion: 0.05
+Nodes (28): fs, http, path, pw, R, srv, ACCS, fs (+20 more)
 
 ### Community 32 - "ozet-summary.test.js"
 Cohesion: 0.14
@@ -268,8 +276,8 @@ Cohesion: 0.19
 Nodes (11): fs, http, imagePdf(), path, pdf(), pw, R, srv (+3 more)
 
 ### Community 42 - "ref_path"
-Cohesion: 0.05
-Nodes (21): ACCS, fs, http, path, pw, R, srv, TYPES (+13 more)
+Cohesion: 0.06
+Nodes (15): fs, http, path, pw, R, srv, TYPES, USERS (+7 more)
 
 ### Community 43 - "qc-push.test.js"
 Cohesion: 0.15
@@ -279,9 +287,9 @@ Nodes (9): ACCS, fs, http, path, pw, R, srv, TYPES (+1 more)
 Cohesion: 0.17
 Nodes (11): 10. Karar: **Şu koşullarla hazır**, 1. Kapsam ve doğrulama tablosu, 2. Bulunan ve düzeltilen sorunlar, 3. Karar gerektiren konular, 4. Çalıştırılan testler, 5. Gerçek cihaz / dış hizmet olmadan doğrulanamayanlar, 6. Kayıp ya da çalınan telefon (yeni), 7. Aile kabul testi (~20 dakika) (+3 more)
 
-### Community 45 - "qc-notify.test.js"
-Cohesion: 0.20
-Nodes (6): fs, http, path, pw, R, srv
+### Community 45 - "qc-audit7.test.js"
+Cohesion: 0.14
+Nodes (9): ACC, fs, http, path, pw, R, srv, TYPES (+1 more)
 
 ### Community 46 - "Aile Kasası — Yayın Öncesi Kalite Denetimi (#4)"
 Cohesion: 0.18
@@ -295,25 +303,53 @@ Nodes (9): fs, http, iso(), path, pw, R, seed(), srv (+1 more)
 Cohesion: 0.33
 Nodes (5): 1. Hesaplama ve veri hataları (düzeltildi), 2. Eklenen özellikler, 3. Arayüz / erişilebilirlik taraması, 4. Bilinen sınırlar (açık), Finans Takip — Denetim Raporu #3
 
+### Community 53 - "qc-files.test.js"
+Cohesion: 0.17
+Nodes (8): fs, http, path, pw, R, srv, today, TYPES
+
+### Community 54 - "qc-stmt-format.test.js"
+Cohesion: 0.17
+Nodes (9): fs, http, LINES, path, pw, R, SEED, srv (+1 more)
+
+### Community 55 - "quality-regression.test.js"
+Cohesion: 0.22
+Nodes (4): escAttrT(), escT(), jsAttrT(), ok()
+
+### Community 56 - "Finans Takip — Çok Ajanlı Denetim Raporu #2"
+Cohesion: 0.22
+Nodes (9): Ayıklanan Yanlış Pozitifler (ajan hataları), Bu Turda Uygulanan Düzeltmeler (1–5), Finans Takip — Çok Ajanlı Denetim Raporu #2, Kritik / Yüksek — Doğrulanmış Gerçek Bulgular, Orta / Düşük — Doğrulanmış (Açık), Skor Tablosu (doğrulanmış), Sonraki Öneriler (açık), parseMoney() (+1 more)
+
+### Community 58 - "1. Uygulama Envanteri"
+Cohesion: 0.25
+Nodes (7): 1. Uygulama Envanteri, Butonlar, Düzeltme Sonrası Regresyon Listesi, Finans Takip QA / PWA / Finansal Hesaplama Denetimi, Formlar ve Alanlar, localStorage Anahtarları, Sayfalar
+
+### Community 59 - "Kritik Finans Hataları"
+Cohesion: 0.33
+Nodes (6): FT-001, FT-002, FT-003, FT-004, FT-005, Kritik Finans Hataları
+
+### Community 60 - "Hesaplama / Render / Entegrasyon Fonksiyonları"
+Cohesion: 0.33
+Nodes (6): FT-008, Hesaplama / Render / Entegrasyon Fonksiyonları, addMonths(), td(), reconcileInstallments(), validDate()
+
 ## Knowledge Gaps
 - **3 isolated node(s):** `wrangler`, `RFC-8030`, `RFC-8292`
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 731 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 744 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `validDate()` connect `Diğer Bulgular` to `statement-import.test.js`?**
+- **Why does `validDate()` connect `Hesaplama / Render / Entegrasyon Fonksiyonları` to `quality-regression.test.js`?**
   _High betweenness centrality (0.031) - this node is a cross-community bridge._
 - **What connects `wrangler`, `RFC-8030`, `RFC-8292` to the rest of the system?**
   _3 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `index.js` be split into smaller, more focused modules?**
   _Cohesion score 0.07595628415300547 - nodes in this community are weakly interconnected._
+- **Why does `Hesaplama / Render / Entegrasyon Fonksiyonları` connect `Hesaplama / Render / Entegrasyon Fonksiyonları` to `1. Uygulama Envanteri`?**
+  _High betweenness centrality (0.028) - this node is a cross-community bridge._
 - **Should `qc-budget-period.test.js` be split into smaller, more focused modules?**
   _Cohesion score 0.14285714285714285 - nodes in this community are weakly interconnected._
+- **Why does `esc()` connect `statement-import.test.js` to `Finans Takip — Çok Ajanlı Denetim Raporu #2`?**
+  _High betweenness centrality (0.026) - this node is a cross-community bridge._
 - **Should `gmail-script.test.js` be split into smaller, more focused modules?**
   _Cohesion score 0.05226480836236934 - nodes in this community are weakly interconnected._
-- **Should `statement-import.test.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.057692307692307696 - nodes in this community are weakly interconnected._
-- **Should `Diğer Bulgular` be split into smaller, more focused modules?**
-  _Cohesion score 0.05384615384615385 - nodes in this community are weakly interconnected._
