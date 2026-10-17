@@ -33,7 +33,8 @@ tx('2027-10-08', 'expense', 2000, 'BES', 'Bireysel emeklilik'); tx('2027-10-17',
 tx('2027-10-25', 'expense', 1000, 'Eğlence', 'Planlı', { balanceApplied: false });
 tx('2027-05-01', 'income', 10000, 'Maaş', 'Maaş'); tx('2027-05-04', 'expense', 8000, 'Market', 'Migros'); tx('2027-05-09', 'expense', 4000, 'Yiyecek', 'Restoran');
 tx('2027-06-04', 'expense', 1000, 'Market', 'Migros');
-// Birikim sayfasında hedefe "gider olarak" girilen katkılar (kategori Diğer): Eylül 2.000, Ekim 1.000 → birikim sayılır, İstek değil
+// Eski "birikim hesabından gider olarak düş" modunda girilmiş katkılar (kategori Diğer): Eylül 2.000, Ekim 1.000. Mod kaldırıldı; açılışta bu
+// kayıtlar hesap içi aktarıma çevrilir (gider değil, bakiye aynı) → İstek'e girmez, birikimde kalır
 T.push({ id: 'tg1', date: '2027-09-25', type: 'expense', amount: 2000, category: 'Diğer', note: 'Hedef katkısı: Tatil', accountId: 'b', userId: 'u_a', ts: 950, balanceApplied: true },
   { id: 'tg2', date: '2027-10-06', type: 'expense', amount: 1000, category: 'Diğer', note: 'Hedef katkısı: Tatil', accountId: 'b', userId: 'u_a', ts: 951, balanceApplied: true });
 const G = [{ id: 'g1', name: 'Tatil', target: 20000, emoji: '🏖', accountId: 'b', sourceAccountId: '', txnMode: 'expense', contributions: [{ id: 'c1', amount: 2000, date: '2027-09-25', note: '', accountId: 'b', txnId: 'tg1' }, { id: 'c2', amount: 1000, date: '2027-10-06', note: '', accountId: 'b', txnId: 'tg2' }], done: null, ts: 1 }];
@@ -58,15 +59,17 @@ srv.listen(0, async () => {
   const toasts = () => page.evaluate(() => [...document.querySelectorAll('.toast')].map(t => t.textContent));
   const short = o => ({ income: o.income, need: o.need, want: o.want, save: o.save, saveExp: o.saveExp, goals: o.goals, moved: o.moved, rest: o.refundsRest, pct: ['need', 'want', 'save'].map(k => o.pct[k] == null ? null : Math.round(o.pct[k] * 100) / 100), target: o.target });
 
+  eq('eski gider modundaki hedef katkıları aktarıma çevrildi; bakiye ve hedef toplamı aynı', await page.evaluate(b0 => [S.txns().filter(t => t.id === 'tg1' || t.id === 'tg2').map(t => t.category), S.goals()[0].txnMode, App.Goals.total(S.goals()[0]), S.accounts().find(a => a.id === 'b').balance === b0, App.Transactions.monthTotals('2027-09').expense], bal.b),
+    [['Transfer', 'Transfer'], 'none', 3000, true, 43000]);
   // 1) Gruplar: hazır kategoriler ve adından tahmin
   eq('kategori grupları (hazır + addan tahmin)', await page.evaluate(() => ['Market', 'Faturalar', 'Kredi Kartı Ödemesi', 'Yiyecek', 'Giyim', 'Diğer', 'Kira', 'BES', 'Altın alımı', 'Aidat', 'Su faturası', 'Telefon', 'Spor salonu', 'Hobi', 'constructor', 'toString'].map(c => App.Split.groupOf(c))),
     ['need', 'need', 'need', 'want', 'want', 'want', 'need', 'save', 'save', 'need', 'need', 'need', 'want', 'want', 'want', 'want']);
 
   // 2) Hesap: Ekim (iade kendi kategorisinden, kategorisiz iade gruplara girmez, planlı sayılmaz), Eylül, Mayıs (eksi birikim), Haziran (gelir yok)
   eq('Ekim: 26.500 / 19.000 / 14.500; BES 2.000, aktarılan 5.000, kategorisiz iade 300', await page.evaluate(() => App.Split.compute('2027-10')).then(short),
-    { income: 60000, need: 26500, want: 19000, save: 14500, saveExp: 2000, goals: 1000, moved: 5000, rest: 300, pct: [44.17, 31.67, 24.17], target: { need: 30000, want: 18000, save: 12000 } });
+    { income: 60000, need: 26500, want: 19000, save: 14500, saveExp: 2000, goals: 0, moved: 5000, rest: 300, pct: [44.17, 31.67, 24.17], target: { need: 30000, want: 18000, save: 12000 } });
   eq('Eylül: 28.000 / 15.000 / 17.000', await page.evaluate(() => App.Split.compute('2027-09')).then(short),
-    { income: 60000, need: 28000, want: 15000, save: 17000, saveExp: 0, goals: 2000, moved: 0, rest: 0, pct: [46.67, 25, 28.33], target: { need: 30000, want: 18000, save: 12000 } });
+    { income: 60000, need: 28000, want: 15000, save: 17000, saveExp: 0, goals: 0, moved: 0, rest: 0, pct: [46.67, 25, 28.33], target: { need: 30000, want: 18000, save: 12000 } });
   eq('Mayıs: gider gelirden 2.000 fazla, birikim eksi', await page.evaluate(() => App.Split.compute('2027-05')).then(short),
     { income: 10000, need: 8000, want: 4000, save: -2000, saveExp: 0, goals: 0, moved: 0, rest: 0, pct: [80, 40, -20], target: { need: 5000, want: 3000, save: 2000 } });
   eq('Ekim için önceki 3 ayın ortalaması (Temmuz–Eylül)', await page.evaluate(() => { const a = App.Split.average('2027-10'); return [a.n, Math.round(a.pct.need), Math.round(a.pct.want), Math.round(a.pct.save)]; }), [3, 47, 25, 28]);
@@ -83,8 +86,8 @@ srv.listen(0, async () => {
   eq('kart: satırlar (tutar, hedef, durum, çubuk, kategoriler)', card.rows, [
     ['🏠 İhtiyaç %44', '₺26.500,00', 'hedef %50 · ₺30.000,00₺3.500,00 kaldı', 'pok', '88.3%', 'Kira, Market, Faturalar, Kredi Ödemesi'],
     ['🎈 İstek %32', '₺19.000,00', 'hedef %30 · ₺18.000,00₺1.000,00 fazla', 'pover', '100%', 'Yiyecek, Giyim, Eğlence'],
-    ['🐖 Birikim %24', '₺14.500,00', 'hedef %20 · ₺12.000,00hedeften ₺2.500,00 fazla', 'pok', '100%', 'gelir − ihtiyaç − istek · BES ₺2.000,00 dahil · hedef katkıları ₺1.000,00 dahil · birikim hesaplarına ₺5.000,00 aktarıldı']]);
-  eq('kart: notlar ve önceki aylar', [card.notes, card.avg, card.btn, card.map], [['Ay bitmedi: harcandıkça birikim payı azalır.', 'Hangi harcamanın iadesi olduğu seçilmemiş ₺300,00 iade gruplara yansımadı.'], 'Önceki 3 ayın ortalaması: ihtiyaç %47 · istek %25 · birikim %28', true, 14]);
+    ['🐖 Birikim %24', '₺14.500,00', 'hedef %20 · ₺12.000,00hedeften ₺2.500,00 fazla', 'pok', '100%', 'gelir − ihtiyaç − istek · BES ₺2.000,00 dahil · birikim hesaplarına ₺5.000,00 aktarıldı']]);
+  eq('kart: notlar ve önceki aylar', [card.notes, card.avg, card.btn, card.map], [['Ay bitmedi: harcandıkça birikim payı azalır.', 'Hangi harcamanın iadesi olduğu seçilmemiş ₺300,00 iade gruplara yansımadı.'], 'Önceki 3 ayın ortalaması: ihtiyaç %47 · istek %25 · birikim %28', true, 19]);
 
   // 4) Kategori grubu değiştirme: Giyim İhtiyaç olunca Ekim ihtiyaç 33.500, istek 12.000; liste açık kalır; geri alınır
   eq('kategori listesi kapalı başlar', await page.evaluate(() => [document.querySelector('#splitCard .sp-map').hidden, document.querySelector('#splitCard .sp-map-btn').getAttribute('aria-expanded')]), [true, 'false']);
@@ -158,7 +161,7 @@ srv.listen(0, async () => {
   eq('rapor Ekim', await rep('2027-10'), { h: 'Gelirin bölünüşü (50/30/20)hedef: gelirin %50 ihtiyaç · %30 istek · %20 birikim', rows: [
     ['🏠 İhtiyaç · Kira, Market, Faturalar, Kredi Ödemesi', '₺26.500', '%44', '%50 · ₺30.000', '₺3.500 kaldı'],
     ['🎈 İstek · Yiyecek, Giyim, Eğlence', '₺19.000', '%32', '%30 · ₺18.000', '₺1.000 fazla'],
-    ['🐖 Birikim · gelir − ihtiyaç − istek · BES ₺2.000 dahil · hedef katkıları ₺1.000 dahil · birikim hesaplarına ₺5.000 aktarıldı', '₺14.500', '%24', '%20 · ₺12.000', 'hedeften ₺2.500 fazla']],
+    ['🐖 Birikim · gelir − ihtiyaç − istek · BES ₺2.000 dahil · birikim hesaplarına ₺5.000 aktarıldı', '₺14.500', '%24', '%20 · ₺12.000', 'hedeften ₺2.500 fazla']],
     note: 'Ay bitmedi: harcandıkça birikim payı azalır. Hangi harcamanın iadesi olduğu seçilmemiş ₺300 iade gruplara yansımadı.', guide: true });
   eq('rapor Mayıs (ay bitti, eksi birikim)', (await rep('2027-05')).rows.map(r => r[4]), ['₺3.000 fazla', '₺1.000 fazla', 'gider gelirden ₺2.000 fazla']);
   eq('rapor Haziran: gelir yok, bölüm ve rehber yok', await rep('2027-06'), { none: true, guide: false });

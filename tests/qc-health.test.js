@@ -16,10 +16,10 @@ function eq(label, a, e) { const ok = JSON.stringify(a) === JSON.stringify(e); o
 // kartla Yiyecek 6.000 + Giyim 5.000, bankadan Eğlence 4.000 (istek 15.000) → gider 43.000, birikim 17.000; her ay birikim hesabına 8.000 aktarım.
 // Ocak–Haziran yalnız maaş ve Market (Haziran'da gider gelirden 1.000 fazla). Ekim: gelir 60.000, Kira 12.000, Market 7.000, kartla Yiyecek 8.000.
 // Kart limiti 60.000; aylık bütçe Market 8.000 (Eylül'de 9.000 → aşıldı), Yiyecek 7.000, Giyim 5.000.
-//   Birikim: 51.000 / 180.000 = %28,3 ≥ %20 → 20 · Acil fon: 24.000 / 43.000 = 0,56 ay → 0,56/3×12 = 2,2
-//   Kredi: 9.000 / 180.000 = %5 → 20 · Kart: 41.000 / 60.000 = %68,3 → (0,9−0,683)/0,6×20 = 7,2 · Bütçe: 3'te 2 → 13,3   → 62,7 → 63 (İyi)
-// Geçen ay (Haziran–Ağustos, 30 Eylül bakiyeleri): birikim 33.000/180.000 = %18,3 → 18,3 · fon 24.000 / 49.000 = 0,49 ay → 2,0
-//   kredi %3,3 → 20 · kart 33.000/60.000 = %55 → 11,7 · bütçe (Ağustos) 13,3   → 65
+//   Birikim: 51.000 / 180.000 = %28,3 ≥ %20 → 20 · Acil fon: zorunlu gider (ihtiyaç; kredi modülü yok) 28.000; 24.000 / 28.000 = 0,86 ay → 0,86/3×12 = 3,4
+//   Kredi: 9.000 / 180.000 = %5 → 20 · Kart: 41.000 / 60.000 = %68,3 → (0,9−0,683)/0,6×20 = 7,2 · Bütçe: 3'te 2 → 13,3   → 63,9 → 64 (İyi)
+// Geçen ay (Haziran–Ağustos, 30 Eylül bakiyeleri): birikim 33.000/180.000 = %18,3 → 18,3 · fon 24.000 / ((61.000+28.000+28.000)/3 = 39.000) = 0,62 ay → 2,5
+//   kredi %3,3 → 20 · kart 33.000/60.000 = %55 → 11,7 · bütçe (Ağustos) 13,3   → 65,8 → 66
 const U = [{ id: 'u_a', name: 'Deniz', emoji: '🙋', color: '#14b8a6' }, { id: 'u_b', name: 'Ece', emoji: '💑', color: '#ec4899' }];
 let n = 0; const T = [];
 const tx = (date, type, amount, category, note, extra) => T.push(Object.assign({ id: 't' + (++n), date, type, amount, category, note, accountId: 'b', userId: 'u_a', ts: n, balanceApplied: date <= '2027-10-20' }, extra || {}));
@@ -51,11 +51,11 @@ srv.listen(0, async () => {
   const hc = back => page.evaluate(b => { const h = App.Health.compute(b); return [h.score, h.label, h.items.map(x => [x.key, x.na ? null : x.pts, x.na || x.val])]; }, back);
 
   // 1) Puan ve ölçüler (bugün, geçen ay)
-  eq('bugün: 63 (İyi)', await hc(0), [63, 'İyi', [['save', 20, '%28 · hedef %20'], ['fund', 2.2, '0,6 aylık gider'], ['debt', 20, 'gelire oranı %5'], ['card', 7.2, '%68 kullanılıyor'], ['budget', 13.3, '3 bütçe · 2 tanesi tuttu']]]);
+  eq('bugün: 64 (İyi)', await hc(0), [64, 'İyi', [['save', 20, '%28 · hedef %20'], ['fund', 3.4, '0,9 aylık zorunlu gider'], ['debt', 20, 'gelire oranı %5'], ['card', 7.2, '%68 kullanılıyor'], ['budget', 13.3, '3 bütçe · 2 tanesi tuttu']]]);
   eq('ayrıntı satırları ve öneriler (en düşük iki ölçü)', await page.evaluate(() => { const h = App.Health.compute(0); return [h.items.map(x => x.sub), h.tips]; }),
-    [['son 3 tam ayın ortalaması', 'birikim hesaplarında ₺24.000,00 · aylık gider ₺43.000,00', 'ayda ortalama ₺3.000,00', 'borç ₺41.000,00 · limit ₺60.000,00', 'aşılan: Market'],
-      ['En az 3 aylık gider (₺129.000,00) birikim hesabında dursun; ₺105.000,00 eksik.', 'Kullanımı %30 altına indirmek için ₺23.000,00 ödeyin.']]);
-  eq('geçen ay: 65 (Haziran–Ağustos, 30 Eylül bakiyeleri)', await hc(1), [65, 'İyi', [['save', 18.3, '%18 · hedef %20'], ['fund', 2, '0,5 aylık gider'], ['debt', 20, 'gelire oranı %3'], ['card', 11.7, '%55 kullanılıyor'], ['budget', 13.3, '3 bütçe · 2 tanesi tuttu']]]);
+    [['son 3 tam ayın ortalaması', 'birikim hesaplarında ₺24.000,00 · aylık zorunlu gider ₺28.000,00 (ihtiyaçlar + kredi taksidi)', 'ayda ortalama ₺3.000,00', 'borç ₺41.000,00 · limit ₺60.000,00', 'aşılan: Market'],
+      ['En az 3 aylık zorunlu gider (₺84.000,00) birikim hesabında dursun; ₺60.000,00 eksik.', 'Kullanımı %30 altına indirmek için ₺23.000,00 ödeyin.']]);
+  eq('geçen ay: 66 (Haziran–Ağustos, 30 Eylül bakiyeleri)', await hc(1), [66, 'İyi', [['save', 18.3, '%18 · hedef %20'], ['fund', 2.5, '0,6 aylık zorunlu gider'], ['debt', 20, 'gelire oranı %3'], ['card', 11.7, '%55 kullanılıyor'], ['budget', 13.3, '3 bütçe · 2 tanesi tuttu']]]);
 
   // 2) Özet kartı
   await page.evaluate(() => App.UI.nav('ozet')); await page.waitForTimeout(150);
@@ -63,29 +63,29 @@ srv.listen(0, async () => {
     return [sp(c.querySelector('.hl-score').textContent), c.querySelector('.hl-score').className, sp(c.querySelector('.hl-label').textContent), sp(c.querySelector('.hl-sub').textContent),
       [...c.querySelectorAll('.hl-row')].map(r => [sp(r.querySelector('.hl-name').textContent), sp(r.querySelector('.hl-pt').textContent), (r.querySelector('.prog-fill') || {}).className || '']), c.querySelectorAll('.hl-tips div').length,
       !!document.querySelector('.sh[data-sec="ozet-health"] .sh-toggle')]; });
-  eq('Özet kartı: puan, etiket, değişim, satırlar, öneriler, katlanır bölüm', oz, ['63/100', 'hl-score hl-ok', 'İyi', '▼ 2 puan düştü (geçen ay 65)',
-    [['Birikim oranı', '20/20', 'prog-fill pok'], ['Acil durum fonu', '2,2/20', 'prog-fill pover'], ['Kredi ve borç ödemesi', '20/20', 'prog-fill pok'], ['Kart limiti kullanımı', '7,2/20', 'prog-fill pover'], ['Bütçeye uyum (Eylül)', '13,3/20', 'prog-fill pwarn']], 2, true]);
+  eq('Özet kartı: puan, etiket, değişim, satırlar, öneriler, katlanır bölüm', oz, ['64/100', 'hl-score hl-ok', 'İyi', '▼ 2 puan düştü (geçen ay 66)',
+    [['Birikim oranı', '20/20', 'prog-fill pok'], ['Acil durum fonu', '3,4/20', 'prog-fill pover'], ['Kredi ve borç ödemesi', '20/20', 'prog-fill pok'], ['Kart limiti kullanımı', '7,2/20', 'prog-fill pover'], ['Bütçeye uyum (Eylül)', '13,3/20', 'prog-fill pwarn']], 2, true]);
 
-  // 3) Birikim hedefi %30 (40/30/30): 28,3/30×20 = 18,9 → 61,7 → 62; geçen ay 18,3/30×20 = 12,2 → 59
+  // 3) Birikim hedefi %30 (40/30/30): 28,3/30×20 = 18,9 → 62,8 → 63; geçen ay 18,3/30×20 = 12,2 → 59,7 → 60
   await page.evaluate(() => S.saveSetting('split', { need: 40, want: 30, save: 30, cats: {} }));
-  eq('birikim hedefi %30', [(await hc(0)).slice(0, 2), (await hc(0))[2][0], (await hc(1))[0]], [[62, 'İyi'], ['save', 18.9, '%28 · hedef %30'], 59]);
+  eq('birikim hedefi %30', [(await hc(0)).slice(0, 2), (await hc(0))[2][0], (await hc(1))[0]], [[63, 'İyi'], ['save', 18.9, '%28 · hedef %30'], 60]);
   await page.evaluate(() => S.saveSetting('split', { need: 50, want: 30, save: 20, cats: {} }));
 
-  // 4) Acil durum hedefi birikim hesabından büyükse o sayılır: 150.000 / 43.000 = 3,49 ay → 12 + 0,49/3×8 = 13,3 → 73,8 → 74;
+  // 4) Acil durum hedefi birikim hesabından büyükse o sayılır: 150.000 / 28.000 = 5,36 ay → 12 + 2,36/3×8 = 18,3 → 78,8 → 79;
   // geçen ay yalnız 30 Eylül'e kadarki 50.000: 50.000 / 49.000 = 1,02 ay → 4,1 → 67
   await page.evaluate(() => { const g = S.goals(); g.push({ id: 'ge', name: '6 Aylık Acil Durum Fonu', target: 258000, emoji: '🛡️', txnMode: 'none', contributions: [{ id: 'k1', amount: 50000, date: '2027-09-01', note: '' }, { id: 'k2', amount: 100000, date: '2027-10-01', note: '' }], done: null, emergency: true, ts: 1 }); S.saveGoals(g); });
   eq('acil durum hedefi', [(await hc(0)).slice(0, 2), (await hc(0))[2][1], await page.evaluate(() => App.Health.compute(0).items[1].tip), (await hc(1))[0]],
-    [[74, 'İyi'], ['fund', 13.3, '3,5 aylık gider'], 'İdeali 6 aylık gider (₺258.000,00); ₺108.000,00 eksik.', 67]);
+    [[79, 'İyi'], ['fund', 18.3, '5,4 aylık zorunlu gider'], 'İdeali 6 aylık zorunlu gider (₺168.000,00); ₺18.000,00 eksik.', 68]);
   await page.evaluate(() => S.saveGoals([]));
 
-  // 5) Kartın son ödemesi geçti (kesim 5'i, son ödeme 15 Ekim; ödenmedi): kart 0 puan → 55,6 → 56 (Orta)
+  // 5) Kartın son ödemesi geçti (kesim 5'i, son ödeme 15 Ekim; ödenmedi): kart 0 puan → 56,7 → 57 (Orta)
   await page.evaluate(() => { const a = S.accounts(); a.find(x => x.id === 'c').statementDay = 5; S.saveAccounts(a); });
-  eq('son ödemesi geçen kart', [(await hc(0)).slice(0, 2), (await hc(0))[2][3], await page.evaluate(() => App.Health.compute(0).tips[0])], [[56, 'Orta'], ['card', 0, 'son ödeme geçti'], 'Son ödemesi geçen kart borcunu hemen ödeyin; gecikme faizi işler.']);
+  eq('son ödemesi geçen kart', [(await hc(0)).slice(0, 2), (await hc(0))[2][3], await page.evaluate(() => App.Health.compute(0).tips[0])], [[57, 'Orta'], ['card', 0, 'son ödeme geçti'], 'Son ödemesi geçen kart borcunu hemen ödeyin; gecikme faizi işler.']);
   await page.evaluate(() => { const a = S.accounts(); a.find(x => x.id === 'c').statementDay = 20; S.saveAccounts(a); });
 
-  // 6) Verisi olmayan ölçü puana girmez: kart ve bütçe yokken (20 + 2,2 + 20) / 60 = %70,4 → 70
+  // 6) Verisi olmayan ölçü puana girmez: kart ve bütçe yokken (20 + 3,4 + 20) / 60 = %72,3 → 72
   await page.evaluate(() => { S.saveAccounts(S.accounts().filter(a => a.id !== 'c')); S.saveBudgets({}); S.saveBudgetMeta({}); });
-  eq('kart ve bütçe yok: üç ölçüyle 70', await hc(0), [70, 'İyi', [['save', 20, '%28 · hedef %20'], ['fund', 2.2, '0,6 aylık gider'], ['debt', 20, 'gelire oranı %5'], ['card', null, 'Limiti girilmiş kredi kartı yok'], ['budget', null, 'Aylık bütçe limiti yok (Bütçe sayfası)']]]);
+  eq('kart ve bütçe yok: üç ölçüyle 72', await hc(0), [72, 'İyi', [['save', 20, '%28 · hedef %20'], ['fund', 3.4, '0,9 aylık zorunlu gider'], ['debt', 20, 'gelire oranı %5'], ['card', null, 'Limiti girilmiş kredi kartı yok'], ['budget', null, 'Aylık bütçe limiti yok (Bütçe sayfası)']]]);
   await page.evaluate(() => App.UI.nav('ozet')); await page.waitForTimeout(100);
   eq('Özet: verisi olmayan satırda puan yok', await page.evaluate(() => [...document.querySelectorAll('#ozet-health .hl-row.na .hl-pt')].map(x => x.textContent)), ['—', '—']);
 
@@ -109,10 +109,10 @@ srv.listen(0, async () => {
   // 9) PDF rapor: bu ayın raporunda "Finans sağlığı" (kuruşsuz tutarlar), rehberde açıklama; eski ayın raporunda yok
   const rep = m => page.evaluate(m => { const d = document.createElement('div'); d.innerHTML = App.Report.build(m); const sp = s => String(s || '').replace(/\s+/g, ' ').trim(), t = d.querySelector('.pr-health');
     return t ? { h: sp(t.closest('.pr-sec').querySelector('.pr-h2').textContent), rows: [...t.querySelectorAll('tbody tr')].map(r => [...r.cells].map(c => sp(c.textContent))), note: sp((t.parentElement.querySelector('.pr-note') || {}).textContent), guide: /Finans sağlığı:/.test(d.querySelector('.pr-guide').textContent) } : { none: true }; }, m);
-  eq('rapor Ekim: finans sağlığı', await rep('2027-10'), { h: 'Finans sağlığı: 63/100 (İyi)bugün · son 3 tam ay ve bugünkü bakiyeler', rows: [
-    ['🐖 Birikim oranı', '%28 · hedef %20 · son 3 tam ayın ortalaması', '20/20'], ['🛡️ Acil durum fonu', '0,6 aylık gider · birikim hesaplarında ₺24.000 · aylık gider ₺43.000', '2,2/20'],
+  eq('rapor Ekim: finans sağlığı', await rep('2027-10'), { h: 'Finans sağlığı: 64/100 (İyi)bugün · son 3 tam ay ve bugünkü bakiyeler', rows: [
+    ['🐖 Birikim oranı', '%28 · hedef %20 · son 3 tam ayın ortalaması', '20/20'], ['🛡️ Acil durum fonu', '0,9 aylık zorunlu gider · birikim hesaplarında ₺24.000 · aylık zorunlu gider ₺28.000 (ihtiyaçlar + kredi taksidi)', '3,4/20'],
     ['🏦 Kredi ve borç ödemesi', 'gelire oranı %5 · ayda ortalama ₺3.000', '20/20'], ['💳 Kart limiti kullanımı', '%68 kullanılıyor · borç ₺41.000 · limit ₺60.000', '7,2/20'], ['🎯 Bütçeye uyum (Eylül)', '3 bütçe · 2 tanesi tuttu · aşılan: Market', '13,3/20']],
-    note: 'En az 3 aylık gider (₺129.000) birikim hesabında dursun; ₺105.000 eksik. Kullanımı %30 altına indirmek için ₺23.000 ödeyin.', guide: true });
+    note: 'En az 3 aylık zorunlu gider (₺84.000) birikim hesabında dursun; ₺60.000 eksik. Kullanımı %30 altına indirmek için ₺23.000 ödeyin.', guide: true });
   eq('rapor Ağustos: bölüm yok', await rep('2027-08'), { none: true });
 
   // 10) Dar ekran: Özet kartı taşmıyor

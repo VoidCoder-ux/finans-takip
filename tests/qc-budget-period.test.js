@@ -85,21 +85,21 @@ srv.listen(0, async () => {
   eq('istatistik tablosu: haftalık limit kendi dönemiyle', await page.evaluate(() => { const sp = s => s.replace(/\s+/g, ' ').trim(); return [...document.querySelectorAll('#statsTable tbody tr')].map(r => [sp(r.cells[0].textContent), sp(r.cells[2].textContent), sp(r.cells[3].textContent)]).filter(r => /Market|Yiyecek|Giyim/.test(r[0])); }),
     [['🛒 Market', '₺600,00 / hafta · ₺700,00 harcandı', '⚠ Aşıldı'], ['🍽 Yiyecek', '₺5.000,00 / yıl · ₺4.000,00 harcandı', '⚠ %80'], ['👕 Giyim', '₺1.000,00', '✓ %40']]);
 
-  // 7) Yıllık özet 2027: gelir 55.000; gider 2.000 + 1.500 + (1.000 + 400 + 300 + 500 + 450 − 50) = 6.100 → gelir − gider 48.900; 4 kayıtlı ay → ortalama 1.525
-  // Geçen yılın aynı dönemi (20 Ağustos 2026'ya kadar): gelir 20.000, gider 2.000 (3 ay, ortalama 666,67)
+  // 7) Yıllık özet 2027: gelir 55.000; gider 2.000 + 1.500 + (1.000 + 400 + 300 + 500 + 450 − 50) = 6.100 → gelir − gider 48.900; ortalama yalnız biten aylardan (Ocak, Mart, Temmuz; süren Ağustos hariç): 3.500 / 3 = 1.166,67
+  // Geçen yılın aynı dönemi (20 Ağustos 2026'ya kadar): gelir 20.000, gider 2.000; biten aylar Ocak, Mart: 800 / 2 = 400 → ▲ %192
   const yr = () => page.evaluate(() => { const c = document.getElementById('statsYear'), sp = s => String(s || '').replace(/\s+/g, ' ').trim(), kids = el => el ? [...el.children].map(x => sp(x.textContent)).filter(Boolean).join(' ') : '';
     return { title: sp(c.querySelector('.chart-title').textContent), kpis: [...c.querySelectorAll('.yr-kpi')].map(kids), fut: c.querySelectorAll('.yr-col.fut').length, cur: sp((c.querySelector('.yr-x .cur') || {}).textContent),
       leg: kids(c.querySelector('.yr-leg')), cats: [...c.querySelectorAll('.yr-cat')].map(kids), next: (c.querySelector('[aria-label="Sonraki yıl"]') || {}).disabled,
       hAug: c.querySelectorAll('.yr-col')[7] ? [...c.querySelectorAll('.yr-col')[7].querySelectorAll('i')].map(i => i.style.height) : [] }; });
   let y = await yr();
-  eq('yıllık özet 2027: başlık, göstergeler, karşılaştırma', [y.title, y.kpis], ['📅 Yıllık Özet · 2027', ['Gelir ₺55.000,00 ▲ %175 geçen yılın aynı dönemine göre', 'Gider ₺6.100,00 ▲ %205 geçen yılın aynı dönemine göre', 'Gelir − gider +₺48.900,00 elde kalan para değildir', 'Aylık ortalama gider ₺1.525,00 kayıtlı 4 ayın ortalaması · ▲ %129']]);
+  eq('yıllık özet 2027: başlık, göstergeler, karşılaştırma', [y.title, y.kpis], ['📅 Yıllık Özet · 2027', ['Gelir ₺55.000,00 ▲ %175 geçen yılın aynı dönemine göre', 'Gider ₺6.100,00 ▲ %205 geçen yılın aynı dönemine göre', 'Gelir − gider +₺48.900,00 elde kalan para değildir', 'Aylık ortalama gider ₺1.166,67 biten 3 ayın ortalaması (süren ay hariç) · ▲ %192']]);
   // Sütunlar: en büyük aylık tutar Ağustos geliri 30.000 → Ağustos gelir %100, gider 2.600 / 30.000 = %8,7
   eq('sütunlar: gelecek 4 ay soluk, bu ay kalın, Ağustos yükseklikleri; en çok harcanan ay', [y.fut, y.cur, y.hAug, y.leg], [4, 'Ağu', ['100%', '8.7%'], 'Gelir Gider En çok harcanan ay: Ağustos (₺2.600,00)']);
   eq('kategoriler: pay ve geçen yılla fark', y.cats, ['🍽 Yiyecek ₺4.000,00 yılın giderindeki payı %66 · ▲ %233 geçen yılın aynı dönemine göre', '🛒 Market ₺1.700,00 yılın giderindeki payı %28 · ▲ %113 geçen yılın aynı dönemine göre', '👕 Giyim ₺400,00 yılın giderindeki payı %7 · geçen yıl yoktu']);
   eq('bu yılda sonraki yıl düğmesi kapalı', y.next, true);
   await page.click('#statsYear [aria-label="Önceki yıl"]'); y = await yr();
   // 2026 tamamı: gelir 20.000, gider 800 + 1.200 + 5.000 = 7.000; 2025 kaydı yok → karşılaştırma yok
-  eq('2026: tüm yıl, karşılaştırma yok, sonraki yıl açık', [y.title, y.kpis, y.fut, y.next], ['📅 Yıllık Özet · 2026', ['Gelir ₺20.000,00', 'Gider ₺7.000,00', 'Gelir − gider +₺13.000,00 elde kalan para değildir', 'Aylık ortalama gider ₺1.750,00 kayıtlı 4 ayın ortalaması'], 0, false]);
+  eq('2026: tüm yıl, karşılaştırma yok, sonraki yıl açık', [y.title, y.kpis, y.fut, y.next], ['📅 Yıllık Özet · 2026', ['Gelir ₺20.000,00', 'Gider ₺7.000,00', 'Gelir − gider +₺13.000,00 elde kalan para değildir', 'Aylık ortalama gider ₺1.750,00 biten 4 ayın ortalaması'], 0, false]);
   await page.click('#statsYear [aria-label="Önceki yıl"]'); y = await yr();
   eq('kaydı olmayan yıl', [y.title, await page.evaluate(() => document.querySelector('#statsYear .empty-t').textContent)], ['📅 Yıllık Özet · 2025', '2025 yılında kayıt yok']);
   await page.click('#statsYear [aria-label="Sonraki yıl"]'); await page.click('#statsYear [aria-label="Sonraki yıl"]'); y = await yr();
