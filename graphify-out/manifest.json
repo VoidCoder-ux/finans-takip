@@ -402,9 +402,9 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1792258701.2799807,
-    "seen": 1792258713.0690033,
-    "ast_hash": "5eee8a24a315f4464d22aba519f817cc",
+    "mtime": 1792269200.3554919,
+    "seen": 1792269211.3360496,
+    "ast_hash": "945fd3739ce5d8eb6e10018e3d096c45",
     "semantic_hash": ""
   },
   "docs/denetim-raporu-2.md": {
@@ -501,6 +501,24 @@
     "mtime": 1792262649.3234038,
     "seen": 1792263993.3953655,
     "ast_hash": "9df1190db94068ef23389cf0424a445b",
+    "semantic_hash": ""
+  },
+  "graphify-src/index.html.js": {
+    "mtime": 1792269204.2754922,
+    "seen": 1792269211.3332667,
+    "ast_hash": "d88e343abc366e6735069341d9f34185",
+    "semantic_hash": ""
+  },
+  "tools/graphify-update.js": {
+    "mtime": 1792269173.7034903,
+    "seen": 1792269185.4274406,
+    "ast_hash": "39d472e1eb8911b4855dd36871d66afd",
+    "semantic_hash": ""
+  },
+  "tests/graphify-src.test.js": {
+    "mtime": 1792269192.7234914,
+    "seen": 1792269211.3336325,
+    "ast_hash": "69328ccee72f2e192944ddb47f0d91e5",
     "semantic_hash": ""
   }
 }

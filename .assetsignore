@@ -15,3 +15,5 @@ node_modules
 graphify-out
 .graphifyignore
 .claude
+tools
+graphify-src

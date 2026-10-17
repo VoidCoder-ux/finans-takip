@@ -11,6 +11,7 @@ Rules:
 
 ### Bu depoda graphify
 
-- Uygulamanın kendisi (`index.html` içindeki kod) haritada **yok**: graphify HTML içindeki betikleri okumuyor. Uygulama kodu için `index.html`'i doğrudan arayın/okuyun; harita yalnız testleri, `worker/`, `sw.js` ve `docs/` kapsar.
+- graphify HTML içindeki betikleri okumadığı için uygulama kodu (`index.html` içindeki betikler) `graphify-src/index.html.js` kopyası üzerinden haritadadır. Kopyada satır numaraları `index.html` ile birebir aynıdır: haritada `graphify-src/index.html.js` L2820 görünen yer, `index.html` 2820. satırdır. Düzenlemeyi her zaman `index.html`'de yapın, kopyayı elle değiştirmeyin.
+- Kod değiştirdikten sonra `graphify update .` yerine `node tools/graphify-update.js` çalıştırın: önce kopyayı yeniler, sonra haritayı günceller. `tests/graphify-src.test.js` kopya eskiyse başarısız olur.
 - Hazır kütüphaneler (`vendor/`) `.graphifyignore` ile dışarıda bırakıldı.
-- `graphify` komutu yoksa (yeni bulut oturumu) bu kuralları atlayın; kurmak için `uv tool install graphifyy`.
+- `graphify` komutu yoksa (yeni bulut oturumu) sorgu kurallarını atlayın; kurmak için `uv tool install graphifyy`. Kopyayı yine `node tools/graphify-update.js` ile yenileyin (graphify yoksa yalnız kopyayı yazar).
