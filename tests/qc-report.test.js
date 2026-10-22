@@ -282,7 +282,7 @@ srv.listen(0, async () => {
       ['💳 Axess …1111', '🙋 Deniz ₺4.000 | 💑 Ece ₺2.500', '₺7.400', '₺30.000 / ortak limit', '₺20.800', 'kesim günü yok', '—'],
       ['💳 Wings …2222', '💑 Ece ₺1.500 | 🙋 Deniz ₺300', '₺1.800', '₺30.000 / ortak limit', '₺20.800', 'kesim günü yok', '—'],
       ['💳 Bonus', '💑 Ece / harcama yok', '₺0', '₺10.000', '₺10.000', '—', '—'],
-      ['💳 Maximum', 'Belirtilmemiş ₺400', '₺5.400', '₺5.000', '₺400 aşıldı', 'kesim günü yok', '—'],
+      ['💳 Maximum', '👨‍👩‍👧 Ortak ₺400', '₺5.400', '₺5.000', '₺400 aşıldı', 'kesim günü yok', '—'],
       ['💳 Kart', 'harcama yok', '₺0', 'girilmemiş', '—', '—', '—']]);
     eq('doluluk çubuğu: Axess/Wings 9.200 / 30.000 = %31, Bonus boş (en az %2), Maximum %100', r.bars, ['31%', '31%', '2%', '100%']);
     eq('kart notu: kullanılabilir nasıl bulundu; ortak limit toplanmaz', r.note, 'Bu ay kartla harcanan: ₺8.700 (gidere dahil). Kullanılabilir: limitten kart borcu düşülünce kalan (bugün). Axess …1111 ve Wings …2222 aynı limiti kullanır; kullanılabilir tutar ikisi için ortaktır, toplanmaz.');

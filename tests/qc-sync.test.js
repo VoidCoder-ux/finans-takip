@@ -33,7 +33,7 @@ const TODAY = iso(new Date());
   const sync = p => p.evaluate(() => App.Sync.syncNow({ quiet: true }));
   const bal = p => p.evaluate(() => S.accounts().map(a => a.balance));
   const notes = async p => (await p.evaluate(() => S.txns().map(t => t.note))).sort();
-  const add = (p, amount, note, acc) => p.evaluate(o => { App.UI.nav('islemler'); App.UI.setType('expense'); const c = document.querySelector('#txnPayChips [data-acc="' + o.acc + '"]'); if (c) c.click(); document.getElementById('txnAmt').value = o.amount; document.getElementById('txnNote').value = o.note; App.Transactions.add(); }, { amount, note, acc });
+  const add = (p, amount, note, acc) => p.evaluate(o => { App.UI.nav('islemler'); App.UI.setType('expense'); const c = document.querySelector('#txnPayChips [data-acc="' + o.acc + '"]'); if (c) c.click(); document.getElementById('txnUser').value = S.settings().activeUser; document.getElementById('txnAmt').value = o.amount; document.getElementById('txnNote').value = o.note; App.Transactions.add(); }, { amount, note, acc });
   const settle = async (...ps) => { for (let i = 0; i < 2; i++) for (const p of ps) await sync(p); };
 
   const A = await device('A', { pf_a: accs, pf_t: [], pf_s: { onboarded: true, users: USERS, activeUser: 'u_a' } });
