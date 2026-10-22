@@ -119,7 +119,7 @@ srv.listen(0, async () => {
     const post = async text => (await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) })).json();
     eq('Kestirme POST\'u saklandı', await post(PUSH1), { stored: true });
     const res = await page.evaluate(() => App.BankSms.pull({ force: true }));
-    eq('uygulama çekti, bildirim kanalıyla ekledi', [res && res.added, await page.evaluate(() => { const t = S.txns().find(x => x.amount === 237.5); return t && [t.via, t.accountId, t.userId, t.category]; })], [1, ['push', 'c', 'u_a', 'Market']]);
+    eq('uygulama çekti, bildirim kanalıyla ekledi', [res && res.added, await page.evaluate(() => { const t = S.txns().find(x => x.amount === 237.5); return t && [t.via, t.accountId, t.userId, t.category]; })], [1, ['push', 'c', '', 'Market']]); // c ortak kart: Ortak
     eq('tanı satırı', await page.evaluate(() => { App.BankSms.renderCard(); return document.getElementById('pushLast').textContent; }), 'Son bildirim: az önce · ✓ alındı');
     await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: '' }) });
     await page.evaluate(() => App.BankSms.pull({ force: true }));

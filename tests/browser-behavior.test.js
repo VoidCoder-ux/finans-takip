@@ -501,7 +501,7 @@ async function runRecurringOwner() {
   var r = await openApp({ pf_a: [acc(A, 'Banka', 'bank', 0)] });
   var p = r.page;
   await p.evaluate(function() { App.UI.nav('tekrarlayan'); });
-  eq('recurring form lists family members', await p.evaluate(function() { return Array.prototype.map.call(document.querySelectorAll('#recUser option'), function(o) { return o.value; }); }), ['u_self', 'u_partner']);
+  eq('recurring form lists family members', await p.evaluate(function() { return Array.prototype.map.call(document.querySelectorAll('#recUser option'), function(o) { return o.value; }); }), ['u_self', 'u_partner', '']); // '' = Ortak
   await p.selectOption('#recType', 'income');
   await p.fill('#recAmt', '50000');
   await p.selectOption('#recCat', 'Maaş');
@@ -605,10 +605,10 @@ async function runDeviceProfile() {
   await p.evaluate(function() { App.UI.nav('islemler'); App.UI.setType('expense'); });
   await p.fill('#txnAmt', '120'); await p.click('#txnPayChips [data-acc="' + A + '"]'); await p.selectOption('#txnUser', 'u_self');
   await p.evaluate(function() { App.Transactions.add(); });
-  eq('who-did-it can be changed per entry, then returns to device profile', await p.evaluate(function() { return [S.txns()[0].userId, document.getElementById('txnUser').value]; }), ['u_self', 'u_partner']);
+  eq('who-did-it can be changed per entry, then follows the account again (shared bank: Ortak)', await p.evaluate(function() { return [S.txns()[0].userId, document.getElementById('txnUser').value]; }), ['u_self', '']);
   eq('active profile is not part of synced data', await p.evaluate(function() { var c = App.Sync.collect(); return [Object.prototype.hasOwnProperty.call(c.s || {}, 'activeUser'), Object.prototype.hasOwnProperty.call(c.s || {}, 'users')]; }), [false, true]);
   await p.reload(); await p.waitForFunction(function() { return window.App && App.Transactions; });
-  eq('device profile survives restart', await p.evaluate(function() { return [S.settings().activeUser, document.getElementById('txnUser').value]; }), ['u_partner', 'u_partner']);
+  eq('device profile survives restart', await p.evaluate(function() { return [S.settings().activeUser, document.getElementById('recUser').value]; }), ['u_partner', 'u_partner']);
   await r.ctx.close();
 }
 

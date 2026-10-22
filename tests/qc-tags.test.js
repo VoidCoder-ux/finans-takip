@@ -132,7 +132,7 @@ srv.listen(0, async () => {
 
   // 11) CSV: dışa aktarmada Etiketler sütunu; yüklerken etiketler okunur
   const csv = await page.evaluate(async () => { let blob; const o = URL.createObjectURL, c = HTMLAnchorElement.prototype.click; URL.createObjectURL = b => { blob = b; return o(b); }; HTMLAnchorElement.prototype.click = function () {}; App.Transactions.exportCSV(); URL.createObjectURL = o; HTMLAnchorElement.prototype.click = c; return blob ? await blob.text() : ''; });
-  eq('CSV: başlık ve etiketli satır', [csv.split(/\r?\n/)[0].replace(/^﻿/, ''), csv.split(/\r?\n/).find(l => /Dondurma/.test(l))], ['Tarih;Tür;Kategori;Tutar;Hesap;Üye;Not;Etiketler', '"2027-08-19";"Gider";"Yiyecek";"450,00";"Kart";"Deniz";"Dondurma";"Antalya tatili"']);
+  eq('CSV: başlık ve etiketli satır', [csv.split(/\r?\n/)[0].replace(/^﻿/, ''), csv.split(/\r?\n/).find(l => /Dondurma/.test(l))], ['Tarih;Tür;Kategori;Tutar;Hesap;Üye;Not;Etiketler', '"2027-08-19";"Gider";"Yiyecek";"450,00";"Kart";"Ortak";"Dondurma";"Antalya tatili"']);
   await page.evaluate(() => App.Transactions.importCSVFile(new File(['﻿Tarih;Tür;Kategori;Tutar;Hesap;Üye;Not;Etiketler\n2027-08-02;Gider;Market;100,00;Vadesiz;Deniz;Bakkal;Okul açılışı, Kırtasiye\n'], 'x.csv', { type: 'text/csv' })));
   await page.waitForTimeout(300); await page.evaluate(() => [...document.querySelectorAll('.modal-bd.show')].pop().querySelector('[data-act="ok"]').click()); await page.waitForTimeout(200);
   eq('CSV yükleme: etiketler okunur', await tagsOf('Bakkal'), [['Okul açılışı', 'Kırtasiye']]);

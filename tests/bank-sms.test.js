@@ -188,7 +188,7 @@ srv.listen(0, async () => {
     await page.waitForTimeout(150);
     await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-pkey="acc"]').value = 'a_cash'; m.querySelector('[data-pkey="date"]').value = td(); m.querySelector('[data-pkey="note"]').value = ''; m.querySelector('[data-act="ok"]').click(); });
     await page.waitForTimeout(150);
-    eq('accepted e-mail item is recorded as e-mail', await page.evaluate(() => { const t = S.txns().find(x => x.amount === 64); return t && [t.via, t.note, t.accountId, t.userId]; }), ['email', 'Banka e-postası', 'a_cash', 'u_self']);
+    eq('accepted e-mail item is recorded as e-mail', await page.evaluate(() => { const t = S.txns().find(x => x.amount === 64); return t && [t.via, t.note, t.accountId, t.userId]; }), ['email', 'Banka e-postası', 'a_cash', '']); // a_cash ortak hesap: Ortak
     // Gerçek Akbank e-postası (sunucunun sakladığı biçim; ad ve kart numarası değiştirildi): işyeri yok, tutar 1,318.65, kalan limit sayılmaz, tarih e-postanın geldiği gün
     const akbTxt = 'Akbank\nKredi kartı harcamanız\n6262 ile biten Axess Asıl kartınızla 1,318.65 TL tutarında KREDI KARTI harcaması yapılmıştır. 3,104.27 TL limitiniz kalmıştır.\nE-posta tarihi: ' + dmy(yest) + ' 23:58';
     eq('real Akbank e-mail: English amount format, remaining limit ignored, date from the e-mail', await page.evaluate(t => { const p = App.BankSms.parse(t, Date.now()); return [p.kind, p.amount, p.last4, p.bank, p.merchant, p.date]; }, akbTxt), ['expense', 1318.65, '6262', 'Akbank', '', yest]);

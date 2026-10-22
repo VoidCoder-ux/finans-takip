@@ -78,7 +78,8 @@ srv.listen(0, async () => {
       const panel = [...document.querySelectorAll('#ozet-family .wallet-row')].map(e => [e.querySelector('.wr-bal').innerText, e.querySelector('.wr-cap').innerText]);
       return { rows, panel };
     });
-    eq('Aile sayfası ortak cüzdan: hesaplarda 20.000 − 300 = 19.700 (kart borcu ayrı)', r.rows[0], ['Ortak Cüzdan', '2 hesap · Bu ay ₺0,00 gelir · ₺300,00 gider · 💳 kart borcu ₺5.000,00', '₺19.700,00', 'hesaplarda']);
+    // 300 TL'yi Deniz yaptı: kişinin satırında; Ortak satırında yalnız "Kim Yaptı"sı Ortak olanlar (çakışma yok)
+    eq('Aile sayfası ortak cüzdan: hesaplarda 20.000 − 300 = 19.700 (kart borcu ayrı)', r.rows[0], ['Ortak Cüzdan', '2 hesap · Bu ay ₺0,00 gelir · ₺0,00 gider · 💳 kart borcu ₺5.000,00', '₺19.700,00', 'hesaplarda']);
     eq('Özet paneliyle aynı rakam', r.panel.map(x => x.join(' ')), r.rows.map(x => x[2] + ' ' + x[3]));
     eq('kişisel hesaplı üye: hesaplardaki para (1.500 + 1.000 gelir) ve kart borcu ayrı, sağda bu ay net', r.rows[2], ['Ece', '2 kişisel hesap: ₺2.500,00 · 💳 kart borcu ₺700,00 · Bu ay ₺1.000,00 gelir · ₺0,00 gider', '+₺1.000,00', 'bu ay net']);
     await ctx.close();

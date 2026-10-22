@@ -3,6 +3,9 @@
 //  1) Hesap düzenle: sahip Ortak ↔ Kişisel değişir; istenirse geçmiş işlemlerin "Kim Yaptı"sı sahibine geçer
 //  2) Formda kişisel kart seçilince "Kim Yaptı" kartın sahibine geçer; ortak hesapta değişmez
 //  3) Banka SMS'i: kişisel karta düşen harcama SMS'i gönderene değil kartın sahibine yazılır
+//  4) Ortak: "Kim Yaptı"da Ortak seçeneği; ortak hesabın geçmişi Ortak'a çevrilir; Aile panelinde Ortak + kişiler = toplam gider
+//  5) SMS ortak hesaba: harcama Ortak'a, maaş planlı maaşın kişisine
+//  6) Tekrarlayan: bu ay elle girilmiş fatura tanınır ("Kaydet" sorar, otomatik kayıt ikinci kayıt açmaz)
 const http = require('http'), fs = require('fs'), path = require('path');
 function loadPlaywright() { try { return require('playwright'); } catch (e) {} try { return require(path.join(require('child_process').execSync('npm root -g', { encoding: 'utf8' }).trim(), 'playwright')); } catch (e) { return null; } }
 const pw = loadPlaywright();
@@ -71,7 +74,7 @@ srv.listen(0, async () => {
     const A2 = ACC.map(a => a.id === 'c' ? Object.assign({}, a, { owner: 'personal', userId: 'u_b' }) : a);
     const { page, ctx } = await open({ pf_a: A2, pf_t: [] });
     const r = await page.evaluate(() => { const u = document.getElementById('txnUser'), out = [u.value]; App.UI.pickAcc('c'); out.push(u.value); App.UI.pickAcc('b'); out.push(u.value); return out; });
-    eq('aktif Deniz → Ece\'nin kartı seçilince Ece → ortak hesapta Ece kalır (elle değiştirilebilir)', r, ['u_a', 'u_b', 'u_b']);
+    eq('açılışta ortak hesap seçili: Ortak → Ece\'nin kartı: Ece → ortak hesap: Ortak', r, ['', 'u_b', '']);
     await ctx.close();
   }
 
@@ -85,6 +88,63 @@ srv.listen(0, async () => {
     });
     eq('kişisel karta düşen SMS harcaması kartın sahibine', r, [[245.5, 'c', 'u_b']]);
     await ctx.close();
+  }
+
+  // 4) Ortak etiketi ve Aile paneli
+  {
+    const { page, ctx } = await open();
+    eq('"Kim Yaptı" ve "Kimin?" kutularında Ortak var, hesap sahibinde yok', await page.evaluate(() => ['txnUser', 'recUser', 'accUser'].map(id => [...document.getElementById(id).options].some(o => o.value === ''))), [true, true, false]);
+    await editAcc(page, 'c', { ownerUser: '', pastOwner: '1' });
+    eq('ortak kartın geçmişi Ortak\'a çevrildi, ortak hesaptaki kayda dokunulmadı', await who(page), [['t1', ''], ['t2', ''], ['t3', 'u_a']]);
+    const st = await page.evaluate(() => ({ ortak: App.Users.sharedStats().expense, deniz: App.Users.stats('u_a').expense, ece: App.Users.stats('u_b').expense, toplam: App.Transactions.monthTotals('2026-10').expense }));
+    eq('Aile paneli: Ortak 500 + Deniz 100 + Ece 0 = toplam 600 (çakışma yok)', st, { ortak: 500, deniz: 100, ece: 0, toplam: 600 });
+    eq('işlem listesinde Ortak etiketi ve "Sadece Ortak" filtresi', await page.evaluate(() => { App.UI.nav('islemler'); document.getElementById('fUser').value = '__shared__'; App.Transactions.renderList(); return [...document.querySelectorAll('#txnList .ti .user-tag')].map(x => x.textContent.trim()); }), ['👨‍👩‍👧 Ortak', '👨‍👩‍👧 Ortak']);
+    const add = await page.evaluate(() => { App.UI.nav('islemler'); App.UI.setType('expense'); App.UI.pickAcc('b'); document.getElementById('txnAmt').value = '75'; document.getElementById('txnDate').value = '2026-10-21'; App.Transactions.add(); const t = S.txns().find(x => x.amount === 75); return t && [t.accountId, t.userId]; });
+    eq('ortak hesaptan eklenen gider Ortak kalır (aktif profile dönmez)', add, ['b', '']);
+    await ctx.close();
+  }
+
+  // 5) SMS ortak hesaba: kart harcaması Ortak, maaş planlı maaşın kişisine
+  {
+    const A5 = [{ id: 'b', name: 'Yapı Kredi Ortak Vadesiz', type: 'bank', owner: 'shared', userId: null, balance: 0, openingBalance: 0, ts: 1 },
+      { id: 'c', name: 'Ortak Kart', type: 'card', owner: 'shared', userId: null, balance: 0, openingBalance: 0, ts: 2, last4: '4321' }];
+    const R5 = [{ id: 'rs', type: 'income', amount: 45000, category: 'Maaş', day: 1, note: 'Ece maaş', accountId: 'b', userId: 'u_b', isSubscription: false, active: true, autoLog: false, autoFrom: '', autoDone: '', ts: 1 }];
+    const { page, ctx } = await open({ pf_a: A5, pf_t: [], pf_r: R5 });
+    const r = await page.evaluate(() => {
+      App.BankSms.ingest([{ id: 1, label: 'abcd1234_u_a', receivedAt: Date.now(), text: '4321 ile biten kredi kartinizla 22.10.2026 MIGROS TIC. A.S. isyerinden 245,50 TL tutarinda harcama yapilmistir. Yapi Kredi' },
+        { id: 2, label: 'abcd1234_u_a', receivedAt: Date.now(), text: 'YKB: hesabiniza 22.10.2026 tarihinde 45.000,00 TL maas odemesi yatirilmistir.' }]);
+      return S.txns().map(t => [t.amount, t.accountId, t.userId, t.recurringId || '']).sort((a, b) => a[0] - b[0]);
+    });
+    eq('ortak karta düşen SMS Ortak; ortak hesaba gelen maaş Ece\'nin planına bağlanır', r, [[245.5, 'c', '', ''], [45000, 'b', 'u_b', 'rs']]);
+    await ctx.close();
+  }
+
+  // 6) Tekrarlayan: elle girilmiş fatura
+  {
+    const T6 = [{ id: 'f1', type: 'expense', amount: 2500, category: 'Faturalar', date: '2026-10-10', note: 'Elektrik', accountId: 'b', userId: '', ts: 1, balanceApplied: true }];
+    const R6 = [{ id: 'r1', type: 'expense', amount: 2400, category: 'Faturalar', day: 10, note: 'Elektrik', accountId: 'b', userId: '', isSubscription: false, active: true, autoLog: false, autoFrom: '', autoDone: '', ts: 1 }];
+    const bills = page => page.evaluate(() => S.txns().filter(t => t.category === 'Faturalar' && t.date.startsWith('2026-10')).map(t => [t.id, t.recurringId || '']));
+    {
+      const { page, ctx } = await open({ pf_t: T6, pf_r: R6 });
+      await page.evaluate(() => App.Recurring.log('r1')); await page.waitForTimeout(100);
+      eq('"Kaydet": elle girilmiş fatura soruluyor', await page.evaluate(() => /Bu ay zaten girilmiş/.test(([...document.querySelectorAll('.app-dialog-holder')].pop() || {}).textContent || '')), true);
+      await page.evaluate(() => { const h = [...document.querySelectorAll('.app-dialog-holder')].pop(); h.querySelector('[data-act="ok"]').click(); }); await page.waitForTimeout(100);
+      eq('"Eşleştir": yeni kayıt açılmaz, elle girilen bağlanır', await bills(page), [['f1', 'r1']]);
+      await ctx.close();
+    }
+    {
+      const { page, ctx } = await open({ pf_t: T6, pf_r: [Object.assign({}, R6[0], { autoLog: true, autoFrom: '2026-10', autoDone: '2026-09' })] });
+      await page.evaluate(() => App.Recurring.autoRun());
+      eq('otomatik kayıt: ikinci fatura açılmaz, elle girilen bağlanır; bakiye kaymaz', [await bills(page), await page.evaluate(() => App.Accounts.reconcileAccountBalances(true))], [[['f1', 'r1']], false]);
+      await ctx.close();
+    }
+    {
+      const T7 = [{ id: 'm1', type: 'expense', amount: 2500, category: 'Market', date: '2026-10-10', note: '', accountId: 'b', userId: 'u_a', ts: 1, balanceApplied: true }];
+      const { page, ctx } = await open({ pf_t: T7, pf_r: [Object.assign({}, R6[0], { autoLog: true, autoFrom: '2026-10', autoDone: '2026-09' })] });
+      await page.evaluate(() => App.Recurring.autoRun());
+      eq('başka kategorideki aynı tutar fatura sayılmaz: fatura otomatik kaydedilir', await page.evaluate(() => S.txns().map(t => [t.category, t.recurringId || '']).sort()), [['Faturalar', 'r1'], ['Market', '']]);
+      await ctx.close();
+    }
   }
 
   eq('sayfa hatası yok', errors, []);
