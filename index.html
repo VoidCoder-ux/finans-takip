@@ -1179,7 +1179,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.17.1</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.10.22.1</div>
 </section>
 
 </main>
@@ -1696,7 +1696,7 @@ App.UI=(function(){
       '<button type="button" class="pay-chip add" data-acc="__new__">+ Kart / Hesap Ekle</button>'+
       (accs.length<2?'<div class="pay-hint" style="flex-basis:100%">Kredi kartlarını ve banka hesaplarını ayrı ayrı ekleyin: harcama hangisiyle yapıldıysa o hesaptan düşer (kartta borç olarak görünür).</div>':'');
   }
-  function pickAcc(ev){var id=typeof ev==='string'?ev:null;if(id===null){var b=ev&&ev.target&&ev.target.closest?ev.target.closest('[data-acc]'):null;if(!b)return;id=b.getAttribute('data-acc')}if(id==='__new__'){addAccQuick();return}document.getElementById('txnAccount').value=id;_picked=true;renderPayChips()}
+  function pickAcc(ev){var id=typeof ev==='string'?ev:null;if(id===null){var b=ev&&ev.target&&ev.target.closest?ev.target.closest('[data-acc]'):null;if(!b)return;id=b.getAttribute('data-acc')}if(id==='__new__'){addAccQuick();return}document.getElementById('txnAccount').value=id;_picked=true;var ow=App.Accounts.ownerOf(id),u=document.getElementById('txnUser');if(ow&&u)u.value=ow;renderPayChips()}
   // Formdan çıkmadan kart/hesap ekle; eklenen hemen seçilir
   function addAccQuick(){
     App.UI.promptModal({title:'Kart / Hesap Ekle',text:'Harcama ve gelirler seçtiğiniz hesaba işlenir. Kredi kartı harcaması kartın borcunu artırır; kart borcunu ödemek için bankadan karta Transfer yapın.',fields:[
@@ -2005,6 +2005,9 @@ App.Accounts=(function(){
       if(others.length)fields.push({key:'limitWith',label:'Limiti şu kartla ortak (aynı bankanın kartları)',type:'select',value:acc.limitWith||'',options:[{value:'',label:'— Hayır, kendi limiti var —'}].concat(others.map(function(x){return{value:x.id,label:'🔗 '+accLabel(x)}}))})}
     fields.splice(1,0,{key:'type',label:'Tür',type:'select',value:acc.type,options:Object.keys(AM).map(function(k){return{value:k,label:AM[k].i+' '+AM[k].l}})});
     fields.push({key:'last4',label:'Kart / hesap numarasının son 4 hanesi (banka SMS\'ini bu hesaba bağlar; birden fazlaysa virgülle)',type:'text',inputmode:'numeric',placeholder:'ör. 1234',value:(acc.last4||'').replace(/,/g,', ')});
+    var curOwner=ownerOf(id),users=App.Users.list();
+    fields.push({key:'ownerUser',label:'Sahip (kişisel hesaptaki harcamalar sahibine yazılır)',type:'select',value:curOwner,options:[{value:'',label:'👨‍👩‍👧 Ortak'}].concat(users.map(function(u){return{value:u.id,label:'🙋 Kişisel: '+(u.emoji||'🙋')+' '+u.name}}))});
+    if(users.length>1)fields.push({key:'pastOwner',label:'Kişisel ise: bu hesaptaki geçmiş işlemler',type:'select',value:curOwner?'0':'1',options:[{value:'1',label:'"Kim Yaptı"yı sahibine çevir'},{value:'0',label:'Dokunma, sadece bundan sonrası'}]});
     App.UI.promptModal({title:'Hesabı Düzenle',text:'Bakiyeyi banka/kart uygulamanızdaki güncel değere eşitleyebilirsiniz. Fark başlangıç bakiyesine yansıtılır; işlem geçmişi değişmez.',fields:fields},function(v){
       var name=String(v.name||'').trim().slice(0,120),bal=parseMoney(v.balance,{allowZero:true,min:-MAX_MONEY});
       if(!name){App.UI.toast('Hesap adı girin.','err');return false}
@@ -2022,12 +2025,18 @@ App.Accounts=(function(){
         var lw=v.limitWith&&accs.find(function(x){return x.id===v.limitWith&&x.type==='card'&&x.id!==id&&!x.limitWith});
         if(lw){a.limitWith=lw.id;if(!lw.limit&&a.limit)lw.limit=a.limit;delete a.limit;accs.forEach(function(x){if(x.limitWith===id)x.limitWith=lw.id})}else if(Object.prototype.hasOwnProperty.call(v,'limitWith'))delete a.limitWith}
       if(a.type!=='card'){delete a.limit;delete a.payFrom;delete a.limitWith;accs.forEach(function(x){if(x.limitWith===id)delete x.limitWith})}
+      var newOwner=v.ownerUser&&App.Users.get(v.ownerUser)?v.ownerUser:'',ownerChanged=newOwner!==curOwner,fixed=0;
+      if(ownerChanged){a.owner=newOwner?'personal':'shared';a.userId=newOwner||null}
+      if(newOwner&&v.pastOwner==='1'){var txns=S.txns();txns.forEach(function(t){if(t.accountId===id&&t.userId!==newOwner){t.userId=newOwner;fixed++}});if(fixed)S.saveTxns(txns)}
       S.saveAccounts(accs);App.UI.refreshAccSelects();renderAll();renderSummary();App.Transactions.renderList();App.Transactions.renderRecent();
-      App.UI.toast(delta?'Hesap güncellendi. Bakiye farkı: '+(delta>0?'+':'')+fmt(delta):'Hesap güncellendi.');
+      if(ownerChanged||fixed){App.Users.renderAll();App.Users.renderFamilyPanel()}
+      App.UI.toast((delta?'Hesap güncellendi. Bakiye farkı: '+(delta>0?'+':'')+fmt(delta):'Hesap güncellendi.')+(fixed?' '+fixed+' geçmiş işlem sahibine yazıldı.':''));
     });
   }
   function getName(id){var x=S.accounts().find(function(a){return a.id===id});return x?x.name:''}
   function get(id){return S.accounts().find(function(a){return a.id===id})}
+  // Kişisel hesabın sahibi (üye silinmişse boş): o hesaptaki işlem sahibine yazılır
+  function ownerOf(id){var a=id&&get(id);return a&&a.owner==='personal'&&a.userId&&App.Users.get(a.userId)?a.userId:''}
   // Bakiye bankayla eşitlendi (elle ya da karşılaştırmayla): fark açılış bakiyesine yansır, gelir-gider sayılmaz; iz kalsın diye geçmişe yazılır
   function _trail(a,delta,why){a.balTs=Date.now();a.adj=(a.adj||[]).concat([{date:td(),delta:roundMoney(delta),why:why}]).slice(-30)}
   // Bu ay hesaba giren / çıkan: gelir-gider ile hesaplar arası aktarım ayrı (banka ekstresindeki giriş-çıkış toplamıyla karşılaştırılabilir)
@@ -2118,7 +2127,7 @@ App.Accounts=(function(){
   function negText(a){return a.type==='cash'?'Nakit eksi olamaz: başlangıç bakiyesi eksik girilmiş ya da bir gelir veya para çekme kaydı eksik olabilir. Cüzdandaki parayı sayıp doğru tutarı girin.':'Ek hesap (KMH) kullanıyorsanız normaldir. Değilse başlangıç bakiyesi eksik ya da bir gelir girilmemiş olabilir; bankadaki bakiyeyi girin.'}
   function renderNeg(){var el=document.getElementById('ozet-neg');if(!el)return;
     el.innerHTML=negAccounts().map(function(a){return'<div class="card cc-alert"><div class="cc-alert-txt"><b>⚠️ '+esc(accLabel(a))+' eksiye düştü: <span style="white-space:nowrap">'+fmt(a.balance)+'</span></b><div>'+negText(a)+'</div></div><div class="cc-alert-acts"><button class="btn btn-sm btn-primary" onclick="App.Accounts.edit(\''+a.id+'\')">Bakiyeyi Düzelt</button><button class="btn btn-sm btn-ghost" onclick="App.Accounts.negOk(\''+a.id+'\')">'+(a.type==='cash'?'Uyarma':'KMH kullanıyorum')+'</button></div></div>'}).join('')}
-  return{add,edit,remove,adjustBalance,shiftOpening,reconcileAccountBalances,reconcile,flowOf,causes,getName,get,sharedAccount,renderAll,renderSummary,onTypeChange,onOwnerChange,negAccounts,negOk,negText,renderNeg}
+  return{add,edit,remove,adjustBalance,shiftOpening,reconcileAccountBalances,reconcile,flowOf,causes,getName,get,ownerOf,sharedAccount,renderAll,renderSummary,onTypeChange,onOwnerChange,negAccounts,negOk,negText,renderNeg}
 })();
 
 App.Transactions=(function(){
@@ -6239,7 +6248,7 @@ App.BankSms=(function(){
       if(p.kind==='ignore'){res.ignored++;return}
       if(S.txns().some(function(t){return t.id===sid||t.id===sid+'_0'})||q.some(function(x){return x.id==='sq'+sid}))return;
       if(_seen(_sh(it.text),_sp(it.label),q)){res.dupes++;return}
-      var accId=resolveAccount(p,userId),cat=_category(p),note=_note(p);
+      var accId=resolveAccount(p,userId),cat=_category(p),note=_note(p);userId=App.Accounts.ownerOf(accId)||userId;
       if(p.transfer&&accId&&(p.kind==='expense'||p.kind==='income')){var tw=_transferTwin(p,accId,q);if(tw&&_makeTransfer(p,accId,userId,sid,tw,q)){if(tw.queued)qChanged=true;res.transfers=(res.transfers||0)+1;return}}
       // Aile içi / kendi hesapları arası para aktarımı gelir-gider sayılmasın: onaya düşer
       var accObj=accId&&App.Accounts.get(accId);
@@ -6436,7 +6445,7 @@ App.BankSms=(function(){
       }
       var type=v.type==='income'?'income':'expense',cat=(type==='income'?IC:EC).indexOf(v.cat)>=0?v.cat:'Diğer';
       var tid=x.id.replace(/^sq/,'');if(S.txns().some(function(t){return t.id===tid}))tid=gid('t');
-      _add(tid,{type:type,amount:amt,date:v.date,via:_viaOf(x.label)},v.acc,userId,cat,String(v.note||'').trim().slice(0,500)||({email:'Banka e-postası',push:'Banka bildirimi'})[_viaOf(x.label)]||'Banka SMS',type==='income'?(_salaryRec({type:'income',salary:cat==='Maaş',amount:amt,date:v.date},userId)||{}).id:'');_stamp([tid],_sh(x.text),_sp(x.label));_preFix([tid],+x.receivedAt||0);
+      _add(tid,{type:type,amount:amt,date:v.date,via:_viaOf(x.label)},v.acc,App.Accounts.ownerOf(v.acc)||userId,cat,String(v.note||'').trim().slice(0,500)||({email:'Banka e-postası',push:'Banka bildirimi'})[_viaOf(x.label)]||'Banka SMS',type==='income'?(_salaryRec({type:'income',salary:cat==='Maaş',amount:amt,date:v.date},App.Accounts.ownerOf(v.acc)||userId)||{}).id:'');_stamp([tid],_sh(x.text),_sp(x.label));_preFix([tid],+x.receivedAt||0);
       var learned='';
       if(p.last4){var all=S.accounts(),a=all.find(function(y){return y.id===v.acc}),taken=all.some(function(y){return y.last4&&y.last4.split(',').indexOf(p.last4)>=0});
         if(a&&!taken){a.last4=(a.last4?a.last4+',':'')+p.last4;S.saveAccounts(all);learned=' …'+p.last4+' bundan sonra "'+a.name+'" hesabına otomatik işlenecek.'}}
