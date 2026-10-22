@@ -264,7 +264,7 @@ srv.listen(0, async () => {
     eq('e-mail POST stored', await mpost({ text: html, source: 'email', id: 'g1' }), { stored: true });
     await page.evaluate(() => { const a = S.accounts(); a.find(x => x.id === 'a_axess').last4 = '9036'; S.saveAccounts(a); });
     const rmail = await page.evaluate(() => App.BankSms.pull({ force: true }));
-    eq('app pulled the e-mail and added it as e-mail', [rmail && rmail.added, await page.evaluate(() => { const t = S.txns().find(x => x.amount === 87.4); return t && [t.via, t.accountId, t.userId, t.note]; })], [1, ['email', 'a_axess', 'u_self', 'ŞOK']]);
+    eq('app pulled the e-mail and added it as e-mail (Axess kişisel: sahibine yazılır)', [rmail && rmail.added, await page.evaluate(() => { const t = S.txns().find(x => x.amount === 87.4); return t && [t.via, t.accountId, t.userId, t.note]; })], [1, ['email', 'a_axess', 'u_partner', 'ŞOK']]);
     eq('settings shows the last e-mail result', await page.evaluate(() => (document.getElementById('mailLast') || {}).textContent || ''), 'Son e-posta: az önce · ✓ alındı');
     eq('other device sees Gmail on (status from server) without the script', await page.evaluate(() => { const keep = localStorage.getItem('ft_mail'); localStorage.removeItem('ft_mail'); App.BankSms.renderCard(); const h = document.getElementById('setSmsCard').innerText; localStorage.setItem('ft_mail', keep); App.BankSms.renderCard(); return [/betik başka bir cihazda/.test(h), /Yeni Betik Oluştur/.test(h), /Betik ve Adımlar/.test(h), /Son e-posta: az önce/.test(h)]; }), [true, true, false, true]);
     // Başka cihazda yeni betik oluşturuldu: bu cihazdaki eski kod artık gösterilmez
