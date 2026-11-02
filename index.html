@@ -1195,7 +1195,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.2.2</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.2.3</div>
 </section>
 
 </main>
@@ -6159,7 +6159,9 @@ App.BankSms=(function(){
     // 3D Secure / tek kullanımlık şifre: işlem henüz yapılmadı; gerçek harcama ayrı mesajla gelir
     if(/(sifre|parola|dogrulama kod|onay kod|guvenlik kod|tek kullanimlik|kimseyle paylas)/.test(f)&&/\b\d{4,8}\b/.test(f)&&!/(yapilmistir|yapildi|gerceklesmistir|gerceklesti|yatirilmistir|gonderilmistir|tamamlanmistir)/.test(f)){o.kind='ignore';o.reason='Şifre mesajı';return o}
     // Kampanya / reklam ("50.000 TL'ye varan kredi fırsatı"): gerçek bir hareket fiili yoksa işlem değildir
-    if(/(varan|firsat|kampanya|hediye|indirim|cekilis|size ozel|basvur|faiz orani|kredi teklif|onayli kredi|chip ?para|harcamaniza|alisverisinize|katilim icin|katil yaz|kazanin)/.test(f)&&!/(harcama yapil|alisveris yap|odeme(niz)? (yapil|alin|gercekles)|yatiril|gonderil|cekil|iade|tahsil edil|islem yapil|borclandiril)/.test(f)){o.kind='ignore';o.reason='Kampanya / reklam';return o}
+    // Ticari SMS'te yasal ret satırı ve marka kodu bulunur (Ret için X yaz 3172'ye, Mersis:… B002): gerçek işlem cümlesi yoksa reklamdır, tutarı harcama değildir
+    if(/(\bret\b[^.]{0,25}(yaz|ilet|gonder)|\bret ?(icin|:)|sms (iptal|ret)|almak istemiyorsaniz|\bb\d{3}( b\d{3})?$)/.test(f)&&!/(harcama(niz)? (yapil|gercekles)|alisveris(iniz)? (yapil|yapt|gercekles)|odeme(niz)? (yapil|alin|gercekles)|yatiril(di|mis)|gonderil(di|mis)|cekil(di|mis)|tahsil edil|iade edil|borclandiril)/.test(f)){o.kind='ignore';o.reason='Kampanya / reklam';return o}
+    if(/(varan|firsat|kampanya|hediye|indirim|cekilis|size ozel|basvur|faiz orani|kredi teklif|onayli kredi|chip ?para|harcamaniza|alisverisinize|katilim icin|katil yaz|kazanin|ve uzeri|uzeri alisveris|az ode|tl yerine|sepette|tikla|son gun)/.test(f)&&!/(harcama yapil|alisveris yap(il|t)|odeme(niz)? (yapil|alin|gercekles)|yatiril|gonderil|cekil(di|mis|en)|iade|tahsil edil|islem yapil|borclandiril)/.test(f)){o.kind='ignore';o.reason='Kampanya / reklam';return o}
     // Ekstre hatırlatması (son ödeme, asgari, dönem borcu): para hareketi değil
     if(/(son odeme tarihi|asgari (tutar|odeme)|ekstreniz kesil|donem borcu)/.test(f)&&!/(odemeniz (alin|tahsil|kabul|gerceklest)|odeme yapil|tahsil edil|harcama yapil|\biade)/.test(f)){o.kind='ignore';o.reason='Ekstre bilgilendirmesi';return o}
     var am=_amounts(f),good=am.filter(function(a){return!a.bad});

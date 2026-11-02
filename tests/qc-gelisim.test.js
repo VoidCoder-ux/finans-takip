@@ -210,6 +210,32 @@ srv.listen(0, async () => {
     eq('boş satır mesajları ayırır', (await page.inputValue('#smsMaskOut')).split('[Uygulama').length - 1, 2);
     await ctx.close();
   }
+  // 7) Gerçek reklam SMS'leri (kullanıcının telefonundan, kişisel bilgi içermez): hiçbiri gider ya da onay kaydı olmaz
+  {
+    const ADS = [
+      'Teknosa\'da Muhteşem Kasım! Herkesten önce TeknoClub üyelerine Samsung 55LS03H 55" 139 Ekran 4K UHD Frame Neo QLED TV 70.589TL yerine 59.999TL. Stok: 200. Son gün: 31 Ekim. Detaylar: Teknosa Mağazalarında, https://tknsa.co/JBPeJYEmN, 08502225599. SMS iptal için TSA RET yazıp 7889\'a ücretsiz gönderebilirsiniz. Mersis:0836014439357137 B001',
+      '30 Ekim-1 Kasım\'da TÜMM Makyaj, Cilt Bakım ürünleri, Sebamed, Restorex ve Bioxcin\'de net %50 İNDİRİM! Bepanthol hariçtir. 250 TL ve üzeri alışverişlerde TÜM Cosmetica üyelerine özel. Hemen alışverişe başla! RET:CSM RET yaz 3172\'ye gönder.Mersis:0582046328600015 B002',
+      'Evidea magazalari ve evidea.com\'dan 3.000 TL uzeri alisveriste 300 TL az ode! https://bit.ly/4sOz1YJ Sms ret icin ZBZ RET yaz 4933\'e gonder. MN:0999110559200001 B002 B002',
+      'Tamadres.com\'dan 1.500 TL ve uzeri kitap alisverisinde 150 TL daha az ode! https://lnq.com.tr/9ONXZK Sms ret: ZBZ RET yaz 4933\'e gonder.MN:0999110559200001 B002 B002',
+      'Premium\'a özel Huawei tablet sepette 1 TL\'ye TIKLA KAZAN\'da! https://app.hb.biz/NEWJ5 Ret için HBSMS yaz 3172\'ye ilet. Mersis:0265017991000011 B016',
+      'adidas\'ta %15 NET İNDİRİM! Tıkla, efsane fırsatı yakala! https://app.hb.biz/uGzBX Ret için HBSMS yaz 3172\'ye ilet. Mersis:0265017991000011 B016',
+      'AXESS ile size ozel 300 TL chip-para hediye. 31 Ekim tarihine kadar AXESS ile yapacaginiz toplam 25000 TL tutarinda harcamanizdan 300 TL chip-para kazanmak icin CPSON yazip 4566\'ya gonderebilir veya hemen Juzdan\'dan kampanyaya katilabilirsiniz: www.juzdan.com.tr/9y7l Ucretsiz SMS almak istemiyorsaniz',
+      'Degerli Akbankli, tasarruflariniz icin %38,25 faiz orani Akbank\'ta sizi bekliyor. 32-40 gun vadedeki 10.000 TL - 10.000.000 TL\'ye kadar olan birikimlerinize %38,25 faiz firsati ile deger katabilirsiniz. Ucretsiz SMS almak istemiyorsaniz \'smsistemiyorum\' yazip 8885\'e gonderebilirsiniz.',
+      'Kasim cekilisine katilin, 1.000 TL hediye ceki kazanin!',
+      '5.000 TL alisveris yapin, 500 TL kazanin!',
+    ];
+    const u = Object.assign(USERS(), { smsDefaults: { u_a: 'b' } });
+    const { page, ctx } = await open('2026-11-03', { pf_s: u, pf_a: [bank(5000)] });
+    const P = t => page.evaluate(t => { const x = App.BankSms.parse(t, Date.now()); return [x.kind, x.amount]; }, t);
+    eq('reklamların hepsi yok sayılır', await Promise.all(ADS.map(async t => (await P(t))[0])), ADS.map(() => 'ignore'));
+    await page.evaluate(ADS => App.BankSms.ingest(ADS.map((text, i) => ({ id: 700 + i, label: 'abcd1234_u_a', text, receivedAt: Date.now() }))), ADS);
+    eq('varsayılan hesapta da kayıt ve onay yok, bakiye aynı', await page.evaluate(() => [S.txns().length, S.smsQueue().length, App.Accounts.get('b').balance]), [0, 0, 5000]);
+    // Reklam satırı olsa da gerçek işlem okunur
+    eq('ret satırlı gerçek harcama', await P('Akbank: 1234 kartinizla MIGROS isyerinden 750,00 TL harcama yapilmistir. Sms ret icin AKB RET yaz 4566\'ya gonder.'), ['expense', 750]);
+    eq('ret satırlı gelen para', await P('Hesabiniza 2.500,00 TL yatirilmistir. SMS almak istemiyorsaniz RET yazin.'), ['income', 2500]);
+    eq('ATM çekimi reklam sayılmaz', (await P('Hesabinizdan ATM ile 1.000,00 TL cekildi.'))[1], 1000);
+    await ctx.close();
+  }
   // Kötü niyetli içerik yeni sayfalarda çalışmaz
   {
     const evil = '"><img src=x onerror=window.__x=1>';
