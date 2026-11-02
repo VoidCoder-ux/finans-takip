@@ -1195,7 +1195,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.2.4</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.2.5</div>
 </section>
 
 </main>
@@ -1600,10 +1600,10 @@ App.Cashflow=(function(){
       var x={date:date,label:label,amount:amount,type:type,src:src,diff:diff},c=_card(accId);
       if(c&&c.statementDay){x.card=c.id;due(c,App.Cards.stmtOf(c,date).due,type==='income'?-amount:amount,true)}
       out.push(x)}
-    // Vadesi zaten "Kaydet" ile işlenmiş tekrarlayan ödeme işlem olarak listede; projeksiyona ikinci kez eklenmez. Sıklık (haftalık,
+    // Vadesi zaten kaydedilmiş ya da bankadan erken gelmiş tekrarlayan ödeme işlem olarak listede; projeksiyona ikinci kez eklenmez. Sıklık (haftalık,
     // 3/6 aylık, yıllık) App.Recurring.occ ile
     var lim=new Date(today+'T12:00:00');lim.setDate(lim.getDate()+days);var limIso=lim.getFullYear()+'-'+String(lim.getMonth()+1).padStart(2,'0')+'-'+String(lim.getDate()).padStart(2,'0');
-    S.recurring().forEach(function(r){if(r.active===false)return;App.Recurring.occ(r,today,limIso).forEach(function(d){if(App.Recurring.isLogged(r,d))return;add(d,r.note||r.category,r.amount,r.type,r.isSubscription?'Abonelik':'Tekrarlayan',r.accountId)})});
+    App.Recurring.pending(today,limIso).forEach(function(x){var r=x.r;add(x.d,r.note||r.category,r.amount,r.type,r.isSubscription?'Abonelik':'Tekrarlayan',r.accountId)});
     S.txns().forEach(function(t){if(!isTransfer(t)&&t.date>=today&&!isBalanceApplied(t,today))add(t.date,t.installment?(t.installment.name||t.category):t.category,t.amount,t.type,t.installment?'Taksit':'Planlı',t.accountId)});
     S.fund().forEach(function(f){var nd=App.YearlyFund.nextDue(f);add(nd.date,f.name,f.amount,'expense',nd.overdue?'Yıllık fon (gecikmiş)':'Yıllık fon')});
     if(App.Kids)App.Kids.upcoming(days).forEach(function(x){add(x.date,x.label,x.amount,'expense','Harçlık',x.accountId)});
@@ -2881,6 +2881,26 @@ App.Recurring=(function(){
     var tol=rec.category==='Maaş'?0.5:0.15,t=S.txns().filter(function(t){return!t.recurringId&&!t.installment&&!isTransfer(t)&&t.type===rec.type&&t.date.slice(0,7)===month&&(t.src==='sms'||t.src==='import'||t.category===rec.category)&&(!rec.userId||!t.userId||t.userId===rec.userId)&&Math.abs(am(t)-rec.amount)<=Math.max(1,rec.amount*tol)&&(!strict||_fits(rec,t,am(t)))}).sort(function(a,b){return Math.abs(am(a)-rec.amount)-Math.abs(am(b)-rec.amount)})[0];
     return t?{t:t,amount:am(t),bank:t.src==='sms'||t.src==='import'}:null
   }
+  // Tekrarlayana bağlanmamış kayıt bu ödeme mi: tutarı yakın ve açıklaması aynı, ya da tutarı neredeyse birebir. Aynı kategori tek başına yetmez:
+  // 480 ₺ doğal gaz, 500 ₺ interneti ödenmiş göstermesin (yanılınca ödeme tahminde görünür kalır, gizlenmez). Maaş ayın kayıtlı maaşıyla eşleşir (zam, ikramiye)
+  function _paidBy(rec,t,v){
+    if(t.type!==rec.type||t.installment||isTransfer(t)||(t.recurringId&&t.recurringId!==rec.id)||(rec.userId&&t.userId&&t.userId!==rec.userId))return false;
+    if(t.src!=='sms'&&t.src!=='import'&&t.category!==rec.category)return false;
+    var sal=rec.category==='Maaş',gap=Math.abs(v-rec.amount);if(gap>Math.max(1,rec.amount*(sal?0.5:0.15)))return false;
+    if(sal&&t.category==='Maaş')return true;
+    var w=_words(t.note);if(_words(rec.note).some(function(x){return w.indexOf(x)>=0}))return true;
+    return gap<=Math.max(1,rec.amount*0.02)&&(t.category===rec.category||t.category==='Diğer');
+  }
+  // [from, to] arasında kapanmamış vadeler [{r,d}]: kaydı olan vade çıkar; haftalık dışında bankadan ya da elle vadesine 10 günden yakın gelmiş aynı ödeme de
+  // vadeyi kapatır. Bir kayıt tek vadeyi kapatır, en yakın tutar önce: tek maaş iki kişinin maaşını kapatmaz. Hiçbir kayıt değişmez ("Kaydet" yine eşleştirir)
+  function pending(from,to){
+    var open=[],pairs=[],sums={},done={},used={},lo=_addD(from,-10),hi=_addD(to,10);
+    S.recurring().forEach(function(r){if(r.active!==false)occ(r,from,to).forEach(function(d){if(!_loggedIn(r,key(r,d)))open.push({r:r,d:d})})});
+    var near=S.txns().filter(function(t){if(t.lp)sums[t.lp]=roundMoney((sums[t.lp]||0)+t.amount);return t.date>=lo&&t.date<=hi});
+    open.forEach(function(o,i){if(freq(o.r)==='week')return;var a=_addD(o.d,-10),b=_addD(o.d,10);near.forEach(function(t){var v=t.lp?sums[t.lp]:t.amount;if(t.date>=a&&t.date<=b&&_paidBy(o.r,t,v))pairs.push({i:i,k:t.lp||t.id,gap:Math.abs(v-o.r.amount)})})});
+    pairs.sort(function(a,b){return a.gap-b.gap}).forEach(function(p){if(!done[p.i]&&!used[p.k])done[p.i]=used[p.k]=true});
+    return open.filter(function(o,i){return!done[i]});
+  }
   function _dueDate(rec,k){if(k.length===10)return k;var p=k.split('-');return k+'-'+String(Math.min(rec.day,new Date(+p[0],+p[1],0).getDate())).padStart(2,'0')}
   // Günü gelmiş son vade: otomatik kayıt açılırken/devam ettirilirken bundan öncesi "işlenmiş" sayılır (geçmiş vadeler kendiliğinden yazılmaz)
   function _lastDue(rec){var today=td(),p=occ(rec,_addD(today,-400),today);return p.length?key(rec,p[p.length-1]):''}
@@ -3050,7 +3070,7 @@ App.Recurring=(function(){
     var month=tm();
     // Bu ay vadesi olan ve kaydedilmemiş tekrarlayanlar (3/6 aylık ve yıllık yalnız vadesinin olduğu ayda), vadesine göre
     var m1=month+'-01',mEnd=month+'-'+String(lastOfThis).padStart(2,'0');
-    var up=S.recurring().filter(function(r){return r.active!==false}).map(function(r){var d=occ(r,m1,mEnd).filter(function(x){return!_loggedIn(r,key(r,x))})[0];return d?{r:r,d:d}:null}).filter(Boolean).sort(function(a,b){return a.d.localeCompare(b.d)}).slice(0,3);
+    var one={},up=pending(m1,mEnd).filter(function(x){return one[x.r.id]?false:one[x.r.id]=true}).sort(function(a,b){return a.d.localeCompare(b.d)}).slice(0,3);
     if(!up.length){el.innerHTML='<div style="padding:12px 0;font-size:.9rem;color:var(--txt3)">'+(S.recurring().length?'Bu ayın tekrarlayan işlemleri kaydedildi.':'Yaklaşan işlem yok.')+'</div>';return}
     el.innerHTML='<div class="rec-list">'+up.map(function(x){return _rh(x.r,true)}).join('')+'</div>';
   }
@@ -3062,9 +3082,9 @@ App.Recurring=(function(){
   function _sugKey(t){if(t.category==='Maaş')return'income|maas|'+(t.userId||'')+'|'+(t.accountId||'');
     var n=String(t.note||''),b=_brand(n);if(b)return t.type+'|'+nameFold(b.name);if(!n.trim()||vagueNote(n))return'';
     var w=_words(n).slice(0,3);return w.length?t.type+'|'+w.join(' '):''}
-  // Bu hareket zaten tanımlı bir tekrarlayan ya da kredi mi
+  // Bu hareket zaten tanımlı bir tekrarlayan ya da kredi mi. Maaşta tutar geniş tutulur, bu yüzden kişi de aynı olmalı (ortak tanımlıysa aynı hesap): eşlerin yakın maaşı karışmasın
   function _covered(t){if(App.Loans&&App.Loans.match&&t.type==='expense'&&App.Loans.match(t))return true;var sal=t.category==='Maaş',tol=sal?0.5:0.15,w=_words(t.note);
-    return S.recurring().some(function(r){return r.type===t.type&&r.category===t.category&&Math.abs(r.amount-t.amount)<=Math.max(1,t.amount*tol)&&(sal||!r.note||r.note===r.category||_words(r.note).some(function(x){return w.indexOf(x)>=0}))})}
+    return S.recurring().some(function(r){return r.type===t.type&&r.category===t.category&&Math.abs(r.amount-t.amount)<=Math.max(1,t.amount*tol)&&(sal?(r.userId?!t.userId||r.userId===t.userId:r.accountId===t.accountId):!r.note||r.note===r.category||_words(r.note).some(function(x){return w.indexOf(x)>=0}))})}
   function _label(t){if(t.category==='Maaş')return'Maaş';var n=String(t.note||''),b=_brand(n);return b?b.name:(n.replace(/^(giden para|gelen para)\s*:?\s*/i,'').trim()||t.category).slice(0,40)}
   function suggestions(){
     var today=td(),floor=shiftMonth(tm(),-5)+'-01',no=S.settings().recNo||[],g={},out=[];
@@ -3106,7 +3126,7 @@ App.Recurring=(function(){
     return out;
   }
   function logMissing(id,k){var r=S.recurring().find(function(x){return x.id===id});if(!r)return;_logFor(r,k);renderAllViews()}
-  return{add,edit,remove,log,autoRun,togglePause,renderList,renderOzet,toggleSub,setFilter,renderSubSummary,onFreq,occ,key,freq,monthly,when,suggestions,suggestHtml,renderSuggest,suggestAdd,suggestNo,missing,logMissing,isLogged:function(r,d){return!!_loggedIn(r,key(r,d))}}
+  return{add,edit,remove,log,autoRun,togglePause,renderList,renderOzet,toggleSub,setFilter,renderSubSummary,onFreq,occ,key,freq,monthly,when,suggestions,suggestHtml,renderSuggest,suggestAdd,suggestNo,missing,logMissing,pending}
 })();
 
 App.Debts=(function(){
@@ -8011,7 +8031,7 @@ App.Notifications=(function(){
     var lastOfNext=new Date(today.getFullYear(),today.getMonth()+2,0).getDate();
     var _plusDays=function(iso,n){var p=iso.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]+n,12);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
     // Sıradaki kaydedilmemiş vade (haftalık, 3/6 aylık, yıllık dahil)
-    S.recurring().forEach(function(r){if(r.type!=='expense'||r.active===false)return;var d=App.Recurring.occ(r,td(),_plusDays(td(),daysAhead)).filter(function(x){return!App.Recurring.isLogged(r,x)})[0];if(d)out.push({kind:'rec',id:r.id,text:(r.note||r.category)+' — '+fmt(r.amount),in:daysUntil(d)})});
+    var one={};App.Recurring.pending(td(),_plusDays(td(),daysAhead)).forEach(function(x){var r=x.r;if(r.type!=='expense'||one[r.id])return;one[r.id]=true;out.push({kind:'rec',id:r.id,text:(r.note||r.category)+' — '+fmt(r.amount),in:daysUntil(x.d)})});
     var todayIso=td();
     S.txns().forEach(function(t){if(!t.installment||t.balanceApplied!==false)return;if(t.date<todayIso)return;var diff=daysUntil(t.date);if(diff<=daysAhead)out.push({kind:'inst',id:t.id,text:'📅 Taksit '+(t.installment.index||'')+'/'+(t.installment.total||'')+' — '+fmt(t.amount),in:diff})});
     cardDues(daysAhead).forEach(function(c){out.push(c)});
