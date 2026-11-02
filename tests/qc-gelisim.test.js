@@ -4,6 +4,7 @@
 //  2) Düzenli hareket önerisi: abonelik ve maaş bulunur, market ve değişken tutar önerilmez; onaysız kayıt eklenmez.
 //  3) Maaşa kadar güvenli tutar: yalnız maaştan önceki ödemeler düşülür, birikim hesabı sayılmaz, para en dibe indiği an ölçülür.
 //  4) İşlemler'de ay başlıkları ve toplamları.  5) "Bunu alırsam ne olur?" kaydetmeden hesaplar.  6) Anonim mesaj örneği.
+//  7) Erken gelen ödeme ve maaş tahminde iki kez sayılmaz.  8) Eşin telefonundan gelen maaş eşin adına yazılır; eşlerin yakın maaşı karışmaz.
 // Kurmaca veri (Deniz/Ece), sunucu gerekmez.
 const http = require('http'), fs = require('fs'), path = require('path');
 function loadPlaywright() { try { return require('playwright'); } catch (e) {} try { return require(path.join(require('child_process').execSync('npm root -g', { encoding: 'utf8' }).trim(), 'playwright')); } catch (e) { return null; } }
@@ -249,6 +250,67 @@ srv.listen(0, async () => {
     await page.evaluate(() => App.BankSms.ingest([{ id: 801, label: 'abcd1234_u_a', text: '2947 ile biten kartinizla TURKCELL firmasindan 297,00 TL islem yapilmistir. Kullanilabilir limit : 908,12 TL Tarih:02.11.2026 Saat:06:49 B002', receivedAt: Date.now() }]));
     eq('doğru karta kaydedilir', await page.evaluate(() => [S.txns().map(t => [t.amount, t.accountId]), App.Accounts.get('c1').balance]), [[[297, 'c1']], -397]);
     await ctx.close();
+  }
+  // 9) Erken gelen ödeme ve maaş tahminde ikinci kez sayılmaz; yanlış eşleşme ödemeyi gizlemez
+  {
+    const items = p => p.evaluate(() => App.Cashflow.items(10).filter(x => /Tekrarlayan|Abonelik/.test(x.src)).map(x => [x.date, x.amount, x.label]));
+    const kira = rec('kira', 'expense', 22000, 'Kira', 5, 'Kira');
+    let { page, ctx } = await open('2026-11-03', { pf_a: [bank(30000)], pf_r: [kira], pf_t: [tx('2026-11-02', 'expense', 22000, 'Kira', 'Kira', 'b', { src: 'sms' })] });
+    eq('erken ödenen kira tahminde yok', await items(page), []);
+    eq('güvenli tutar: 30.000 − 22.000', await page.evaluate(() => App.Payday.safe().amount), 8000);
+    eq('Özet yaklaşan listesinde yok', await page.evaluate(() => (document.getElementById('ozet-rec') || {}).textContent.includes('Kira')), false);
+    eq('kayda dokunulmaz', await page.evaluate(() => S.txns()[0].recurringId || ''), '');
+    await ctx.close();
+    ({ page, ctx } = await open('2026-11-03', { pf_a: [bank(1000)], pf_r: [rec('sal', 'income', 40000, 'Maaş', 5, 'Maaş')], pf_t: [tx('2026-11-03', 'income', 40000, 'Maaş', 'Maaş')] }));
+    eq('erken yatan maaş tahminde yok', await items(page), []);
+    eq('10 gün sonu: yalnız bakiye', await page.evaluate(() => App.Cashflow.summary(10).end), 41000);
+    eq('sıradaki maaş gelecek ay', await page.evaluate(() => App.Payday.safe().until), '2026-12-05');
+    await ctx.close();
+    // Ay başına yakın vade: bir önceki ayın son günlerinde gelen maaş da sayılır, geçen ayın maaşı sayılmaz
+    ({ page, ctx } = await open('2026-10-30', { pf_a: [bank(1000)], pf_r: [rec('sal', 'income', 40000, 'Maaş', 1, 'Maaş')], pf_t: [tx('2026-10-30', 'income', 40000, 'Maaş', 'Maaş', 'b', { recurringId: 'sal' })] }));
+    eq('ay sonunda yatan maaş, 1. gün vadesini kapatır', await items(page), []);
+    await ctx.close();
+    ({ page, ctx } = await open('2026-11-03', { pf_a: [bank(1000)], pf_r: [rec('sal', 'income', 40000, 'Maaş', 5, 'Maaş')], pf_t: [tx('2026-10-05', 'income', 40000, 'Maaş', 'Maaş')] }));
+    eq('geçen ayın maaşı bu ayı kapatmaz', await items(page), [['2026-11-05', 40000, 'Maaş']]);
+    await ctx.close();
+    // Tek yatış iki maaşı kapatmaz: en yakın tutar kapanır
+    ({ page, ctx } = await open('2026-11-03', { pf_a: [bank(1000)], pf_r: [rec('s1', 'income', 45000, 'Maaş', 5, 'Maaş'), rec('s2', 'income', 40000, 'Maaş', 5, 'Maaş')], pf_t: [tx('2026-11-03', 'income', 40000, 'Maaş', 'Maaş')] }));
+    eq('tek yatış tek maaşı kapatır', await items(page), [['2026-11-05', 45000, 'Maaş']]);
+    await ctx.close();
+    // Eşin maaşı benim tekrarlayanımı kapatmaz
+    ({ page, ctx } = await open('2026-11-03', { pf_a: [bank(1000)], pf_r: [rec('s1', 'income', 45000, 'Maaş', 5, 'Maaş', { userId: 'u_a' })], pf_t: [tx('2026-11-03', 'income', 40000, 'Maaş', 'Maaş', 'b', { userId: 'u_b' })] }));
+    eq('başkasının maaşı kapatmaz', await items(page), [['2026-11-05', 45000, 'Maaş']]);
+    await ctx.close();
+    // Aynı kategoride başka fatura ödemeyi gizlemez; açıklaması tutan kapatır, kategorisi belirsiz birebir tutar kapatır
+    ({ page, ctx } = await open('2026-11-03', { pf_r: [rec('net', 'expense', 500, 'Faturalar', 8, 'İnternet')], pf_t: [tx('2026-11-02', 'expense', 480, 'Faturalar', 'Doğal gaz', 'b', { src: 'sms' })] }));
+    eq('başka fatura kapatmaz', await items(page), [['2026-11-08', 500, 'İnternet']]);
+    await ctx.close();
+    ({ page, ctx } = await open('2026-11-03', { pf_r: [rec('kr', 'expense', 22000, 'Kira', 5, 'Kira')], pf_t: [tx('2026-11-02', 'expense', 22000, 'Diğer', 'Giden para: Ali Veli', 'b', { src: 'sms' })] }));
+    eq('kategorisi belirsiz birebir tutar kapatır', await items(page), []);
+    await ctx.close();
+    // Haftalık vadede bu eşleştirme yapılmaz; "Kaydet" ile bağlanan kayıt eskisi gibi kapatır
+    ({ page, ctx } = await open('2026-11-03', { pf_r: [rec('h', 'expense', 500, 'Market', 1, 'Pazar', { freq: 'week', start: '2026-11-07' })], pf_t: [tx('2026-11-02', 'expense', 500, 'Market', 'Pazar', 'b')] }));
+    eq('haftalık vade yerinde kalır', await items(page), [['2026-11-07', 500, 'Pazar']]);
+    await ctx.close();
+  }
+  // 10) Eşin telefonu: mesaj hangi telefondan geldiyse o kişinin adına ve kendi hesabına yazılır, tekrarlayan maaşına bağlanır, tahminden düşer
+  {
+    const es = { id: 'e', name: 'Ece Hesabı', type: 'bank', owner: 'personal', userId: 'u_b', balance: 500, openingBalance: 500, ts: at('2025-01-01') };
+    const s = Object.assign(USERS(), { smsDefaults: { u_b: 'e' } });
+    const { page, ctx } = await open('2026-11-03', { pf_s: s, pf_a: [bank(1000), es], pf_r: [rec('se', 'income', 40000, 'Maaş', 5, 'Maaş', { accountId: 'e', userId: 'u_b' })] });
+    await page.evaluate(() => App.BankSms.ingest([{ id: 901, label: 'esdevice_u_b', text: 'Hesabiniza maas odemesi olarak 41.000,00 TL yatirilmistir.', receivedAt: Date.now() }]));
+    eq('eşin mesajı: tek telefonda işlense de eşin adına', await page.evaluate(() => S.txns().map(t => [t.category, t.amount, t.accountId, t.userId, t.recurringId])), [['Maaş', 41000, 'e', 'u_b', 'se']]);
+    eq('eşin hesabına eklenir', await page.evaluate(() => App.Accounts.get('e').balance), 41500);
+    eq('eşin maaşı tahminden düşer', await page.evaluate(() => App.Cashflow.items(10).filter(x => x.type === 'income').length), 0);
+    await ctx.close();
+  }
+  // 11) Eşlerin yakın maaşı: birinin tekrarlayanı öbürünün önerisini kapatmaz
+  {
+    const son = [tx('2026-10-05', 'income', 45000, 'Maaş', 'Maaş', 'b'), tx('2026-10-05', 'income', 40000, 'Maaş', 'Maaş', 'e', { userId: 'u_b' })];
+    const S2 = async r => { const { page, ctx } = await open('2026-11-03', { pf_a: [bank(50000), bank(1000, 'e')], pf_t: son, pf_r: r }); const v = await page.evaluate(() => App.Recurring.suggestions().map(x => [x.amount, x.userId])); await ctx.close(); return v; };
+    eq('eşin maaşı önerilir', await S2([rec('s1', 'income', 45000, 'Maaş', 5, 'Maaş', { userId: 'u_a' })]), [[40000, 'u_b']]);
+    eq('ikisi de tanımlıysa öneri yok', await S2([rec('s1', 'income', 45000, 'Maaş', 5, 'Maaş', { userId: 'u_a' }), rec('s2', 'income', 40000, 'Maaş', 5, 'Maaş', { userId: 'u_b', accountId: 'e' })]), []);
+    eq('ortak tanımlı maaş başka hesaptaki maaşı kapatmaz', await S2([rec('s1', 'income', 45000, 'Maaş', 5, 'Maaş')]), [[40000, 'u_b']]);
   }
   // Kötü niyetli içerik yeni sayfalarda çalışmaz
   {
