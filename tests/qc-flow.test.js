@@ -71,7 +71,7 @@ srv.listen(0, async () => {
       bar: tx(d.querySelector('.pr-stack').closest('.pr-sec').querySelector('.pr-h2').firstChild), legend: [...d.querySelectorAll('.pr-legend > div')].map(tx), kalan: /Kalan/.test(d.textContent),
       alerts: [...d.querySelectorAll('.pr-al b')].map(tx), trf: [...d.querySelectorAll('.pr-txns tr.pr-trf')].map(x => tx(x.cells[2])), guide: tx(d.querySelector('.pr-gl > div')) }; });
   // Önümüzdeki ödemeler: Kart B ekstresi 22 Ekim 9.200 → 10.650; Kart A ekstresi 4 Kasım 20.800 → −10.150 (eksiye düşer)
-  eq('rapor özeti: "kaldı" demez; kart borcuna ödenen ve hesaplardaki para yazar', r.story, 'Ekim\'in ilk 9 gününde ₺32.000 geldi, ₺2.300 harcandı. Kart borçlarına ₺10.000 ödendi. Hesaplarda şu an ₺19.850 var. En çok harcanan: Market (%87). 4 Kasım\'da hesaplar eksiye düşebilir.');
+  eq('rapor özeti: "kaldı" demez; kart borcuna ödenen ve hesaplardaki para yazar', r.story, 'Ekim\'in ilk 9 gününde ₺32.000 geldi, ₺2.300 harcandı. Kart borçlarına ₺10.000 ödendi. Hesaplarda şu an ₺19.850 var. En çok harcanan: Market (%87). 4 Kasım\'da hesaplar eksiye düşebilir. Beklenen maaş girilmemiş; tahmine gelir dahil değil.');
   eq('rapor: üçüncü kutu "Gelir − gider", elde kalan para değil', r.kpi, ['Gelir − gider', '+₺29.700', 'Harcanmayan pay: %93', 'Elde kalan para değil: hesaplarda şu an ₺19.850']);
   eq('rapor: borç paradan fazla → "₺10.150 eksik"', r.pos, 'Borç düşülünce ₺10.150 eksik');
   eq('rapor: gelen para nereye gitti', [r.flowHead, r.flow], ['Gelen para nereye gitti?', [['Ay başında hesaplarda', '₺150'], ['+ Gelir', '+₺32.000'], ['− Kart borcuna ödenen · uygulamadan önceki kart borcu; bu ayın giderinde yok', '−₺10.000'],
