@@ -236,6 +236,20 @@ srv.listen(0, async () => {
     eq('ATM çekimi reklam sayılmaz', (await P('Hesabinizdan ATM ile 1.000,00 TL cekildi.'))[1], 1000);
     await ctx.close();
   }
+  // 8) Gerçek Yapı Kredi mesajları: harcama B002 ile biter, "islem yapilmistir" der; tutar limitle karışmaz
+  {
+    const y = (id, l) => ({ id, name: 'YK ' + l, type: 'card', owner: 'shared', last4: l, balance: -100, openingBalance: -100, ts: at('2025-01-01') });
+    const { page, ctx } = await open('2026-11-02', { pf_a: [bank(5000), y('c1', '2947'), y('c2', '8191')] });
+    const P = t => page.evaluate(t => { const x = App.BankSms.parse(t, Date.now()); return [x.kind, x.type, x.amount, x.date, x.last4]; }, t);
+    eq('köfteci', await P('2947 ile biten kartinizla KOFTCI YUS KOFTECI YUSUF firmasindan 1.473,08 TL islem yapilmistir. Kullanilabilir limit : 2.236,91 TL Tarih:30.10.2026 Saat:18:43 B002'), ['expense', 'expense', 1473.08, '2026-10-30', '2947']);
+    eq('akaryakıt', await P('8191 ile biten kartinizla OTOJET ENERJI firmasindan 454,79 TL islem yapilmistir. Kullanilabilir limit : 1.782,12 TL Tarih:01.11.2026 Saat:18:54 B002'), ['expense', 'expense', 454.79, '2026-11-01', '8191']);
+    eq('fatura', await P('2947 ile biten kartinizla TURKCELL firmasindan 577,00 TL islem yapilmistir. Kullanilabilir limit : 1.205,12 TL Tarih:02.11.2026 Saat:06:42 B002'), ['expense', 'expense', 577, '2026-11-02', '2947']);
+    eq('sanal pos', await P('8191 ile biten kartinizla IYZICO *AMAZON.COM.T firmasindan 381,18 TL islem yapilmistir. Kullanilabilir limit : 526,94 TL Tarih:02.11.2026 Saat:16:28 B002'), ['expense', 'expense', 381.18, '2026-11-02', '8191']);
+    eq('tutarsız fon bilgilendirmesi kaydedilmez', (await P("TP2-Tera Portfoy Para Piyasasi (TL) Fonu'na iliskin ara odeme tutari Bankamiz hesaplarina 30 Ekim 2026 tarihinde aktarilmistir ve ayni gun yatirimci hesaplarina gecilmistir. MERSIS:0937002089200741 B002"))[0], 'ignore');
+    await page.evaluate(() => App.BankSms.ingest([{ id: 801, label: 'abcd1234_u_a', text: '2947 ile biten kartinizla TURKCELL firmasindan 297,00 TL islem yapilmistir. Kullanilabilir limit : 908,12 TL Tarih:02.11.2026 Saat:06:49 B002', receivedAt: Date.now() }]));
+    eq('doğru karta kaydedilir', await page.evaluate(() => [S.txns().map(t => [t.amount, t.accountId]), App.Accounts.get('c1').balance]), [[[297, 'c1']], -397]);
+    await ctx.close();
+  }
   // Kötü niyetli içerik yeni sayfalarda çalışmaz
   {
     const evil = '"><img src=x onerror=window.__x=1>';
