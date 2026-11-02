@@ -12,9 +12,9 @@
     "semantic_hash": ""
   },
   "sw.js": {
-    "mtime": 1793563569.8453023,
-    "seen": 1793565023.2214065,
-    "ast_hash": "753a325cc9b589ad2855c04a77e736fa",
+    "mtime": 1793642021.2176814,
+    "seen": 1793642991.6729562,
+    "ast_hash": "afb726eb97627506c03c560a5d5f898f",
     "semantic_hash": ""
   },
   "tests/bank-sms.test.js": {
@@ -270,9 +270,9 @@
     "semantic_hash": ""
   },
   "tests/quality-regression.test.js": {
-    "mtime": 1793614442.3972642,
-    "seen": 1793614968.2161162,
-    "ast_hash": "729f6d77a63101e8c99a487657b3d35b",
+    "mtime": 1793642965.5962658,
+    "seen": 1793642991.678469,
+    "ast_hash": "36368c1c5514730ddb11c9c0d3f1d0aa",
     "semantic_hash": ""
   },
   "tests/readability.test.js": {
@@ -396,9 +396,9 @@
     "semantic_hash": ""
   },
   ".github/workflows/test.yml": {
-    "mtime": 1792358735.0712602,
-    "seen": 1792685983.0402308,
-    "ast_hash": "29a9b1b3a9850a3025a8bc7305cc7edc",
+    "mtime": 1793615023.375492,
+    "seen": 1793642991.6829338,
+    "ast_hash": "c72e8904f3490897994c74af07c9e5aa",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -438,9 +438,9 @@
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1793613788.905966,
-    "seen": 1793614968.218898,
-    "ast_hash": "838acd01b744a031855427956c5470a6",
+    "mtime": 1793642965.5927265,
+    "seen": 1793642991.6837556,
+    "ast_hash": "aaeb5cd004efe902bf05f9dd65daa813",
     "semantic_hash": ""
   },
   "tests/fixtures/earsiv-qr.txt": {
@@ -519,6 +519,12 @@
     "mtime": 1793613787.5575037,
     "seen": 1793614968.2136958,
     "ast_hash": "55e510636cec5d0adaf126e4482a1fa0",
+    "semantic_hash": ""
+  },
+  "tests/qc-gelisim.test.js": {
+    "mtime": 1793642965.5952702,
+    "seen": 1793642991.6760216,
+    "ast_hash": "3068cbdc4b557d731513c0ceff225378",
     "semantic_hash": ""
   }
 }
