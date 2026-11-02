@@ -101,7 +101,7 @@ srv.listen(0, async () => {
   await page.evaluate(() => App.Loans.close('ln1')); await page.waitForTimeout(50);
   eq('kapama penceresi tahmini tutarla açılır', await page.evaluate(() => [document.querySelector('.app-dialog-holder [data-pkey="amount"]').value, /yaklaşık ₺171\.485,34 faizden kurtulursunuz/.test(document.querySelector('.app-dialog-holder').textContent), /Tüketici kredisinde erken ödeme ücreti alınmaz/.test(document.querySelector('.app-dialog-holder').textContent)]), ['257514,59', true, true]);
   await modal({ amount: '260.071,47', date: '2027-10-20' });
-  eq('kapandı', [await page.evaluate(() => { const l = S.loans()[0], s = App.Loans.state(l); return [l.closed, s.active, s.bal, s.paid, s.count, App.Loans.payoff(l)]; }), await page.evaluate(() => App.NetWorth.compute().loans)],
+  eq('kapandı', [await page.evaluate(() => { const l = S.loans()[0], s = App.Loans.state(l); return [{ date: l.closed.date, amount: l.closed.amount }, s.active, s.bal, s.paid, s.count, App.Loans.payoff(l)]; }), await page.evaluate(() => App.NetWorth.compute().loans)],
     [[{ date: '2027-10-20', amount: 260071.47 }, false, 0, 10, 10, null], 1212028.37]);
   eq('kapanan kredi listede ayrı', await page.evaluate(() => [document.querySelectorAll('#loanList .loan-card.closed').length, /Kapandı: 20 Ekim 2027 · ₺260\.071,47 ödendi/.test(document.querySelector('#loanList .loan-card.closed').textContent)]), [1, true]);
   await page.evaluate(() => App.Loans.reopen('ln1'));

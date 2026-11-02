@@ -99,7 +99,7 @@ srv.listen(0, async () => {
     // "Gelir − gider" elde kalan para değildir: cümle kart borcuna ödeneni ve hesaplardaki parayı söyler
     eq('özet cümlesi: gelir 30.000, gider 1.200 + 800 + 1.000 − 200 iade = 2.800; karta 1.500 ödendi; Vadesiz 61.900; en çok Market (2.000 / 3.000)', r.story, 'Mart\'ın ilk 20 gününde ₺30.000 geldi, ₺2.800 harcandı. Kart borçlarına ₺1.500 ödendi. Hesaplarda şu an ₺61.900 var. En çok harcanan: Market (%67).');
     eq('gelir/gider/kalan kutuları: geçen ayın aynı günleri (1–20 Şubat: gider 1.600) ile fark; ay sonu tahmini 2.800 / 20 × 31 = 4.340, günlük 140', r.kpi, [
-      ['Gelir', '₺30.000', '▲ ₺30.000 fazla geçen ayın aynı günlerine göre'],
+      ['Gelir', '₺30.000', 'Geçen ayın aynı günlerinde gelir kaydı yok'],
       ['Gider', '₺2.800', '▲ ₺1.200 fazla (%75) geçen ayın aynı günlerine göre', 'Ay sonu tahmini ~₺4.340 · günde ortalama ₺140'],
       ['Gelir − gider', '+₺27.200', 'Harcanmayan pay: %91', 'Elde kalan para değil: hesaplarda şu an ₺61.900']]);
     eq('planlı kayıt (28 Mart) toplamlara girmez', r.note, 'Tarihi gelmemiş 1 planlı kayıt toplamlara girmedi; günü gelince eklenir.');
