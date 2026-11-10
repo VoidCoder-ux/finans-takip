@@ -1,7 +1,7 @@
-# Graph Report - finans-takip  (2026-11-03)
+# Graph Report - finans-takip  (2026-11-10)
 
 ## Corpus Check
-- 78 files · ~180,506 words
+- 78 files · ~181,632 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: (none) 4, .example 1, .toml 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c75a559a`
+- Built from commit: `1a717797`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
