@@ -371,6 +371,46 @@ srv.listen(0, async () => {
     eq('liste temizlenir', await page.evaluate(() => localStorage.getItem('ft_smsign')), null);
     await ctx.close();
   }
+  // 14) Kart otomatik ödeme talimatı gider yazılmaz; faturanın karttan otomatik ödemesi gider kalır
+  {
+    const kart = { id: 'k', name: 'Akbank Kart', type: 'card', owner: 'shared', last4: '1234', balance: -5000, openingBalance: -5000, limit: 30000, statementDay: 20, dueOffset: 10, ts: at('2025-01-01') }, h = { id: 'b', name: 'Akbank Vadesiz', type: 'bank', owner: 'shared', balance: 50000, openingBalance: 50000, ts: at('2025-01-01') };
+    const { page, ctx } = await open('2026-11-10', { pf_a: [h, bank(9000, 'z'), kart] });
+    const P = t => page.evaluate(t => { const x = App.BankSms.parse(t, Date.now()); return [x.kind, x.type, x.amount]; }, t);
+    eq('fatura talimatı gider kalır', await P('1234 nolu kartinizdan 500,00 TL otomatik odeme talimati ile Turkcell faturasi odenmistir.'), ['expense', 'expense', 500]);
+    await page.evaluate(() => App.BankSms.ingest([{ id: 301, label: 'abcd1234_u_a', text: 'Akbank hesabinizdan 5.000,00 TL kredi karti otomatik odeme talimatiniz gerceklesmistir.', receivedAt: Date.now() }]));
+    eq('kart talimatı aktarım olur: gider yok, kart borcu kapanır', await page.evaluate(() => [S.txns().map(t => [t.type, t.category, t.accountId]).sort(), App.Accounts.get('k').balance, App.Accounts.get('b').balance, S.smsQueue().length]), [[['expense', 'Transfer', 'b'], ['income', 'Transfer', 'k']], 0, 45000, 0]);
+    await page.evaluate(() => App.BankSms.ingest([{ id: 302, label: 'abcd1234_u_a', text: '1234 ile biten kartiniza 5.000,00 TL odemeniz alinmistir. Tesekkur ederiz.', receivedAt: Date.now() + 20 * 3600e3 }]));
+    eq('kartın kendi mesajı ikinci kez yazmaz, sormaz', await page.evaluate(() => [S.txns().length, S.smsQueue().length, App.Accounts.get('k').balance]), [2, 0, 0]);
+    await ctx.close();
+  }
+  // 15) Silinen kayıt notu: tabansız birleşmede geri gelmez; sunucudaki ve geri yüklenen kayıt yaşar
+  {
+    const { page, ctx } = await open('2026-11-10', {});
+    const r = await page.evaluate(() => {
+      const snap = (ids, s) => ({ stores: { pf_t: ids.map(id => ({ id, amount: 1 })), pf_nw: [{ month: '2026-10' }] }, s: s || {} }), now = 1e12;
+      const note = tombNote({ eski: now - 31 * 864e5, geri: now - 5 }, snap(['a', 'b', 'geri']), snap(['a', 'geri']), now);
+      const ids = m => m.stores.pf_t.map(x => x.id);
+      const local = snap(['a', 'b', 'c'], {}), remote = snap(['a'], { tomb: { b: now } });
+      const cut = snap(['a', 'b'], { tombCut: now + 1 });
+      return { note, drop: ids(tombDrop(mergeSnapshot(null, local, remote), remote)), plain: ids(mergeSnapshot(null, local, remote)), sunucuda: ids(tombDrop(mergeSnapshot(null, snap(['a']), snap(['a', 'b'], { tomb: { b: now } })), snap(['a', 'b']))), geriYukleme: ids(tombDrop(mergeSnapshot(null, cut, remote), remote)), ay: tombDrop(mergeSnapshot(null, local, remote), remote).stores.pf_nw.length };
+    });
+    eq('silinen not edilir, eski not ve geri alınan çıkar', r.note, { b: 1e12 });
+    eq('not olmadan birleşim silineni geri getirirdi', r.plain, ['a', 'b', 'c']);
+    eq('tabansız birleşmede silinen geri gelmez, yeni kayıt kalır', r.drop, ['a', 'c']);
+    eq('sunucuda duran kayıt atılmaz', r.sunucuda, ['a', 'b']);
+    eq('yedekten geri yüklenen kayıt yaşar', r.geriYukleme, ['a', 'b']);
+    eq('kimliksiz depolara dokunulmaz', r.ay, 1);
+    await ctx.close();
+  }
+  // 16) Değişken faizli konut kredisinde erken ödeme ücreti yok
+  {
+    const ln = (id, x) => Object.assign({ id, name: 'Konut', kind: 'konut', principal: 1000000, term: 120, first: '2026-01-10', installment: 20000, rate: 0, tax: false, accountId: '', prepay: [], closed: null, ts: at('2026-01-01') }, x);
+    const { page, ctx } = await open('2026-11-10', { pf_l: [ln('ln1', {}), ln('ln2', { vr: true })] });
+    const f = await page.evaluate(() => S.loans().map(l => { const p = App.Loans.payoff(l); return [p.feeRate, p.fee > 0]; }));
+    eq('sabit %2, değişken ücretsiz', f, [[0.02, true], [0, false]]);
+    eq('sabit kredide alan hiç yazılmaz (eşitlemede değişmiş görünmesin)', await page.evaluate(() => JSON.parse(localStorage.getItem('pf_l')).map(l => 'vr' in l)), [false, true]);
+    await ctx.close();
+  }
   // Kötü niyetli içerik yeni sayfalarda çalışmaz
   {
     const evil = '"><img src=x onerror=window.__x=1>';
