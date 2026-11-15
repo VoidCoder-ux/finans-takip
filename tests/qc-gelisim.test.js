@@ -408,6 +408,7 @@ srv.listen(0, async () => {
     const { page, ctx } = await open('2026-11-10', { pf_l: [ln('ln1', {}), ln('ln2', { vr: true })] });
     const f = await page.evaluate(() => S.loans().map(l => { const p = App.Loans.payoff(l); return [p.feeRate, p.fee > 0]; }));
     eq('sabit %2, değişken ücretsiz', f, [[0.02, true], [0, false]]);
+    eq('sabit kredide alan hiç yazılmaz (eşitlemede değişmiş görünmesin)', await page.evaluate(() => JSON.parse(localStorage.getItem('pf_l')).map(l => 'vr' in l)), [false, true]);
     await ctx.close();
   }
   // Kötü niyetli içerik yeni sayfalarda çalışmaz

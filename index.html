@@ -1447,7 +1447,7 @@ var S=(function(){
     _s.smsDefaults=obj(_s.smsDefaults);Object.keys(_s.smsDefaults).forEach(function(k){if(!/^[A-Za-z0-9_-]{1,80}$/.test(k)||!cleanStoredRef(_s.smsDefaults[k]))delete _s.smsDefaults[k]});
     // Banka kredisi: tür, çekilen tutar, vade, ilk taksit günü, taksit ve/veya aylık faiz; ara ödemeler; kapanış
     _l=normalizeList(_l,'pf_l',function(l){return{id:cleanStoredId(l.id,'ln'),name:String(l.name||'Kredi').slice(0,120),kind:['ihtiyac','tasit','konut','diger'].indexOf(l.kind)>=0?l.kind:'diger',principal:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(l.principal,0)))),
-      term:Math.min(480,Math.max(1,parseInt(l.term)||1)),first:cleanDate(l.first),installment:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(l.installment,0)))),rate:Math.min(20,Math.max(0,toNum(l.rate,0))),tax:!!l.tax,vr:l.kind==='konut'&&!!l.vr,accountId:cleanStoredRef(l.accountId),
+      term:Math.min(480,Math.max(1,parseInt(l.term)||1)),first:cleanDate(l.first),installment:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(l.installment,0)))),rate:Math.min(20,Math.max(0,toNum(l.rate,0))),tax:!!l.tax,vr:l.kind==='konut'&&l.vr===true?true:undefined,accountId:cleanStoredRef(l.accountId),
       prepay:normalizeList(l.prepay,'loan.prepay',function(q){return{id:cleanStoredId(q.id,'lp'),date:cleanDate(q.date),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(q.amount,0)))),txnId:cleanStoredRef(q.txnId)}},invalid),
       closed:l.closed&&validDate(l.closed.date)?{date:l.closed.date,amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(l.closed.amount,0)))),txns:Array.isArray(l.closed.txns)?l.closed.txns.map(cleanStoredRef).filter(Boolean).slice(0,4):[]}:null,ts:toNum(l.ts,Date.now())}},invalid).filter(function(l){return l.principal>0&&(l.installment>0||l.rate>0)});
     _nw=normalizeList(_nw,'pf_nw',function(n){var m=validMonth(n.month)?n.month:tm();return{month:m,total:toNum(n.total,0),accounts:toNum(n.accounts,0),portfolio:toNum(n.portfolio,0),lent:toNum(n.lent,0),borrowed:toNum(n.borrowed,0),ts:toNum(n.ts,Date.now())}},invalid);
@@ -3371,7 +3371,7 @@ App.Loans=(function(){
     if(!name)return'Kredi adı girin.';if(L===null)return'Çekilen tutarı girin.';if(!(n>=1&&n<=480)||String(n)!==String(v.term).trim())return'Vade 1 ile 480 ay arasında tam sayı olmalı.';
     if(!validDate(first))return'İlk taksit tarihini seçin.';if(P===null)return'Geçerli taksit tutarı girin.';if(r!==null&&!(r>0&&r<=20))return'Aylık faiz %0 ile %20 arasında olmalı (ör. 3,49).';
     if(!P&&r===null)return'Aylık taksiti ya da aylık faizi girin.';
-    var l={name:name,kind:kind,principal:L,term:n,first:first,installment:P||0,rate:r||0,tax:kind==='konut'?false:tax,vr:kind==='konut'&&vr};
+    var l={name:name,kind:kind,principal:L,term:n,first:first,installment:P||0,rate:r||0,tax:kind==='konut'?false:tax,vr:kind==='konut'&&vr?true:undefined};
     if(!P)l.installment=roundMoney(pmt(L,eff(l),n));
     else if(P*n<L-0.5)return'Taksit × vade ('+fmt(roundMoney(P*n))+'), çekilen tutardan az olamaz.';
     else if(r&&P<=L*eff(l)+0.005)return'Taksit, ilk ayın faizini ('+fmt(roundMoney(L*eff(l)))+') karşılamıyor; faiz ya da taksit yanlış.';
