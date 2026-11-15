@@ -62,7 +62,7 @@ srv.listen(0, async () => {
 
   // Dikkat (İstatistikler ve rapor aynı listeyi kullanır)
   eq('Dikkat: hesabı olmayan aktarım', await page.evaluate(() => App.Insights.compute('2026-10').warnings.filter(w => /aktarım/.test(w.title)).map(w => [w.level, w.title, w.text])), [['yellow', 'Hesabı olmayan aktarım', '05 Ekim 2026 · ₺2.000,00 · Vadesiz → (hesap yok). İşlemler\'de transferi düzenleyip hesabı seçin; para başka birine gittiyse transferi silip gider olarak girin.']]);
-  eq('İşlem listesinde aktarım "(hesap yok)" ve uyarı', await page.evaluate(() => { App.UI.nav('islemler'); App.Transactions.renderList(); const r = [...document.querySelectorAll('#txnList .ti')].find(x => /Transfer/.test(x.textContent) && /2\.000/.test(x.textContent)); return r ? [/Vadesiz → \(hesap yok\)/.test(r.textContent), /Hesabı silinmiş: ✎ ile hesabı seçin/.test(r.textContent)] : null; }), [true, true]);
+  eq('İşlem listesinde aktarım "(hesap yok)" ve uyarı', await page.evaluate(() => { App.UI.nav('islemler'); App.Transactions.renderList(); const r = [...document.querySelectorAll('#txnList .ti')].find(x => /Transfer/.test(x.textContent) && /2\.000/.test(x.textContent)); return r ? [/Çıkan hesap: Vadesiz.*Giren hesap: \(hesap yok\)/.test(r.textContent), /Hesabı silinmiş: ✎ ile hesabı seçin/.test(r.textContent)] : null; }), [true, true]);
 
   // Rapor
   const r = await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2026-10'); const tx = el => (el || {}).textContent ? el.textContent.replace(/\s+/g, ' ').trim() : '';

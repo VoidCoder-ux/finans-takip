@@ -154,6 +154,25 @@ srv.listen(0, async () => {
     eq('öbür kategori ayrı izlenir', await add(200, 'Eğlence'), ['🚨 Eğlence bütçesi aşıldı: ₺2.100,00 / ₺2.000,00']);
     await ctx.close();
   }
+  // 8) Aktarımda yön açık yazılır: hangi hesaptan çıktı, hangi hesaba girdi
+  {
+    const acc = [bank(40000, 'a1', { name: 'Akbank Vadesiz', last4: '4821' }), bank(15000, 'a2', { name: 'Yapı Kredi Vadesiz' }), { id: 'k', name: 'World Kart', type: 'card', owner: 'shared', last4: '2947', balance: -3000, openingBalance: -3000, limit: 50000, ts: at('2025-01-01') }];
+    const t = [tx('2026-11-08', 'expense', 5000, 'Transfer', 'Akbank Vadesiz → Yapı Kredi Vadesiz', 'a1', { id: 'o1', transferId: 'tr1' }), tx('2026-11-08', 'income', 5000, 'Transfer', 'Akbank Vadesiz → Yapı Kredi Vadesiz', 'a2', { id: 'i1', transferId: 'tr1' }),
+      tx('2026-11-07', 'expense', 2000, 'Transfer', 'Kart borcu ödemesi: World Kart', 'a2', { id: 'o2', transferId: 'tr2' }), tx('2026-11-07', 'income', 2000, 'Transfer', 'Kart borcu ödemesi: World Kart', 'k', { id: 'i2', transferId: 'tr2' }),
+      tx('2026-11-06', 'income', 7000, 'Transfer', 'Gelen para: Deniz Kaya (kendi hesabınızdan)', 'a1', { id: 's1', src: 'sms', xext: true }), tx('2026-11-05', 'expense', 900, 'Transfer', 'Birikime', 'a1', { id: 's2', src: 'sms', xext: true }),
+      tx('2026-11-04', 'income', 1500, 'Diğer', 'Gelen para: Ali Veli', 'a2', { id: 'p1', src: 'sms' }), tx('2026-11-03', 'expense', 22000, 'Kira', 'Giden para: Ev Sahibi', 'a1', { id: 'p2', src: 'sms' }), tx('2026-11-02', 'expense', 300, 'Market', 'Migros', 'a1', { id: 'n1' })];
+    const { page, ctx } = await open('2026-11-10', { pf_a: acc, pf_t: t });
+    await page.evaluate(() => App.UI.nav('islemler')); await page.waitForTimeout(150);
+    const rows = await page.evaluate(() => { const o = {}; [...document.querySelectorAll('#txnList .ti')].forEach(r => { const e = r.querySelector('[onclick*="edit"]'), id = e && /'([^']+)'/.exec(e.getAttribute('onclick'))[1]; o[id] = [...r.querySelectorAll('.ti-route > div')].map(d => d.textContent.replace(/\s+/g, ' ').trim()); }); return o; });
+    eq('hesaplar arası: çıkan ve giren hesap', rows.o1, ['⬆ Çıkan hesap: Akbank Vadesiz …4821', '⬇ Giren hesap: Yapı Kredi Vadesiz']);
+    eq('kart ödemesi: hesaptan karta', rows.o2, ['⬆ Çıkan hesap: Yapı Kredi Vadesiz', '⬇ Giren hesap: World Kart …2947']);
+    eq('uygulamada olmayan hesabımdan gelen', rows.s1, ['⬆ Çıkan hesap: uygulamada olmayan hesabım', '⬇ Giren hesap: Akbank Vadesiz …4821']);
+    eq('uygulamada olmayan hesabıma giden', rows.s2, ['⬆ Çıkan hesap: Akbank Vadesiz …4821', '⬇ Giren hesap: uygulamada olmayan hesabım']);
+    eq('başkasından gelen havale: girdiği hesap', rows.p1, ['⬇ Giren hesap: Yapı Kredi Vadesiz']);
+    eq('başkasına giden havale: çıktığı hesap', rows.p2, ['⬆ Çıkan hesap: Akbank Vadesiz …4821']);
+    eq('sıradan harcamada yön satırı yok', rows.n1, []);
+    await ctx.close();
+  }
   eq('sayfa hatası yok', errors, []);
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
   await browser.close(); srv.close(); process.exit(fail ? 1 : 0);
