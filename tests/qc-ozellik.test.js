@@ -3,6 +3,8 @@
 //  1) İşlem bölme: tek kayıt iki kategoriye ayrılır, toplam ve bakiye değişmez; banka mesajının öbür kanaldan gelen eşi toplamla tanınır.
 //  2) Şifreli yedek: parola olmadan okunamaz, doğru parolayla geri yüklenir, yanlış parolada veri değişmez.
 //  3) Ortak gider dengeleme: kişisel hesaptan ödenen ortak giderler eşit paylaşılır; ortak hesap ve istek harcaması sayılmaz.
+//  4) Döviz/altın borç kurla yeniden değerlenir.  5) Fon stopajı net kârı gösterir.  6) Taksitli nakit avans gelir/gider şişirmez.
+//  7) Bütçe limiti uyarısı %80 ve %100'de birer kez gelir.
 // Kurmaca veri (Deniz/Ece), sunucu gerekmez.
 const http = require('http'), fs = require('fs'), path = require('path');
 function loadPlaywright() { try { return require('playwright'); } catch (e) {} try { return require(path.join(require('child_process').execSync('npm root -g', { encoding: 'utf8' }).trim(), 'playwright')); } catch (e) { return null; } }
@@ -92,7 +94,66 @@ srv.listen(0, async () => {
     eq('kategori eklenince hesap değişir', await page.evaluate(() => { const x = App.Users.settle('2026-11'); return [x.total, x.moves[0].amount]; }), [43000, 9500]);
     await ctx.close();
   }
-  // SONRAKI
+  // 4) Döviz / altın cinsinden borç: miktar sabit, TL karşılığı kurla değişir; ödeme o günkü kurla miktardan düşer
+  {
+    const s = Object.assign(USERS(), { rates: { USD: 40, EUR: 45, GBP: 0, GOLD_GRAM: 4000, GOLD_QUARTER: 7000, GOLD_FULL: 0, FUND: 1, updated: Date.now() } });
+    const { page, ctx } = await open('2026-11-10', { pf_s: s });
+    const rate = (p, v) => p.evaluate(v => { const r = Object.assign({}, S.settings().rates, { USD: v }); S.saveSetting('rates', r); App.Debts.renderAll(); }, v);
+    const d = p => p.evaluate(() => S.debts().map(x => [x.amount, x.cur || '', x.qty || 0, x.settled, x.payments.map(y => [y.amount, Math.round(y.q * 1000) / 1000])]));
+    await page.evaluate(() => { const g = (i, v) => { document.getElementById(i).value = v; }; g('debtDir', 'lent'); g('debtPerson', 'Ali'); g('debtAmt', '1000'); g('debtCur', 'USD'); g('debtDate', '2026-11-10'); App.Debts.add(); });
+    eq('1.000 USD, kur 40: 40.000 ₺', await d(page), [[40000, 'USD', 1000, false, []]]);
+    await rate(page, 45);
+    eq('kur 45: 45.000 ₺', (await d(page))[0][0], 45000);
+    await page.evaluate(() => { const id = S.debts()[0].id; document.getElementById('pay_amt_' + id).value = '9000'; App.Debts.addPayment(id); });
+    eq('9.000 ₺ ödeme 200 USD düşer; kalan 800 × 45 = 36.000', await d(page), [[45000, 'USD', 1000, false, [[9000, 200]]]]);
+    await rate(page, 50);
+    eq('kur 50: ödenen 9.000 + kalan 800 × 50', (await d(page))[0][0], 49000);
+    eq('kartta miktar ve kalan görünür', await page.evaluate(() => document.getElementById('debtGrid').textContent.includes('1000 USD · kalan 800 · bugünkü kurla ₺40.000,00')), true);
+    await page.evaluate(() => { const id = S.debts()[0].id; document.getElementById('pay_amt_' + id).value = '40000'; App.Debts.addPayment(id); });
+    eq('kalan ödenince kapanır', await page.evaluate(() => { const x = S.debts()[0]; return [x.settled, x.amount]; }), [true, 49000]);
+    await page.evaluate(() => { const g = (i, v) => { document.getElementById(i).value = v; }; g('debtDir', 'borrowed'); g('debtPerson', 'Veli'); g('debtAmt', '5'); g('debtCur', 'GOLD_QUARTER'); g('debtDate', '2026-11-10'); App.Debts.add(); g('debtPerson', 'Can'); g('debtAmt', '500'); g('debtCur', ''); g('debtDate', '2026-11-10'); App.Debts.add(); });
+    eq('5 çeyrek = 35.000 ₺; TL borç eskisi gibi', await page.evaluate(() => S.debts().slice(1).map(x => [x.amount, x.cur || '', 'qty' in x])), [[35000, 'GOLD_QUARTER', true], [500, '', false]]);
+    await ctx.close();
+  }
+  // 5) Fon stopajı: 100 adet, alış 10, fiyat 15, stopaj %10: kâr 500, stopaj 50, net 450; satışta hesaba 1.450 girer
+  {
+    const fon = { id: 'pa1', type: 'FUND', qty: 100, cost: 10, currentPrice: 15, label: 'Para Piyasası', code: '', priceDate: '', priceSource: '', tax: 10, ts: at('2026-01-01') };
+    const { page, ctx } = await open('2026-11-10', { pf_p: [fon, Object.assign({}, fon, { id: 'pa2', label: 'Hisse Fonu', tax: undefined })] });
+    eq('stopaj yalnız oranı olan fonda', await page.evaluate(() => S.portfolio().map(a => [App.Portfolio.netTax(a), a.tax || 0])), [[50, 10], [0, 0]]);
+    await page.evaluate(() => App.UI.nav('portfoy')); await page.waitForTimeout(100);
+    eq('kartta ve özette net kâr', await page.evaluate(() => [document.getElementById('portGrid').textContent.includes('Stopaj %10 sonrası net ▲ ₺450,00'), document.getElementById('portfolioSummary').textContent.includes('Stopaj sonrası net: ₺950,00')]), [true, true]);
+    await page.evaluate(() => App.Portfolio.sell('pa1')); await fill(page, { qty: '100', price: '15', date: '2026-11-10', accountId: 'b' });
+    eq('satışta stopaj düşülür', await page.evaluate(() => [S.txns().map(t => [t.type, t.amount, t.category]), App.Accounts.get('b').balance, S.portfolio().length]), [[['income', 1450, 'Transfer']], 51450, 1]);
+    await ctx.close();
+  }
+  // 6) Taksitli nakit avans: 12.000 çekildi, 3 taksit, toplam 13.200: hesaba 12.000 girer, gider yalnız 1.200 faiz
+  {
+    const kart = { id: 'k', name: 'World', type: 'card', owner: 'shared', last4: '1234', balance: 0, openingBalance: 0, limit: 50000, statementDay: 20, dueOffset: 10, ts: at('2025-01-01') };
+    const { page, ctx } = await open('2026-11-10', { pf_a: [bank(1000), kart] });
+    await page.evaluate(() => App.Cards.advance('k')); await fill(page, { amount: '12000', count: '1', total: '13200', date: '2026-11-10', to: 'b' });
+    eq('tek taksit kabul edilmez', await page.evaluate(() => S.txns().length), 0);
+    await fill(page, { amount: '12000', count: '3', total: '13200', date: '2026-11-10', to: 'b' });
+    const r = await page.evaluate(() => ({ t: S.txns().map(t => [t.date, t.type, t.amount, t.category, t.accountId]).sort((a, b) => (a[0] + a[3]).localeCompare(b[0] + b[3])), b: App.Accounts.get('b').balance, k: App.Accounts.get('k').balance, ay: App.Transactions.monthTotals('2026-11'), kat: App.Transactions.catTotals('2026-11'), akis: App.Cashflow.items(70).filter(x => x.card).map(x => [x.date, x.amount]).sort((a, b) => a[0].localeCompare(b[0]) || a[1] - b[1]) }));
+    eq('kayıtlar: hesaba giriş + 3 anapara + 3 faiz taksiti', r.t, [['2026-11-10', 'expense', 400, 'Diğer', 'k'], ['2026-11-10', 'expense', 4000, 'Transfer', 'k'], ['2026-11-10', 'income', 12000, 'Transfer', 'b'], ['2026-12-10', 'expense', 400, 'Diğer', 'k'], ['2026-12-10', 'expense', 4000, 'Transfer', 'k'], ['2027-01-10', 'expense', 400, 'Diğer', 'k'], ['2027-01-10', 'expense', 4000, 'Transfer', 'k']]);
+    eq('hesap +12.000, kart borcu ilk taksit kadar', [r.b, r.k], [13000, -4400]);
+    eq('bu ay gelir yok, gider yalnız 400 faiz', [r.ay.income, r.ay.expense, r.kat], [0, 400, { 'Diğer': 400 }]);
+    eq('gelecek taksitler ekstre tahmininde (anapara dahil)', r.akis, [['2026-12-10', 400], ['2026-12-10', 4000], ['2027-01-10', 400], ['2027-01-10', 4000]]);
+    await page.evaluate(() => App.UI.nav('islemler')); await page.waitForTimeout(150);
+    await ctx.close();
+  }
+  // 7) Bütçe limiti uyarısı: %80 ve %100'de birer kez; açılışta eski durum için uyarı yok
+  {
+    const { page, ctx } = await open('2026-11-10', { pf_b: { Market: 10000, 'Eğlence': 2000 }, pf_t: [tx('2026-11-03', 'expense', 5000, 'Market', 'Migros'), tx('2026-11-04', 'expense', 1900, 'Eğlence', 'Sinema')] });
+    const add = (amt, cat) => page.evaluate(a => { const t = S.txns(); t.unshift({ id: 'x' + t.length, type: 'expense', amount: a.amt, category: a.cat, date: '2026-11-10', note: 'Test', accountId: 'b', userId: 'u_a', ts: Date.now(), balanceApplied: true }); S.saveTxns(t); return App.Budget.checkAlerts(); }, { amt, cat });
+    eq('açılışta %95 dolu Eğlence için uyarı yok', await page.evaluate(() => App.Budget.checkAlerts()), []);
+    eq('%79: uyarı yok', await add(2900, 'Market'), []);
+    eq('%80 geçilince bir kez', await add(300, 'Market'), ["⚠️ Market bütçesinin %82'i doldu: kalan ₺1.800,00, 21 gün var"]);
+    eq('aynı düzeyde tekrar etmez', await add(100, 'Market'), []);
+    eq('limit aşılınca bir kez', await add(2000, 'Market'), ['🚨 Market bütçesi aşıldı: ₺10.300,00 / ₺10.000,00']);
+    eq('aşıldıktan sonra susar', await add(500, 'Market'), []);
+    eq('öbür kategori ayrı izlenir', await add(200, 'Eğlence'), ['🚨 Eğlence bütçesi aşıldı: ₺2.100,00 / ₺2.000,00']);
+    await ctx.close();
+  }
   eq('sayfa hatası yok', errors, []);
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
   await browser.close(); srv.close(); process.exit(fail ? 1 : 0);
