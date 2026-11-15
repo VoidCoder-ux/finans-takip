@@ -1003,7 +1003,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
       <div class="fg c3">
         <div class="f"><label for="lnInst">Aylık Taksit (₺)</label><input type="text" inputmode="decimal" id="lnInst" placeholder="Bankanın taksit tutarı" data-money="money" autocomplete="off"/></div>
         <div class="f"><label for="lnRate">Aylık Faiz (%)</label><input type="text" inputmode="decimal" id="lnRate" placeholder="ör. 3,49" autocomplete="off"/></div>
-        <div class="f" style="align-self:end"><label class="sub-check" style="margin:0 0 10px"><input type="checkbox" id="lnTax" checked/> <span>Faize KKDF + BSMV (%30) eklenir</span></label></div>
+        <div class="f" style="align-self:end"><label class="sub-check" style="margin:0 0 10px"><input type="checkbox" id="lnTax" checked/> <span>Faize KKDF + BSMV (%30) eklenir</span></label><label class="sub-check" style="margin:0 0 10px"><input type="checkbox" id="lnVar" disabled/> <span>Değişken faizli (konut)</span></label></div>
       </div>
       <div class="set-sub" style="margin:4px 0 12px">Taksit ya da faizden birini girin; bankanın taksit tutarını biliyorsanız onu girin (faiz ondan hesaplanır). Buradaki kayıt takip içindir: taksit ödemeleri işlemlerde "Kredi Ödemesi" olarak girilir (elle, tekrarlayan ya da banka SMS'iyle).</div>
       <button class="btn btn-primary" onclick="App.Loans.add()">Kredi Ekle</button>
@@ -1195,7 +1195,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.2.6</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.2.7</div>
 </section>
 
 </main>
@@ -1446,7 +1446,7 @@ var S=(function(){
     _s.smsDefaults=obj(_s.smsDefaults);Object.keys(_s.smsDefaults).forEach(function(k){if(!/^[A-Za-z0-9_-]{1,80}$/.test(k)||!cleanStoredRef(_s.smsDefaults[k]))delete _s.smsDefaults[k]});
     // Banka kredisi: tür, çekilen tutar, vade, ilk taksit günü, taksit ve/veya aylık faiz; ara ödemeler; kapanış
     _l=normalizeList(_l,'pf_l',function(l){return{id:cleanStoredId(l.id,'ln'),name:String(l.name||'Kredi').slice(0,120),kind:['ihtiyac','tasit','konut','diger'].indexOf(l.kind)>=0?l.kind:'diger',principal:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(l.principal,0)))),
-      term:Math.min(480,Math.max(1,parseInt(l.term)||1)),first:cleanDate(l.first),installment:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(l.installment,0)))),rate:Math.min(20,Math.max(0,toNum(l.rate,0))),tax:!!l.tax,accountId:cleanStoredRef(l.accountId),
+      term:Math.min(480,Math.max(1,parseInt(l.term)||1)),first:cleanDate(l.first),installment:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(l.installment,0)))),rate:Math.min(20,Math.max(0,toNum(l.rate,0))),tax:!!l.tax,vr:l.kind==='konut'&&!!l.vr,accountId:cleanStoredRef(l.accountId),
       prepay:normalizeList(l.prepay,'loan.prepay',function(q){return{id:cleanStoredId(q.id,'lp'),date:cleanDate(q.date),amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(q.amount,0)))),txnId:cleanStoredRef(q.txnId)}},invalid),
       closed:l.closed&&validDate(l.closed.date)?{date:l.closed.date,amount:Math.min(MAX_MONEY,Math.max(0,roundMoney(toNum(l.closed.amount,0)))),txns:Array.isArray(l.closed.txns)?l.closed.txns.map(cleanStoredRef).filter(Boolean).slice(0,4):[]}:null,ts:toNum(l.ts,Date.now())}},invalid).filter(function(l){return l.principal>0&&(l.installment>0||l.rate>0)});
     _nw=normalizeList(_nw,'pf_nw',function(n){var m=validMonth(n.month)?n.month:tm();return{month:m,total:toNum(n.total,0),accounts:toNum(n.accounts,0),portfolio:toNum(n.portfolio,0),lent:toNum(n.lent,0),borrowed:toNum(n.borrowed,0),ts:toNum(n.ts,Date.now())}},invalid);
@@ -1532,6 +1532,8 @@ App.Backup=(function(){
           Object.keys(prev).forEach(function(k){try{if(prev[k]===null)localStorage.removeItem(k);else localStorage.setItem(k,prev[k])}catch(e2){}});
           App.UI.toast('Geri yükleme başarısız (depolama yetersiz). Mevcut veriler korundu.','err');return;
         }
+        // Geri yüklenen kayıtlar yaşar: bu andan önceki silme notları (tomb) geçersiz
+        try{var ss=JSON.parse(localStorage.getItem('pf_s')||'{}');ss.tombCut=Date.now();localStorage.setItem('pf_s',JSON.stringify(ss))}catch(e3){}
         App.UI.toast('Yedek geri yüklendi. Uygulama yenileniyor.','info');
         // Eşitleme açıksa geri yüklenen veri diğer cihazlardakini silmesin: taban sıfırlanır, birleştirme birleşim olur
         (App.Sync&&App.Sync.configured()?App.Sync.resetBase():Promise.resolve()).then(function(){setTimeout(function(){location.reload()},500)});
@@ -3298,12 +3300,12 @@ App.Loans=(function(){
     return{schedule:s,paid:paid.length,count:closed?paid.length:s.length,left:rest.length,bal:roundMoney(bal),next:rest[0]||null,lastPaid:last?last.date:'',end:s.length?s[s.length-1].date:'',
       remaining:sum(rest,'pay'),remInterest:sum(rest,'interest'),totalInterest:sum(closed?paid:s,'interest'),prepaid:roundMoney((l.prepay||[]).reduce(function(t,p){return t+(p.date<=D?p.amount:0)},0)),closed:closed,active:!closed&&bal>0.005&&D>=_start(l)};
   }
-  // Bugün kapatırsam: kalan anapara + son taksitten beri işlemiş faiz + erken ödeme ücreti. Ücret yalnız (sabit faizli) konut
+  // Bugün kapatırsam: kalan anapara + son taksitten beri işlemiş faiz + erken ödeme ücreti. Ücret yalnız sabit faizli (vr değil) konut
   // kredisinde: kalan vade 36 aydan uzunsa en fazla %2, değilse %1 (6502 s. Kanun m.37). İhtiyaç, taşıt ve diğer tüketici
   // kredilerinde erken ödeme ücreti alınamaz; banka yalnız kalan faizi düşer. Bankanın vereceği tutar biraz farklı olabilir
   function payoff(l){
     var st=state(l);if(!st.active)return null;var i=eff(l),last=st.lastPaid||_start(l),days=Math.max(0,Math.round((new Date(td()+'T12:00:00')-new Date(last+'T12:00:00'))/864e5));
-    var acc=roundMoney(st.bal*i*days/30),fr=l.kind==='konut'?(st.left>36?0.02:0.01):0,fee=roundMoney(st.bal*fr),tot=roundMoney(st.bal+acc+fee);
+    var acc=roundMoney(st.bal*i*days/30),fr=l.kind==='konut'&&!l.vr?(st.left>36?0.02:0.01):0,fee=roundMoney(st.bal*fr),tot=roundMoney(st.bal+acc+fee);
     return{bal:st.bal,accrued:acc,days:days,feeRate:fr,fee:fee,total:tot,remaining:st.remaining,saving:roundMoney(st.remaining-tot),left:st.left};
   }
   function list(){return S.loans()}
@@ -3329,25 +3331,25 @@ App.Loans=(function(){
   // ---- Form ----
   function _num(v){var s=String(v==null?'':v).trim().replace(/^%\s*/,'').replace(',','.');if(!s)return null;var n=parseFloat(s);return isFinite(n)&&/^\d+(\.\d+)?$/.test(s)?n:NaN}
   function _read(v){
-    var name=String(v.name||'').trim().slice(0,120),kind=KIND[v.kind]?v.kind:'diger',L=parseMoney(v.principal),n=parseInt(v.term,10),first=String(v.first||''),P=String(v.installment||'').trim()?parseMoney(v.installment):0,r=_num(v.rate),tax=v.tax===true||v.tax==='1';
+    var name=String(v.name||'').trim().slice(0,120),kind=KIND[v.kind]?v.kind:'diger',L=parseMoney(v.principal),n=parseInt(v.term,10),first=String(v.first||''),P=String(v.installment||'').trim()?parseMoney(v.installment):0,r=_num(v.rate),tax=v.tax===true||v.tax==='1',vr=v.vr===true||v.vr==='1';
     if(!name)return'Kredi adı girin.';if(L===null)return'Çekilen tutarı girin.';if(!(n>=1&&n<=480)||String(n)!==String(v.term).trim())return'Vade 1 ile 480 ay arasında tam sayı olmalı.';
     if(!validDate(first))return'İlk taksit tarihini seçin.';if(P===null)return'Geçerli taksit tutarı girin.';if(r!==null&&!(r>0&&r<=20))return'Aylık faiz %0 ile %20 arasında olmalı (ör. 3,49).';
     if(!P&&r===null)return'Aylık taksiti ya da aylık faizi girin.';
-    var l={name:name,kind:kind,principal:L,term:n,first:first,installment:P||0,rate:r||0,tax:kind==='konut'?false:tax};
+    var l={name:name,kind:kind,principal:L,term:n,first:first,installment:P||0,rate:r||0,tax:kind==='konut'?false:tax,vr:kind==='konut'&&vr};
     if(!P)l.installment=roundMoney(pmt(L,eff(l),n));
     else if(P*n<L-0.5)return'Taksit × vade ('+fmt(roundMoney(P*n))+'), çekilen tutardan az olamaz.';
     else if(r&&P<=L*eff(l)+0.005)return'Taksit, ilk ayın faizini ('+fmt(roundMoney(L*eff(l)))+') karşılamıyor; faiz ya da taksit yanlış.';
     return l;
   }
   function add(){
-    var g=function(id){var e=document.getElementById(id);return e?e.value:''},v={name:g('lnName'),kind:g('lnKind'),principal:g('lnAmt'),term:g('lnTerm'),first:g('lnFirst'),installment:g('lnInst'),rate:g('lnRate'),tax:(document.getElementById('lnTax')||{}).checked};
+    var g=function(id){var e=document.getElementById(id);return e?e.value:''},v={name:g('lnName'),kind:g('lnKind'),principal:g('lnAmt'),term:g('lnTerm'),first:g('lnFirst'),installment:g('lnInst'),rate:g('lnRate'),tax:(document.getElementById('lnTax')||{}).checked,vr:(document.getElementById('lnVar')||{}).checked};
     var l=_read(v);if(typeof l==='string'){App.UI.toast(l,'err');return}
     l.id=gid('ln');l.accountId=g('lnAcc')||'';l.prepay=[];l.closed=null;l.ts=Date.now();
     var a=S.loans().slice();a.push(l);S.saveLoans(a);
     ['lnName','lnAmt','lnTerm','lnFirst','lnInst','lnRate'].forEach(function(id){var e=document.getElementById(id);if(e)e.value=''});
     _refresh();var st=state(l);App.UI.toast('Kredi eklendi: '+fmt(inst(l))+' × '+st.count+' taksit, toplam faiz '+fmt(st.totalInterest)+'.');
   }
-  function onKind(){var k=document.getElementById('lnKind'),t=document.getElementById('lnTax');if(k&&t){t.checked=k.value!=='konut';t.disabled=k.value==='konut'}}
+  function onKind(){var k=document.getElementById('lnKind'),t=document.getElementById('lnTax');if(k&&t){t.checked=k.value!=='konut';t.disabled=k.value==='konut'}var vv=document.getElementById('lnVar');if(k&&vv){vv.disabled=k.value!=='konut';if(vv.disabled)vv.checked=false}}
   function _upd(id,fn){var a=S.loans().slice(),l=a.find(function(x){return x.id===id});if(!l)return null;fn(l);S.saveLoans(a);_refresh();return l}
   function edit(id){
     var l=S.loans().find(function(x){return x.id===id});if(!l)return;
@@ -3355,7 +3357,8 @@ App.Loans=(function(){
       {key:'kind',label:'Tür',type:'select',value:l.kind,options:Object.keys(KIND).map(function(k){return{value:k,label:KI[k]+' '+KIND[k]}})},
       {key:'principal',label:'Çekilen tutar (₺)',type:'number',value:l.principal},{key:'term',label:'Vade (ay)',type:'number',step:'1',value:l.term},{key:'first',label:'İlk taksit tarihi',type:'date',value:l.first},
       {key:'installment',label:'Aylık taksit (₺; boşsa faizden hesaplanır)',type:'number',value:l.installment||''},{key:'rate',label:'Aylık faiz (%, isteğe bağlı)',inputmode:'decimal',value:l.rate?String(l.rate).replace('.',','):''},
-      {key:'tax',label:'Faize KKDF + BSMV (%30) eklenir',type:'select',value:l.tax?'1':'0',options:[{value:'1',label:'Evet (ihtiyaç, taşıt)'},{value:'0',label:'Hayır (konut)'}]}]},function(v){
+      {key:'tax',label:'Faize KKDF + BSMV (%30) eklenir',type:'select',value:l.tax?'1':'0',options:[{value:'1',label:'Evet (ihtiyaç, taşıt)'},{value:'0',label:'Hayır (konut)'}]},
+      {key:'vr',label:'Konut kredisinde faiz türü (değişkende erken ödeme ücreti alınmaz)',type:'select',value:l.vr?'1':'0',options:[{value:'0',label:'Sabit faizli'},{value:'1',label:'Değişken faizli'}]}]},function(v){
       var r=_read(v);if(typeof r==='string'){App.UI.toast(r,'err');return false}
       _upd(id,function(x){Object.keys(r).forEach(function(k){x[k]=r[k]})});App.UI.toast('Kredi güncellendi.');
     });
@@ -5844,11 +5847,29 @@ function mergeSnapshot(base,local,remote){
   return out;
 }
 
+// Silinen kayıtların kimliği 30 gün ortak ayarda (tomb: {kimlik: silinme anı}) tutulur. Taban yokken (eşitlemeye yeniden katılma, taban kaybı)
+// birleştirme birleşimdir: yalnız bu cihazda duran ama başka cihazda silinmiş kayıt geri gelmesin diye o kayıtlar atılır. Sunucuda duran kayıt atılmaz;
+// yedekten geri yüklemeden (tombCut) önceki silmeler sayılmaz: geri yüklenen kayıt yaşar
+var TOMB_STORES=['pf_t','pf_g','pf_a','pf_r','pf_d','pf_f','pf_p','pf_ru','pf_l'];
+function _tombIds(snap,k){var o={};(((snap||{}).stores||{})[k]||[]).forEach(function(x){if(x&&x.id!=null)o[x.id]=1});return o}
+// Tabanda olup bu cihazda artık olmayan kayıtlar silinmiştir; yeniden duran (geri alınan) kayıt listeden çıkar
+function tombNote(tomb,base,local,now){
+  var o={},lim=now-30*864e5;Object.keys(tomb||{}).forEach(function(k){if(tomb[k]>lim)o[k]=tomb[k]});
+  TOMB_STORES.forEach(function(k){var L=_tombIds(local,k);Object.keys(_tombIds(base,k)).forEach(function(id){if(!L[id]&&!o[id])o[id]=now});Object.keys(L).forEach(function(id){delete o[id]})});
+  var ids=Object.keys(o);if(ids.length>3000){ids.sort(function(a,b){return o[b]-o[a]}).slice(3000).forEach(function(id){delete o[id]})}
+  return o;
+}
+function tombDrop(m,remote){
+  var tomb=(m.s&&m.s.tomb)||{},cut=+(m.s&&m.s.tombCut)||0;
+  TOMB_STORES.forEach(function(k){if(!Array.isArray(m.stores[k]))return;var R=_tombIds(remote,k);m.stores[k]=m.stores[k].filter(function(x){return!(x&&tomb[x.id]>cut&&!R[x.id])})});
+  return m;
+}
+
 // ---- Cihazlar arası eşitleme (uçtan uca şifreli) ----
 App.Sync=(function(){
   var CFG_KEY='ft_sync',BASE_KEY='sync_base',ARRAY_STORES=['pf_t','pf_g','pf_a','pf_r','pf_d','pf_f','pf_p','pf_ru','pf_nw','pf_sq','pf_l'],MAP_STORES=['pf_b','pf_bm','pf_cpi'];
   // Ayarların yalnız ortak kısmı eşitlenir; tema, aktif profil, kilit, AI modu cihaza özeldir
-  var SHARED_SETTINGS=['users','customCats','portfolioTargets','rates','cpiUserEdited','cpiVersion','smsDefaults','activeTag','split','delExp','monthChk','recNo'];
+  var SHARED_SETTINGS=['users','customCats','portfolioTargets','rates','cpiUserEdited','cpiVersion','smsDefaults','activeTag','split','delExp','monthChk','recNo','tomb','tombCut'];
   var _busy=null,_again=false,_timer=null,_applying=false,_key=null,_ws=null,_wsRetry=0,_wsTimer=null,_wsPing=null,_inited=false,_poll=null;
   function cfg(){try{return JSON.parse(localStorage.getItem(CFG_KEY)||'null')}catch(e){return null}}
   function saveCfg(c){try{if(c)localStorage.setItem(CFG_KEY,JSON.stringify(c));else localStorage.removeItem(CFG_KEY)}catch(e){}}
@@ -5903,9 +5924,12 @@ App.Sync=(function(){
     clearTimeout(_timer);_timer=setTimeout(function(){syncNow({quiet:true})},2500);
   }
   function _round(tries){
-    var c=cfg(),local=collect(),localStr=stableStr(local);
+    var c=cfg();
     return IDB.get(BASE_KEY).then(function(stored){
       var base=stored&&stored.vault===c.vault&&stored.version===c.version?stored.snap:null;
+      // Son eşitlemeden beri bu cihazda silinenler not edilir (başka cihaz tabansız birleşirse geri getirmesin)
+      if(base){var t0=S.settings().tomb||{},t1=tombNote(t0,base,collect(),Date.now());if(stableStr(t1)!==stableStr(t0)){_applying=true;try{S.saveSetting('tomb',t1)}finally{_applying=false}}}
+      var local=collect(),localStr=stableStr(local);
       return api(c,'GET',base?'?known='+c.version:'').then(function(res){
         if(res.status===404)throw new Error('Sunucuda eşitleme kasası bulunamadı; başka bir cihazdan silinmiş olabilir. Verileriniz bu cihazda duruyor. "Bu Cihazda Kapat" deyip eşitlemeyi yeniden başlatın.');
         if(res.status===401||res.status===403)throw new Error('Eşitleme kodu geçersiz.');
@@ -5914,7 +5938,7 @@ App.Sync=(function(){
         return(res.body.unchanged?Promise.resolve(base):decrypt(c,res.body.data)).then(function(remote){
           // Ağ beklenirken bu cihazda yeni değişiklik olduysa eski görüntüyle üzerine yazma: turu güncel veriyle yeniden başlat
           if(stableStr(collect())!==localStr){if(tries<6)return _round(tries+1);throw new Error('Veri eşitleme sırasında değişti, tekrar deneyin.')}
-          var merged=mergeSnapshot(base,local,remote);
+          var merged=mergeSnapshot(base,local,remote);if(!base)merged=tombDrop(merged,remote);
           if(!_same(merged,local))apply(merged);
           var after=collect();
           // Uzak sürüm uygulandı: "son bilinen sunucu durumu" hemen o sürüm olur. Gönderim 409 alıp yeniden denenirse
@@ -6225,7 +6249,7 @@ App.BankSms=(function(){
     if(/hesabinizdan/.test(f)&&/(gonderil|aktarildi|virman|odeme)/.test(f)&&!(o.bk==='invest'&&inc))inc=false;
     if(/hesabiniza/.test(f)&&!/(hesabinizdan|kartinizdan|kartinizla|kartiniz ile|harcama|alisveris)/.test(f)&&!(o.bk==='invest'&&exp))exp=false;
     o.accHint=/kart/.test(f)&&!/hesabiniz/.test(f)?'card':/hesab/.test(f)?'bank':'';
-    if(!o.refund&&(/(kredi karti|kart(i|inizin)?|ekstre) ?(borc\w*|ekstre\w*)\b.{0,40}odeme|kart(iniz)?(a|in)? borcuna|kart borcunuz|ekstre borcunuza|kartiniza .{0,60}odeme|kart(i|iniz)? (borc )?odemeniz|kredi karti odemesi|kart odemesi|kartiniza .{0,40}(yatiril|aktaril)/.test(f)||(/kart/.test(f)&&!/fatura|kartinizdan|kartinizla/.test(f)&&/odemeniz (alin|tahsil|kabul|gerceklest)/.test(f)))){o.kind='review';o.reason='Kredi kartı borç ödemesi (hesaplar arası aktarım olabilir)';o.type='expense';o.party=_party(t,f);return o}
+    if(!o.refund&&(/(kredi karti|kart(i|inizin)?|ekstre) ?(borc\w*|ekstre\w*)\b.{0,40}odeme|kart(iniz)?(a|in)? borcuna|kart borcunuz|ekstre borcunuza|kartiniza .{0,60}odeme|kart(i|iniz)? (borc )?odemeniz|kredi karti odemesi|kart odemesi|kartiniza .{0,40}(yatiril|aktaril)/.test(f)||(/kart/.test(f)&&!/fatura|kartinizdan|kartinizla/.test(f)&&/odemeniz (alin|tahsil|kabul|gerceklest)/.test(f))||(/kredi karti(niz|nizin)? otomatik odeme talimat/.test(f)&&!/fatura|kartinizdan|kartinizla/.test(f)))){o.kind='review';o.reason='Kredi kartı borç ödemesi (hesaplar arası aktarım olabilir)';o.type='expense';o.party=_party(t,f);return o}
     // Provizyon (ön onay, otel/akaryakıt): kesin harcama tutarı farklı olabilir; iptali harcama/iade değildir
     if(/provizyon/.test(f)){if(/(iptal|cozul|serbest|kaldiril)/.test(f)){o.kind='ignore';o.reason='Provizyon iptali (harcama değil)';return o}
       o.kind='review';o.reason='Provizyon (ön onay): kesin tutar farklı olabilir; harcama kesinleşince Ekle, mesaj gelirse Yoksay';o.type='expense';o.merchant=_merchant(t,f);return o}
@@ -7466,7 +7490,7 @@ App.Receipt=(function(){
   function _begin(onCancel){_onCancel=onCancel||null;return ++_job}
   function _live(j){
     if(j!==_job)return false;
-    if(!document.getElementById('rcpBusy')){_job++;var f=_onCancel;_onCancel=null;if(f)f();return false}
+    if(!document.getElementById('rcpBusy')){_job++;_ocrStop();var f=_onCancel;_onCancel=null;if(f)f();return false}
     return true;
   }
   function _setCur(url,canvas,text){if(_cur&&_cur.url&&_cur.url!==url)URL.revokeObjectURL(_cur.url);_cur={url:url||'',canvas:canvas,text:text||''}}
@@ -7689,12 +7713,14 @@ App.Receipt=(function(){
       _progress=progress;return _ocr;
     });
   }
-  var _progress=null;
+  var _progress=null,_ocrRun=0;
+  // Vazgeçilince süren yazı tanıma beklenmez: işçi kapatılır, sıradaki fiş yeni işçiyle hemen başlar
+  function _ocrStop(){if(!_ocrRun)return;_ocrRun=0;clearTimeout(_ocrIdle);var w=_ocr;_ocr=null;if(w)w.then(function(x){return x.terminate()}).catch(function(){})}
   // Okuma bittikten 2 dk sonra yazı tanıma işçisi kapatılır (iPhone'da büyük bellek tutmasın)
   function _ocrText(canvas,progress,mode){
-    clearTimeout(_ocrIdle);
+    clearTimeout(_ocrIdle);_ocrRun++;
     return _worker(progress).then(function(w){return w.recognize(_prep(canvas,mode||'bin'))}).then(function(r){
-      clearTimeout(_ocrIdle);_ocrIdle=setTimeout(function(){var w=_ocr;_ocr=null;if(w)w.then(function(x){return x.terminate()}).catch(function(){})},120000);
+      if(_ocrRun>0)_ocrRun--;clearTimeout(_ocrIdle);_ocrIdle=setTimeout(function(){var w=_ocr;_ocr=null;if(w)w.then(function(x){return x.terminate()}).catch(function(){})},120000);
       return(r&&r.data&&r.data.text)||'';
     });
   }
@@ -7718,7 +7744,7 @@ App.Receipt=(function(){
     if(msg===null){if(el)App.UI.closeModal('rcpBusy');return}
     if(!el){el=document.createElement('div');el.id='rcpBusy';el.className='app-dialog-holder';
       el.innerHTML='<div class="modal-bd show"><div class="modal" role="dialog" aria-modal="true" aria-label="Fiş okunuyor"><div class="modal-title">🧾 Fiş okunuyor…</div><div class="rcp-src" id="rcpBusyMsg"></div><div class="rcp-bar"><div id="rcpBusyBar"></div></div><div class="modal-actions"><button class="btn btn-ghost" data-act="cancel">Vazgeç</button></div></div></div>';
-      el.querySelector('[data-act="cancel"]').addEventListener('click',function(){_job++;_busy(null);var f=_onCancel;_onCancel=null;if(f)f()});
+      el.querySelector('[data-act="cancel"]').addEventListener('click',function(){_job++;_ocrStop();_busy(null);var f=_onCancel;_onCancel=null;if(f)f()});
       App.UI.mountModal(el,'[data-act="cancel"]')}
     var m=document.getElementById('rcpBusyMsg'),b=document.getElementById('rcpBusyBar');if(m)m.textContent=msg||'';if(b&&pct!=null)b.style.width=Math.round(pct*100)+'%';
   }
