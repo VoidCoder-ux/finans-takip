@@ -76,7 +76,7 @@ srv.listen(0, async () => {
     eq('hücre açıklaması (ekran okuyucu)', await page.evaluate(() => [...document.querySelectorAll('.cal-d')].filter(b => ['2027-03-05', '2027-03-12', '2027-03-22'].includes(b.dataset.d)).map(b => b.getAttribute('aria-label'))),
       ['5 Mart, gider ₺1.500,00', '12 Mart, iade ₺200,00', '22 Mart, beklenen ödeme ₺230,00']);
     await page.click('.cal-d[data-d="2027-03-15"]'); s = await st(page);
-    eq('15 Mart: kart borcu ödemesi (aktarım) listede, gider/gelir değil', [s.day.sum, s.day.txns, await page.evaluate(() => /Vadesiz → Kart/.test(document.querySelector('.cal-day .ti-meta').textContent))], ['Gider ₺0,00 · Gelir ₺0,00', [['Transfer', '₺1.500,00']], true]);
+    eq('15 Mart: kart borcu ödemesi (aktarım) listede, gider/gelir değil', [s.day.sum, s.day.txns, await page.evaluate(() => /Çıkan hesap: Vadesiz.*Giren hesap: .*Kart/.test(document.querySelector('.cal-day .ti-route').textContent))], ['Gider ₺0,00 · Gelir ₺0,00', [['Transfer', '₺1.500,00']], true]);
     await page.click('.cal-d[data-d="2027-03-22"]'); s = await st(page);
     eq('22 Mart: beklenen abonelik kartla (karta yazılır), toplam yok', [s.day.title, s.day.sum, s.day.txns, s.day.exp], ['22 Mart 2027 Pazartesi', '', [], [['Netflix', 'Abonelik · karta yazılır', '-₺230,00']]]);
     await page.click('.cal-d[data-d="2027-03-22"]'); s = await st(page);

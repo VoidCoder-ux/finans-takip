@@ -136,6 +136,10 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
 .ti-acc{color:var(--blue);font-weight:600}
 [data-theme="light"] .ti-acc{color:#1d4ed8}
 .ti-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.ti-route{display:flex;flex-direction:column;gap:3px;margin-top:5px;font-size:.86rem;line-height:1.35}
+.ti-route .tr-l{color:var(--txt2)}
+.ti-route .tr-out b{color:var(--red)}.ti-route .tr-in b{color:var(--green)}
+.ti-route .tr-n{font-weight:700;color:var(--txt)}
 .ti-tags .stmt-tag,.ti-tags .user-tag,.ti-tags .ti-note{margin:0}.ti-meta{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal!important;font-size:.82rem;color:var(--txt2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ti-note{display:inline-block;background:var(--bg4);border-radius:99px;padding:1px 8px;font-size:.82rem;color:var(--txt2);margin-top:3px}
 .ti-acc-tag{display:inline-block;border-radius:99px;padding:1px 8px;font-size:.82rem;font-weight:600;margin-top:3px;margin-left:3px}
@@ -1197,7 +1201,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.3.0</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.3.1</div>
 </section>
 
 </main>
@@ -2713,12 +2717,23 @@ App.Transactions=(function(){
     all.forEach(function(t){var p=t.transferId&&legs[t.transferId];if(p&&p.in&&p.out){if(t===p.in)return;out.push({t:p.out,pair:p.in})}else out.push({t:t,pair:null})});
     return out;
   }
+  // Paranın yönü ayrı satırlarda: hangi hesaptan çıktı, hangi hesaba girdi (kart ve hesap son 4 hanesiyle)
+  function _accN(id){var a=id&&App.Accounts.get(id);return a?accLabel(a):''}
+  function _routeRow(out,name){return'<div class="'+(out?'tr-out':'tr-in')+'"><b>'+(out?'⬆':'⬇')+'</b> <span class="tr-l">'+(out?'Çıkan hesap:':'Giren hesap:')+'</span> <span class="tr-n">'+esc(name)+'</span></div>'}
+  function _route(t,pair){
+    var mine=_accN(t.accountId)||'(hesap yok)',ext='uygulamada olmayan hesabım';
+    if(pair)return'<div class="ti-route">'+_routeRow(true,mine)+_routeRow(false,_accN(pair.accountId)||'(hesap yok)')+'</div>';
+    var out=t.type!=='income';
+    // Tek taraflı aktarım: öbür ucu uygulamada olmayan kendi hesabıysa o da yazılır
+    return'<div class="ti-route">'+(out?_routeRow(true,mine)+(t.xext?_routeRow(false,ext):''):(t.xext?_routeRow(true,ext):'')+_routeRow(false,mine))+'</div>';
+  }
+  // Kişiden gelen / kişiye giden para (banka mesajının notu "Gelen para: …", "Giden havale/EFT")
+  function _isMove(t){return/^(gelen|giden)\s+(para|havale|eft|fast)/i.test(t.note||'')}
   function _hTransfer(t,pair,del){
     var from=App.Accounts.getName(t.accountId)||'(hesap yok)',to=pair?(App.Accounts.getName(pair.accountId)||'(hesap yok)'):'',orphan=/\(hesap yok\)/.test(from+to);
-    var route=pair?esc(from)+' → '+esc(to):esc(from)+(t.type==='income'?' (giriş)':' (çıkış)');
     var sign=pair?'':(t.type==='income'?'+':'-');
     var planned=t.balanceApplied===false?'<span class="ti-note">Planlı</span>':'';
-    return'<div class="ti"><div class="cat-ico cc-blue">↔️</div><div class="ti-body"><div class="ti-cat">Transfer</div><div class="ti-meta">'+fd(t.date)+' · '+route+'</div>'+(t.note&&t.note!==from+' → '+to?'<span class="ti-note">'+esc(t.note)+'</span>':'')+planned+(orphan?'<span class="ti-note">⚠️ Hesabı silinmiş: ✎ ile hesabı seçin</span>':'')+'</div><div class="ti-right"><div class="ti-amt transfer">'+sign+fmt(t.amount)+'</div>'+_actions(t,del)+'</div></div>';
+    return'<div class="ti"><div class="cat-ico cc-blue">↔️</div><div class="ti-body"><div class="ti-cat">Transfer</div><div class="ti-meta">'+fd(t.date)+'</div>'+_route(t,pair)+(t.note&&t.note!==from+' → '+to?'<span class="ti-note">'+esc(t.note)+'</span>':'')+planned+(orphan?'<span class="ti-note">⚠️ Hesabı silinmiş: ✎ ile hesabı seçin</span>':'')+'</div><div class="ti-right"><div class="ti-amt transfer">'+sign+fmt(t.amount)+'</div>'+_actions(t,del)+'</div></div>';
   }
   function _actions(t,del){return del?'<div class="ti-actions"><button class="btn-del" title="Düzenle" aria-label="İşlemi düzenle" onclick="App.Transactions.edit(\''+t.id+'\')">✎</button><button class="btn-del" title="Sil" aria-label="İşlemi sil" onclick="App.Transactions.remove(\''+t.id+'\')">✕</button></div>':''}
   function _h(t,del,pair){
@@ -2736,8 +2751,9 @@ App.Transactions=(function(){
     // Başlık: not/işyeri (Migros); alt satır: kategori · tarih · hesap; altta etiketler (taksit, ekstre, kaynak, kişi)
     var catLbl=isRefund(t)&&t.refCat?'İade ('+t.refCat+')':t.category;
     var tagTag=(t.tags||[]).map(function(g){return'<span class="tag-chip">🏷 '+esc(g)+'</span>'}).join('');
-    var title=t.note&&t.note!==t.category?t.note:t.category,sub=[title!==t.category?esc(catLbl):'',fd(t.date),an?'<span class="ti-acc">'+esc(an)+'</span>':''].filter(Boolean).join(' · '),tags=tagTag+insTag+stmtTag+srcTag+uTag;
-    return'<div class="ti"><div class="cat-ico '+info.c+'">'+info.i+'</div><div class="ti-body"><div class="ti-cat">'+esc(title)+'</div><div class="ti-meta">'+sub+'</div>'+(tags?'<div class="ti-tags">'+tags+'</div>':'')+'</div><div class="ti-right"><div class="ti-amt '+t.type+'">'+sign+fmt(t.amount)+'</div>'+_actions(t,del)+'</div></div>'
+    var title=t.note&&t.note!==t.category?t.note:t.category,sub=[title!==t.category?esc(catLbl):'',fd(t.date),an&&!_isMove(t)?'<span class="ti-acc">'+esc(an)+'</span>':''].filter(Boolean).join(' · '),tags=tagTag+insTag+stmtTag+srcTag+uTag;
+    var mv=an&&_isMove(t)?'<div class="ti-route">'+_routeRow(t.type!=='income',an)+'</div>':'';
+    return'<div class="ti"><div class="cat-ico '+info.c+'">'+info.i+'</div><div class="ti-body"><div class="ti-cat">'+esc(title)+'</div><div class="ti-meta">'+sub+'</div>'+mv+(tags?'<div class="ti-tags">'+tags+'</div>':'')+'</div><div class="ti-right"><div class="ti-amt '+t.type+'">'+sign+fmt(t.amount)+'</div>'+_actions(t,del)+'</div></div>'
   }
   function _filters(){var g=function(id){var el=document.getElementById(id);return el&&el.value||''};return{tf:g('fType'),cf:g('fCat'),af:g('fAcc'),uf:g('fUser'),tg:g('fTag'),mf:g('fMonth'),sf:g('fSearch').toLowerCase(),ff:g('fFrom'),ft:g('fTo')}}
   // noDate: ay ve tarih aralığı süzgeci uygulanmaz (takvimin kendi ayı var)
