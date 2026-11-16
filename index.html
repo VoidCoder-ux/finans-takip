@@ -177,8 +177,8 @@ button.hero-tile{cursor:pointer}button.hero-tile:hover{background:rgba(0,0,0,.28
 #page-ozet .quick-row{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:14px}
 #page-ozet .quick-btn{flex-direction:column;gap:4px;padding:12px 4px;font-size:.86rem;min-height:64px}
 #page-ozet .quick-btn.qrcp{grid-column:auto;padding:12px 4px}
-.quick-btn.qrep{border-color:var(--border2);color:var(--txt);background:var(--bg2)}
-#page-ozet .quick-btn.qrcp:hover,#page-ozet .quick-btn.qrep:hover{border-color:var(--teal);color:var(--teal)}
+.quick-btn.qrep,.quick-btn.qwi{border-color:var(--border2);color:var(--txt);background:var(--bg2)}
+#page-ozet .quick-btn.qrcp:hover,#page-ozet .quick-btn.qrep:hover,#page-ozet .quick-btn.qwi:hover{border-color:var(--teal);color:var(--teal)}
 #page-ozet .hero-bal{margin-bottom:8px}
 .chip-btn{border:none;cursor:pointer;font:inherit;color:inherit;min-height:36px}
 .cc-limit{margin-top:8px}.cc-bar{height:8px;border-radius:99px;background:var(--bg4);overflow:hidden}.cc-bar.big{height:10px;margin:8px 0 4px}
@@ -813,6 +813,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <button class="quick-btn qexp" onclick="App.UI.quickAdd('expense')"><span class="qi">−</span><span>Gider</span></button>
     <button class="quick-btn qrcp" onclick="App.Receipt.open()"><span class="qi">📷</span><span>Fiş Okut</span></button>
     <button class="quick-btn qrep" onclick="App.Report.open()"><span class="qi">📄</span><span>Rapor</span></button>
+    <button class="quick-btn qwi" onclick="App.WhatIf.open()"><span class="qi">🧮</span><span>Alırsam Ne Olur?</span></button>
   </div>
   <input type="file" id="receiptFile" accept="image/*,application/pdf,.pdf" style="display:none" aria-label="Fiş fotoğrafı" onchange="App.Receipt.onFile(this)"/>
   <div id="ozet-cardbars"></div>
@@ -1201,7 +1202,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.3.1</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.3.2</div>
 </section>
 
 </main>
@@ -1847,6 +1848,7 @@ App.UI=(function(){
       {act:"App.UI.nav('hedefler')",icon:'🐖',label:'Birikim'},
       {act:"App.UI.nav('aykontrol')",icon:'✅',label:'Ay Kontrolü'},
       {act:"App.Report.open()",icon:'📄',label:'Rapor'},
+      {act:"App.WhatIf.open()",icon:'🧮',label:'Alırsam Ne Olur?'},
       {act:"App.UI.nav('ayarlar')",icon:'⚙️',label:'Ayarlar'}
     ];
     var grid=items.map(function(it){return '<div class="more-grid-item" onclick="App.UI.moreClose();'+it.act+'"><div class="more-grid-ico">'+it.icon+'</div><div>'+it.label+'</div></div>'}).join('');
@@ -8621,7 +8623,7 @@ App.WhatIf=(function(){
     var el=document.getElementById('wiRes');if(!el)return;var amt=parseMoney((document.getElementById('wiAmt')||{}).value);
     if(amt===null){el.innerHTML='';return}
     var r=compute({amount:amt,accId:document.getElementById('wiAcc').value,date:document.getElementById('wiDate').value,inst:document.getElementById('wiInst').value});
-    el.innerHTML='<div class="wi-v '+r.level+'">'+esc(r.msg)+'</div>'+_l(r.safeAfter.salary?'Maaşa kadar harcanabilir':'Ay sonuna kadar harcanabilir',r.safeBefore.amount,r.safeAfter.amount)+_l('90 günün en düşük bakiyesi',r.before.min,r.after.min)+(r.capAfter!==null?_l('Kartta kalan limit',r.capBefore,r.capAfter):'')+(r.inst>1?'<div class="wi-l"><span>Aylık taksit</span><b>'+fmt(r.per)+' × '+r.inst+'</b></div>':'');
+    el.innerHTML='<div class="wi-v '+r.level+'"><b>Sonuç:</b> '+(r.level==='green'?'✓ ':'⚠️ ')+esc(r.msg)+'</div>'+_l(r.safeAfter.salary?'Maaşa kadar harcanabilir':'Ay sonuna kadar harcanabilir',r.safeBefore.amount,r.safeAfter.amount)+_l('90 günün en düşük bakiyesi',r.before.min,r.after.min)+(r.capAfter!==null?_l('Kartta kalan limit',r.capBefore,r.capAfter):'')+(r.inst>1?'<div class="wi-l"><span>Aylık taksit yükü</span><b>'+fmt(r.per)+' × '+r.inst+' ay</b></div>':'');
   }
   function open(){
     var accs=S.accounts().filter(function(a){return a.type==='card'||a.type==='bank'||a.type==='cash'});if(!accs.length){App.UI.toast('Önce hesap ekleyin.','info');return}
