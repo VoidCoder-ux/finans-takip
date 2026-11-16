@@ -183,7 +183,7 @@ srv.listen(0, async () => {
     const a = await type('6000', '3', 'k');
     eq('karta 3 taksit: aksatmıyor, limit ve taksit yükü', [/Sonuç: ✓ Yaklaşan ödemeleri aksatmıyor/.test(a), /Kartta kalan limit ₺17\.000,00 → ₺11\.000,00/.test(a), /Aylık taksit yükü ₺2\.000,00 × 3 ay/.test(a), /90 günün en düşük bakiyesi/.test(a)], [true, true, true, true]);
     const b = await type('15000', '1', 'b');
-    eq('hesaptan peşin: 10.000 − 15.000 − 3.000 kart ekstresi = 8.000 açık', [/Sonuç: ⚠️ .*hesaplar ₺5\.000,00 eksiye düşer/.test(b), /Aylık taksit/.test(b)], [true, false]);
+    eq('hesaptan peşin: 10.000 − 15.000 − 3.000 kart ekstresi = 8.000 açık', [/Sonuç: ⚠️ .*hesaplar ₺8.000,00 eksiye düşer/.test(b), /Aylık taksit/.test(b)], [true, false]);
     eq('hiçbir şey kaydedilmez', await page.evaluate(() => [S.txns().length, App.Accounts.get('b').balance, App.Accounts.get('k').balance]), [0, 10000, -3000]);
     await ctx.close();
   }
