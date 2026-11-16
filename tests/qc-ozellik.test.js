@@ -1,10 +1,11 @@
 // Usage: node tests/qc-ozellik.test.js
 // Kasım 2026 yeni özellikleri (beklenen değerler elle hesaplandı):
-//  1) İşlem bölme: tek kayıt iki kategoriye ayrılır, toplam ve bakiye değişmez; banka mesajının öbür kanaldan gelen eşi toplamla tanınır.
+//  1) İşlem bölme: tek kayıt istenen kadar kategoriye ayrılır, toplam ve bakiye değişmez; banka mesajının öbür kanaldan gelen eşi toplamla tanınır.
 //  2) Şifreli yedek: parola olmadan okunamaz, doğru parolayla geri yüklenir, yanlış parolada veri değişmez.
 //  3) Ortak gider dengeleme: kişisel hesaptan ödenen ortak giderler eşit paylaşılır; ortak hesap ve istek harcaması sayılmaz.
 //  4) Döviz/altın borç kurla yeniden değerlenir.  5) Fon stopajı net kârı gösterir.  6) Taksitli nakit avans gelir/gider şişirmez.
 //  7) Bütçe limiti uyarısı %80 ve %100'de birer kez gelir.
+//  8) Aktarımda çıkan/giren hesap.  9) "Bunu alırsam ne olur?" erişimi.  10) Hızlı komut satırı.
 // Kurmaca veri (Deniz/Ece), sunucu gerekmez.
 const http = require('http'), fs = require('fs'), path = require('path');
 function loadPlaywright() { try { return require('playwright'); } catch (e) {} try { return require(path.join(require('child_process').execSync('npm root -g', { encoding: 'utf8' }).trim(), 'playwright')); } catch (e) { return null; } }
@@ -37,21 +38,23 @@ srv.listen(0, async () => {
   // Açık penceredeki alanları doldurup onaylar
   const fill = (p, vals) => p.evaluate(v => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); Object.keys(v).forEach(k => { m.querySelector('[data-pkey="' + k + '"]').value = v[k]; }); m.querySelector('[data-act="ok"]').click(); }, vals);
 
-  // 1) İşlem bölme
+  // 1) İşlem bölme: istenen kadar kaleme
   {
     const { page, ctx } = await open('2026-11-10', { pf_a: [bank(47500, 'b', { openingBalance: 50000 })], pf_t: [tx('2026-11-08', 'expense', 2500, 'Market', 'Migros', 'b', { id: 'm1', src: 'sms', sh: 'abc123' })] });
-    await page.evaluate(() => App.Transactions.edit('m1'));
-    await fill(page, { spAmt: '2500', spCat: 'Çocuk' });
-    eq('toplamın tamamı ayrılamaz', await page.evaluate(() => S.txns().length), 1);
-    await fill(page, { spAmt: '700', spCat: 'Market' });
-    eq('aynı kategoriye bölünmez', await page.evaluate(() => S.txns().length), 1);
-    await fill(page, { spAmt: '700', spCat: 'Çocuk' });
-    eq('iki kayıt: 1.800 Market + 700 Çocuk', await page.evaluate(() => S.txns().map(t => [t.amount, t.category, t.note, t.date, t.sg, t.src]).sort((a, b) => b[0] - a[0])), [[1800, 'Market', 'Migros', '2026-11-08', 'm1', 'sms'], [700, 'Çocuk', 'Migros', '2026-11-08', 'm1', 'sms']]);
-    eq('bakiye değişmez', await page.evaluate(() => App.Accounts.get('b').balance), 47500);
-    eq('kategori toplamları', await page.evaluate(() => { const c = App.Transactions.catTotals('2026-11'); return [c.Market, c['Çocuk']]; }), [1800, 700]);
-    eq('aynı harcamanın e-postası ikinci kez yazılmaz', await page.evaluate(() => { const r = App.BankSms.ingest([{ id: 5, label: 'gmailbox_u_a', text: 'Akbank\nKartinizla MIGROS isyerinden 2.500,00 TL harcama yapilmistir.\nE-posta tarihi: 08.11.2026 14:00', receivedAt: Date.now() }]); return [r.added, S.txns().length, App.Accounts.get('b').balance]; }), [0, 2, 47500]);
+    eq('düzenlemeden Kalemlere Böl açılır', await page.evaluate(() => { App.Transactions.edit('m1'); const m = [...document.querySelectorAll('.modal-bd.show')].pop(), b = m.querySelector('[data-act="extra"]'), ok = !!b && /Kalemlere Böl/.test(b.textContent); b.click(); return [ok, !!document.getElementById('splitHolder'), document.querySelectorAll('#spRows .sp-row').length, !!m.querySelector('[data-pkey="spAmt"]')]; }), [true, true, 1, false]);
+    const rows = parts => page.evaluate(parts => { const box = document.getElementById('spRows'); while (box.children.length < parts.length) App.Transactions.splitRow(); [...box.children].forEach((r, i) => { r.querySelector('.sp-c').value = parts[i] ? parts[i][0] : ''; r.querySelector('.sp-a').value = parts[i] ? parts[i][1] : ''; }); App.Transactions.splitCalc(); const left = document.getElementById('spLeft').textContent; App.Transactions.splitSave(); return [left, S.txns().length]; }, parts);
+    eq('toplamın tamamı ayrılamaz', await rows([['Çocuk', '2500']]), ['Ayrılan toplam, işlem tutarından küçük olmalı.', 1]);
+    eq('kalanın kategorisi seçilemez', (await rows([['Market', '700']]))[1], 1);
+    eq('kategorisiz kalem kabul edilmez', (await rows([['', '700']]))[1], 1);
+    eq('üç kaleme bölünür; kalan canlı yazar', await rows([['Çocuk', '500'], ['Ev ve Bakım', '200']]), ['Kalan: ₺1.800,00 Market', 3]);
+    eq('1.800 Market + 500 Çocuk + 200 Ev ve Bakım', await page.evaluate(() => S.txns().map(t => [t.amount, t.category, t.note, t.date, t.sg, t.src]).sort((a, b) => b[0] - a[0])), [[1800, 'Market', 'Migros', '2026-11-08', 'm1', 'sms'], [500, 'Çocuk', 'Migros', '2026-11-08', 'm1', 'sms'], [200, 'Ev ve Bakım', 'Migros', '2026-11-08', 'm1', 'sms']]);
+    eq('bakiye değişmez, pencere kapanır', await page.evaluate(() => [App.Accounts.get('b').balance, !!document.getElementById('splitHolder')]), [47500, false]);
+    eq('kategori toplamları', await page.evaluate(() => { const c = App.Transactions.catTotals('2026-11'); return [c.Market, c['Çocuk'], c['Ev ve Bakım']]; }), [1800, 500, 200]);
+    eq('aynı harcamanın e-postası ikinci kez yazılmaz', await page.evaluate(() => { const r = App.BankSms.ingest([{ id: 5, label: 'gmailbox_u_a', text: 'Akbank\nKartinizla MIGROS isyerinden 2.500,00 TL harcama yapilmistir.\nE-posta tarihi: 08.11.2026 14:00', receivedAt: Date.now() }]); return [r.added, S.txns().length, App.Accounts.get('b').balance]; }), [0, 3, 47500]);
+    eq('parça yeniden bölünebilir, grup aynı kalır', await page.evaluate(() => { const p = S.txns().find(t => t.category === 'Çocuk'), r = App.Transactions.split(p.id, [{ category: 'Giyim', amount: 100 }]); return [typeof r, S.txns().length, S.txns().every(t => t.sg === 'm1'), App.Accounts.get('b').balance]; }), ['object', 4, true, 47500]);
+    eq('aktarım bölünemez', await page.evaluate(() => { const t = S.txns(); t.unshift({ id: 'x1', type: 'expense', amount: 100, category: 'Transfer', date: '2026-11-09', note: '', accountId: 'b', userId: 'u_a', ts: 1, balanceApplied: true }); S.saveTxns(t); return App.Transactions.split('x1', [{ category: 'Market', amount: 10 }]); }), 'Bu kayıt bölünemez.');
     await page.reload(); await page.waitForTimeout(200);
-    eq('yeniden açılınca grup korunur', await page.evaluate(() => S.txns().every(t => t.sg === 'm1')), true);
+    eq('yeniden açılınca grup korunur', await page.evaluate(() => S.txns().filter(t => t.id !== 'x1').every(t => t.sg === 'm1')), true);
     await ctx.close();
   }
   // 2) Şifreli yedek
@@ -185,6 +188,27 @@ srv.listen(0, async () => {
     const b = await type('15000', '1', 'b');
     eq('hesaptan peşin: 10.000 − 15.000 − 3.000 kart ekstresi = 8.000 açık', [/Sonuç: ⚠️ .*hesaplar ₺8.000,00 eksiye düşer/.test(b), /Aylık taksit/.test(b)], [true, false]);
     eq('hiçbir şey kaydedilmez', await page.evaluate(() => [S.txns().length, App.Accounts.get('b').balance, App.Accounts.get('k').balance]), [0, 10000, -3000]);
+    await ctx.close();
+  }
+  // 10) Hızlı komut satırı: metin çözülür, formun kendi kuralları geçerlidir
+  {
+    const acc = [bank(40000, 'a1', { name: 'Akbank Vadesiz' }), bank(2000, 'n1', { name: 'Cüzdan', type: 'cash' }), { id: 'k', name: 'World Kart', type: 'card', owner: 'shared', last4: '2947', balance: 0, openingBalance: 0, limit: 50000, statementDay: 20, dueOffset: 10, ts: at('2025-01-01') }];
+    const { page, ctx } = await open('2026-11-10', { pf_a: acc });
+    const P = t => page.evaluate(t => { const p = App.Cmd.parse(t); return p && [p.type, p.amount, p.category, p.note, p.accId, p.inst, p.tags, p.date, p.err ? 'hata' : '']; }, t);
+    eq('"850 migros"', await P('850 migros'), ['expense', 850, 'Market', 'Migros', '', 1, [], '2026-11-10', '']);
+    eq('kategori sözcüğü nottan çıkar', await P('850 migros market'), ['expense', 850, 'Market', 'Migros', '', 1, [], '2026-11-10', '']);
+    eq('taksit: tek kart kendiliğinden seçilir', await P('12000 teknosa 4 taksit'), ['expense', 12000, 'Diğer', 'Teknosa', 'k', 4, [], '2026-11-10', '']);
+    eq('gelir', await P('+78000 maaş'), ['income', 78000, 'Maaş', '', '', 1, [], '2026-11-10', '']);
+    eq('kuruş, nakit, etiket, dün', await P('1.450,75 opet nakit #yol dün'), ['expense', 1450.75, 'Ulaşım', 'Opet', 'n1', 1, ['yol'], '2026-11-09', '']);
+    eq('aktarım', await page.evaluate(() => { const p = App.Cmd.parse('transfer 5000 akbank → world'); return [p.type, p.amount, p.accId, p.toId, p.err]; }), ['transfer', 5000, 'a1', 'k', '']);
+    eq('tutarsız metin ve hatalar', await page.evaluate(() => [App.Cmd.parse('migros'), App.Cmd.parse('transfer 5000 akbank → akbank').err, App.Cmd.parse('500 migros nakit 3 taksit').err, App.Cmd.parse('+5000 maaş 3 taksit').err].map(x => x === null ? null : !!x)), [null, true, true, true]);
+    const run = t => page.evaluate(t => { const i = document.getElementById('cmdInp'); i.value = t; App.Cmd.preview(); const prev = document.getElementById('cmdPrev').textContent; App.Cmd.run(); return [prev, i.value]; }, t);
+    eq('önizleme ve kayıt', await run('850 migros #mutfak'), ['− Gider · ₺850,00 · Market · Migros · varsayılan hesap · #mutfak', '']);
+    await run('12000 teknosa 4 taksit'); await run('transfer 5000 akbank → world'); await run('450 opet nakit');
+    eq('hatalı komut kaydetmez, yazı durur', (await run('500 migros nakit 3 taksit'))[1], '500 migros nakit 3 taksit');
+    const r = await page.evaluate(() => ({ t: S.txns().map(t => [t.type, t.amount, t.category, t.accountId, t.installment ? t.installment.index + '/' + t.installment.total : '', (t.tags || []).join()]).sort((a, b) => (a[2] + a[4] + a[0]).localeCompare(b[2] + b[4] + b[0])), bal: ['a1', 'n1', 'k'].map(i => App.Accounts.get(i).balance) }));
+    eq('kayıtlar: gider, 4 taksit, aktarım çifti, nakit gider', r.t.map(x => x.join('|')), ['expense|3000|Diğer|k|1/4|', 'expense|3000|Diğer|k|2/4|', 'expense|3000|Diğer|k|3/4|', 'expense|3000|Diğer|k|4/4|', 'expense|850|Market|a1||mutfak', 'expense|5000|Transfer|a1||', 'income|5000|Transfer|k||', 'expense|450|Ulaşım|n1||']);
+    eq('bakiyeler: 40.000 − 850 − 5.000; nakit 2.000 − 450; kart −3.000 + 5.000', r.bal, [34150, 1550, 2000]);
     await ctx.close();
   }
   eq('sayfa hatası yok', errors, []);
