@@ -173,6 +173,20 @@ srv.listen(0, async () => {
     eq('sıradan harcamada yön satırı yok', rows.n1, []);
     await ctx.close();
   }
+  // 9) "Bunu alırsam ne olur?" her yerden açılır; sonuç yazarken güncellenir, hiçbir şey kaydedilmez
+  {
+    const kart = { id: 'k', name: 'World Kart', type: 'card', owner: 'shared', last4: '2947', balance: -3000, openingBalance: -3000, limit: 20000, statementDay: 20, dueOffset: 10, ts: at('2025-01-01') };
+    const { page, ctx } = await open('2026-11-10', { pf_a: [bank(10000), kart] });
+    eq('Özet düğmesi ve Daha menüsü', await page.evaluate(() => { const q = !!document.querySelector('#page-ozet .quick-btn.qwi'); App.UI.moreMenu(); const m = [...document.querySelectorAll('.more-grid-item')].some(x => /Alırsam Ne Olur/.test(x.textContent)); App.UI.moreClose(); return [q, m]; }), [true, true]);
+    await page.evaluate(() => document.querySelector('#page-ozet .quick-btn.qwi').click()); await page.waitForTimeout(100);
+    const type = (amt, inst, acc) => page.evaluate(o => { const g = i => document.getElementById(i); g('wiAcc').value = o.acc; g('wiInst').value = o.inst; g('wiAmt').value = o.amt; g('wiAmt').dispatchEvent(new Event('input', { bubbles: true })); return g('wiRes').innerText.replace(/\s+/g, ' ').trim(); }, { amt, inst, acc });
+    const a = await type('6000', '3', 'k');
+    eq('karta 3 taksit: aksatmıyor, limit ve taksit yükü', [/Sonuç: ✓ Yaklaşan ödemeleri aksatmıyor/.test(a), /Kartta kalan limit ₺17\.000,00 → ₺11\.000,00/.test(a), /Aylık taksit yükü ₺2\.000,00 × 3 ay/.test(a), /90 günün en düşük bakiyesi/.test(a)], [true, true, true, true]);
+    const b = await type('15000', '1', 'b');
+    eq('hesaptan peşin: 10.000 − 15.000 − 3.000 kart ekstresi = 8.000 açık', [/Sonuç: ⚠️ .*hesaplar ₺8.000,00 eksiye düşer/.test(b), /Aylık taksit/.test(b)], [true, false]);
+    eq('hiçbir şey kaydedilmez', await page.evaluate(() => [S.txns().length, App.Accounts.get('b').balance, App.Accounts.get('k').balance]), [0, 10000, -3000]);
+    await ctx.close();
+  }
   eq('sayfa hatası yok', errors, []);
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
   await browser.close(); srv.close(); process.exit(fail ? 1 : 0);
