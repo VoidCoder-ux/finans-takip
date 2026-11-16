@@ -211,6 +211,36 @@ srv.listen(0, async () => {
     eq('bakiyeler: 40.000 − 850 − 5.000; nakit 2.000 − 450; kart −3.000 + 5.000', r.bal, [34150, 1550, 2000]);
     await ctx.close();
   }
+  // 11) Açılamayan kayıtlar: listeden çıkar, aslı birikir (üzerine yazılmaz), Ayarlar'da görünür, yedeğe girer
+  {
+    const bozuk = [tx('2026-11-08', 'expense', 300, 'Market', 'Migros', 'b', { id: 'ok1' }), 'bozuk-metin', 42, null];
+    const { page, ctx } = await open('2026-11-10', { pf_t: bozuk, pf_g: ['bozuk-hedef'] });
+    const st = () => page.evaluate(() => { const o = JSON.parse(localStorage.getItem('pf_invalid_records') || 'null'); return o ? o.records.map(r => [r.store, r.value]) : []; });
+    const kayit = await page.evaluate(() => S.txns().map(t => t.id));
+    const ilk = await st();
+    eq('sağlam kayıt kalır', kayit, ['ok1']);
+    eq('bozuklar içi boş kayda dönüşmez, saklanır', ilk, [['pf_t', 'bozuk-metin'], ['pf_t', 42], ['pf_t', null], ['pf_g', 'bozuk-hedef']]);
+    await page.evaluate(() => { S.load(); S.load(); });
+    eq('yeniden açılışta aynısı iki kez eklenmez', (await st()).length, ilk.length);
+    await page.evaluate(() => { localStorage.setItem('pf_d', JSON.stringify(['bozuk-borc'])); S.load(); });
+    const sonra = await st();
+    eq('yeni bozuk kayıt eskilerin üzerine yazmaz', [sonra.length > ilk.length, ilk.every(a => sonra.some(b => JSON.stringify(a) === JSON.stringify(b)))], [true, true]);
+    await page.evaluate(() => { App.UI.nav('ayarlar'); App.Settings.render(); });
+    eq('Ayarlar uyarısı ve düğmesi', await page.evaluate(() => [/kayıt okunamadığı için listelerden çıkarıldı/.test(document.getElementById('setInvalid').textContent), /Açılamayan Kayıtlar \(\d+\)/.test(document.getElementById('setInvalid').textContent)]), [true, true]);
+    await page.evaluate(() => App.Invalid.open());
+    eq('pencere: her kayıt görünür, metin kaçışlı', await page.evaluate(() => [document.querySelectorAll('#invHolder .sms-q-item').length, App.Invalid.list().length]), [sonra.length, sonra.length]);
+    eq('tam yedeğe eklenir', await page.evaluate(() => (App.Backup.snapshot().invalidRecords || []).length), sonra.length);
+    await page.evaluate(() => App.Invalid.clear()); await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-act="ok"]').click(); });
+    eq('temizlenince kart kaybolur', await page.evaluate(() => [localStorage.getItem('pf_invalid_records'), document.getElementById('setInvalid').textContent]), [null, '']);
+    await ctx.close();
+  }
+  // 12) Kötü niyetli bozuk kayıt pencerede çalışmaz
+  {
+    const { page, ctx } = await open('2026-11-10', { pf_t: [['<img src=x onerror=window.__inv=1>']] });
+    await page.evaluate(() => App.Invalid.open()); await page.waitForTimeout(100);
+    eq('XSS çalışmaz', await page.evaluate(() => window.__inv || 0), 0);
+    await ctx.close();
+  }
   eq('sayfa hatası yok', errors, []);
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
   await browser.close(); srv.close(); process.exit(fail ? 1 : 0);
