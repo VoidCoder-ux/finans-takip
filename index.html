@@ -1180,7 +1180,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="card set-card"><div class="sh-title">🎨 Görünüm</div><div class="set-sub">Açık / koyu tema</div><button class="btn btn-sm btn-ghost" onclick="App.UI.toggleTheme()" id="setThemeBtn">Temayı Değiştir</button>
       <div class="set-sub" style="margin-top:4px">Yazı boyutu (bu cihazda; her telefon kendi seçimini hatırlar)</div>
       <div class="fs-pick" id="fsPick" role="radiogroup" aria-label="Yazı boyutu"><button type="button" class="fs-opt" data-fs="n" onclick="App.UI.setFontSize('n')" style="font-size:.9rem">Normal</button><button type="button" class="fs-opt" data-fs="l" onclick="App.UI.setFontSize('l')" style="font-size:1rem">Büyük</button><button type="button" class="fs-opt" data-fs="xl" onclick="App.UI.setFontSize('xl')" style="font-size:1.1rem">Çok Büyük</button></div></div>
-    <div class="card set-card"><div class="sh-title">💾 Yedek</div><div class="set-sub" id="setBackupInfo">Tüm yerel veriyi JSON olarak indirip başka cihaza taşıyın.</div><div class="set-actions"><button class="btn btn-sm btn-ghost" onclick="App.Backup.open()">Yedek / Geri Yükle</button><button class="btn btn-sm btn-ghost" onclick="App.Onboarding.open()">Kurulum Kontrolü</button></div></div>
+    <div class="card set-card"><div class="sh-title">💾 Yedek</div><div class="set-sub" id="setBackupInfo">Tüm yerel veriyi JSON olarak indirip başka cihaza taşıyın.</div><div id="setInvalid"></div><div class="set-actions"><button class="btn btn-sm btn-ghost" onclick="App.Backup.open()">Yedek / Geri Yükle</button><button class="btn btn-sm btn-ghost" onclick="App.Onboarding.open()">Kurulum Kontrolü</button></div></div>
     <div class="card set-card"><div class="sh-title">🔔 Bildirimler</div><div class="set-sub" id="notifSub">Kira, fatura, taksit ve borç ödemelerinden önce haber verir.</div><button class="notif-btn" id="notifBtn" onclick="App.Notifications.toggle()">🔔 Bildirimleri Aç</button><div id="pushArea"></div></div>
     <div class="card set-card"><div class="sh-title">📊 Enflasyon (TÜFE)</div><div class="set-sub" id="setCpiInfo"></div><button class="btn btn-sm btn-ghost" onclick="App.Inflation.editCpi()">TÜFE Güncelle</button></div>
     <div class="card set-card" id="setLockCard"></div>
@@ -1212,7 +1212,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.3.3</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.3.4</div>
 </section>
 
 </main>
@@ -1420,7 +1420,7 @@ var S=(function(){
   function dateFromTs(ts){var d=new Date(ts||0);if(!isFinite(d.getTime()))return td();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
   // userId alanı hiç yoksa (eski kayıt) aktif profile ata; üye silinince bilinçli olarak boşaltılmışsa boş bırak
   function ownerRef(x){return Object.prototype.hasOwnProperty.call(x,'userId')?cleanStoredRef(x.userId):cleanStoredRef(_s.activeUser)}
-  function normalizeList(raw,name,fn,invalid){return arr(raw).map(function(x,i){try{return fn(obj(x),i)}catch(e){invalid.push({store:name,index:i,value:x,error:e.message});return null}}).filter(Boolean)}
+  function normalizeList(raw,name,fn,invalid){return arr(raw).map(function(x,i){if(!x||typeof x!=='object'||Array.isArray(x)){invalid.push({store:name,index:i,value:x,error:'Kayıt biçimi bozuk'});return null}try{return fn(x,i)}catch(e){invalid.push({store:name,index:i,value:x,error:e.message});return null}}).filter(Boolean)}
   function normalize(){
     var invalid=[],legacyOpening=false;
     _s=obj(_s);_s.theme=_s.theme==='light'?'light':'dark';_s.rates=Object.assign({},DEFAULT_RATES,obj(_s.rates));
@@ -1473,7 +1473,11 @@ var S=(function(){
       s('pf_a',_a);
     }
     _b=obj(_b);Object.keys(_b).forEach(function(k){_b[k]=Math.max(0,toNum(_b[k],0))});_bm=obj(_bm);_cpi=_cpi?obj(_cpi):null;
-    if(invalid.length)try{localStorage.setItem('pf_invalid_records',JSON.stringify({ts:Date.now(),records:invalid.slice(0,100)}))}catch(e){}
+    // Okunamayan kayıt listeden çıkar; aslı burada birikir (yeni gelen eskisinin üzerine yazmaz, aynısı iki kez eklenmez) ve Ayarlar'da gösterilir
+    if(invalid.length)try{var iv=JSON.parse(localStorage.getItem('pf_invalid_records')||'null'),old=iv&&Array.isArray(iv.records)?iv.records:[],seen={},now=Date.now(),added=0;
+      old.forEach(function(r){seen[r.store+'|'+JSON.stringify(r.value)]=1});
+      invalid.forEach(function(r){var k=r.store+'|'+JSON.stringify(r.value);if(seen[k])return;seen[k]=1;r.at=now;old.push(r);added++});
+      if(added){localStorage.setItem('pf_invalid_records',JSON.stringify({ts:now,records:old.slice(-200)}));window.__pfInvalidNew=(window.__pfInvalidNew||0)+added}}catch(e){}
     s('pf_s',_s);
   }
   function load(){_t=g('pf_t',[]);_b=g('pf_b',{});_g=g('pf_g',[]);_a=g('pf_a',[]);_r=g('pf_r',[]);_d=g('pf_d',[]);_s=g('pf_s',{theme:'dark',rates:DEFAULT_RATES});_f=g('pf_f',[]);_p=g('pf_p',[]);_nw=g('pf_nw',[]);_ru=g('pf_ru',[]);_bm=g('pf_bm',{});_cpi=g('pf_cpi',null);_sq=g('pf_sq',[]);_l=g('pf_l',[]);
@@ -1502,6 +1506,7 @@ App.Backup=(function(){
   function snapshot(){
     var data={version:2,app:'finanstakip',createdAt:new Date().toISOString(),stores:{}};
     KEYS.forEach(function(k){try{var v=localStorage.getItem(k);if(v!==null)data.stores[k]=JSON.parse(v)}catch(e){}});
+    var inv=App.Invalid?App.Invalid.list():[];if(inv.length)data.invalidRecords=inv;
     return data;
   }
   function open(){
@@ -8225,11 +8230,45 @@ App.Categories=(function(){
   return{apply,add,remove,edit,render}
 })();
 
+// Açılamayan kayıtlar: açılışta okunamayan (bozuk) kayıt listelerden çıkarılır, aslı yalnız bu cihazda saklanır (en çok 200).
+// Burada görülür, dosya olarak indirilir (destek/elle düzeltme için) ve tam yedeğe eklenir; kendiliğinden silinmez
+App.Invalid=(function(){
+  var KEY='pf_invalid_records',NAMES={pf_t:'İşlem',pf_a:'Hesap',pf_r:'Tekrarlayan',pf_d:'Borç',pf_g:'Hedef',pf_f:'Yıllık gider',pf_p:'Portföy',pf_nw:'Net servet geçmişi',pf_ru:'Kural',pf_sq:'Onay bekleyen banka hareketi',pf_l:'Kredi','pf_s.users':'Aile üyesi','debt.payments':'Borç ödemesi','goal.contributions':'Hedef katkısı','loan.prepay':'Kredi ara ödemesi'};
+  function list(){try{var o=JSON.parse(localStorage.getItem(KEY)||'null');return o&&Array.isArray(o.records)?o.records.filter(function(r){return r&&typeof r==='object'}):[]}catch(e){return[]}}
+  function _name(r){return NAMES[r.store]||String(r.store||'Kayıt')}
+  function _peek(v){if(!v||typeof v!=='object')return String(v==null?'boş':v).slice(0,80);var p=[];['date','amount','category','note','name','person','label'].forEach(function(k){if(v[k]!=null&&v[k]!=='')p.push(String(v[k]).slice(0,40))});return p.join(' · ')||JSON.stringify(v).slice(0,80)}
+  function renderCard(){
+    var el=document.getElementById('setInvalid');if(!el)return;var n=list().length;
+    el.innerHTML=n?'<div class="set-sub" style="color:var(--red);margin-top:6px">⚠️ <b>'+n+'</b> kayıt okunamadığı için listelerden çıkarıldı; aslı bu cihazda saklanıyor.</div><div class="set-actions"><button class="btn btn-sm btn-ghost" onclick="App.Invalid.open()">Açılamayan Kayıtlar ('+n+')</button></div>':'';
+  }
+  function open(){
+    var a=list();if(!a.length){App.UI.toast('Açılamayan kayıt yok.','info');return}
+    var div=document.createElement('div');div.id='invHolder';
+    div.innerHTML='<div class="modal-bd show" onclick="if(event.target===this)App.UI.closeModal(\'invHolder\')"><div class="modal"><div class="modal-title">⚠️ Açılamayan Kayıtlar</div>'+
+      '<div class="set-sub" style="margin-bottom:8px">Bu kayıtlar bozuk olduğu için toplamlara ve listelere girmiyor. Aslı yalnız bu cihazda duruyor ve tam yedeğe ekleniyor. Önemli bir kayıtsa <b>Dosya Olarak İndir</b> deyip bilgileriyle elle yeniden girin.</div>'+
+      a.slice().reverse().map(function(r){return'<div class="sms-q-item"><div class="sms-q-main"><div class="sms-q-why">'+esc(_name(r))+(r.at?' · '+esc(new Date(r.at).toLocaleDateString('tr-TR')):'')+(r.error?' · '+esc(String(r.error).slice(0,80)):'')+'</div><div class="sms-q-txt">'+esc(_peek(r.value))+'</div></div></div>'}).join('')+
+      '<div class="modal-actions"><button class="btn btn-ghost" onclick="App.Invalid.clear()">Listeyi Temizle</button><button class="btn btn-ghost" onclick="App.Invalid.download()">Dosya Olarak İndir</button><button class="btn btn-primary" id="invClose" onclick="App.UI.closeModal(\'invHolder\')">Kapat</button></div></div></div>';
+    App.UI.mountModal(div,'#invClose');
+  }
+  function download(){
+    var a=list();if(!a.length)return;
+    var blob=new Blob([JSON.stringify({app:'finanstakip',kind:'invalid-records',createdAt:new Date().toISOString(),records:a},null,2)],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),l=document.createElement('a');
+    l.href=url;l.download='finanstakip-acilamayan-kayitlar-'+td()+'.json';l.click();setTimeout(function(){URL.revokeObjectURL(url)},1500);App.UI.toast('Açılamayan kayıtlar indirildi.','info');
+  }
+  function clear(){
+    App.UI.confirmModal({title:'Listeyi Temizle',text:list().length+' açılamayan kaydın aslı bu cihazdan silinsin mi? Geri alınamaz; önce dosya olarak indirmeniz önerilir.',okLabel:'Sil',danger:true},function(){
+      try{localStorage.removeItem(KEY)}catch(e){}App.UI.closeModal('invHolder');renderCard();App.UI.toast('Liste temizlendi.','info');
+    });
+  }
+  return{list:list,renderCard:renderCard,open:open,download:download,clear:clear};
+})();
+
 App.Settings=(function(){
   function render(){
     var st=S.settings(),b=document.getElementById('setBackupInfo');
     if(b){b.textContent=st.lastBackupAt?'Son yedek: '+new Date(st.lastBackupAt).toLocaleString('tr-TR'):'Henüz yedek alınmadı. Tarayıcı verisi silinirse tüm kayıtlar gider.';
       try{if(navigator.storage&&navigator.storage.persisted)navigator.storage.persisted().then(function(p){b.textContent=b.textContent.split(' · ')[0]+' · Kalıcı depolama: '+(p?'açık':'kapalı (tarayıcı yer açmak için silebilir)')}).catch(function(){})}catch(e){}}
+    if(App.Invalid)App.Invalid.renderCard();
     var c=document.getElementById('setCpiInfo');if(c){var lm=App.Inflation.latestMonth().split('-');c.textContent='Son endeks: '+MF[+lm[1]-1]+' '+lm[0]+(App.Inflation.isStale()?' · güncelleme gerekiyor':'')}
     var t=document.getElementById('setThemeBtn');if(t)t.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀️ Açık temaya geç':'🌙 Koyu temaya geç';
     App.Notifications.syncBtn();App.Categories.render();App.UI.syncActiveProfilePill();if(App.Lock)App.Lock.renderCard();if(App.Sync)App.Sync.renderCard();if(App.Push)App.Push.render();if(App.Market)App.Market.renderCard();
@@ -8786,6 +8825,7 @@ document.addEventListener('DOMContentLoaded',function(){
   var accReconciled=App.Accounts.reconcileAccountBalances();
   var autoLogged=App.Recurring.autoRun(),kidsLogged=App.Kids.autoRun();
   if(window.__pfStorageError)App.UI.toast('Bazı veriler kaydedilemedi. Depolama alanını kontrol edin.','err');
+  if(window.__pfInvalidNew){App.UI.toast(window.__pfInvalidNew+' kayıt okunamadı ve listeden çıkarıldı; aslı saklandı. Ayarlar › Yedek › Açılamayan Kayıtlar.','err');window.__pfInvalidNew=0}
   if(reconciled)App.UI.toast('Vadesi gelen planlı işlemler bakiyeye işlendi.','info');
   if(autoLogged)App.UI.toast(autoLogged+' tekrarlayan işlem otomatik kaydedildi.','info');
   if(kidsLogged)App.UI.toast(kidsLogged+' harçlık kendiliğinden yazıldı.','info');
