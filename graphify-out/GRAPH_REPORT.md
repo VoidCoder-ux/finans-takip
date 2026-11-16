@@ -1,7 +1,7 @@
 # Graph Report - finans-takip  (2026-11-16)
 
 ## Corpus Check
-- 79 files · ~185,275 words
+- 79 files · ~187,047 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: (none) 4, .example 1, .toml 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `99b732a9`
+- Built from commit: `cc8052c6`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -44,10 +44,10 @@
 - qc-report.test.js
 - qc-payday.test.js
 - qc-stmt-akbank.test.js
-- ref_fs
+- qc-tags.test.js
 - qc-transfers.test.js
 - readability.test.js
-- qc-ozellik.test.js
+- qc-split.test.js
 - ozet-summary.test.js
 - qc-cardpay.test.js
 - qc-finance.test.js
@@ -56,7 +56,7 @@
 - qc-cards.test.js
 - manifest.json
 - scripts
-- qc-loans.test.js
+- ref_fs
 - receipt-pdf.test.js
 - qc-owner.test.js
 - ref_path
@@ -217,7 +217,7 @@ Nodes (12): bal, fs, http, ME, path, pw, R, SEED (+4 more)
 Cohesion: 0.14
 Nodes (13): amt(), CP, ebc(), fs, http, PAGE, path, pw (+5 more)
 
-### Community 28 - "ref_fs"
+### Community 28 - "qc-tags.test.js"
 Cohesion: 0.06
 Nodes (23): fs, http, path, pw, R, srv, fs, http (+15 more)
 
@@ -229,7 +229,7 @@ Nodes (11): ACC(), fs, http, path, pw, R, RECV, seed() (+3 more)
 Cohesion: 0.14
 Nodes (12): cutDay, day(), fs, http, iso(), now, path, pw (+4 more)
 
-### Community 31 - "qc-ozellik.test.js"
+### Community 31 - "qc-split.test.js"
 Cohesion: 0.17
 Nodes (12): at(), bank(), fs, http, open(), path, pw, R (+4 more)
 
@@ -265,7 +265,7 @@ Nodes (13): background_color, categories, description, display, icons, id, lang,
 Cohesion: 0.14
 Nodes (13): wrangler, devDependencies, wrangler, name, private, scripts, db:init, db:local (+5 more)
 
-### Community 40 - "qc-loans.test.js"
+### Community 40 - "ref_fs"
 Cohesion: 0.14
 Nodes (11): fs, http, L, path, pw, R, SEED, srv (+3 more)
 
