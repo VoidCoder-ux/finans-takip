@@ -27,7 +27,7 @@
   "25": "qc-report.test.js",
   "26": "qc-payday.test.js",
   "27": "qc-stmt-akbank.test.js",
-  "28": "qc-tags.test.js",
+  "28": "ref_fs",
   "29": "qc-transfers.test.js",
   "30": "readability.test.js",
   "31": "qc-split.test.js",
@@ -36,7 +36,7 @@
   "34": "qc-finance.test.js",
   "35": "qc-goals.test.js",
   "36": "Finans Takip — Cloudflare kurulumu",
-  "37": "qc-cards.test.js",
+  "37": "qc-owner.test.js",
   "38": "manifest.json",
   "39": "scripts",
   "40": "ref_fs",
@@ -55,6 +55,6 @@
   "53": "qc-files.test.js",
   "54": "qc-gelisim.test.js",
   "55": "src/market.js",
-  "56": "qc-stmt-format.test.js",
-  "57": "Diğer Bulgular"
+  "57": "Diğer Bulgular",
+  "58": "ref_path"
 }
