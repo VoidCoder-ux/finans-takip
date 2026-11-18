@@ -5,7 +5,7 @@
 //  3) Ortak gider dengeleme: kişisel hesaptan ödenen ortak giderler eşit paylaşılır; ortak hesap ve istek harcaması sayılmaz.
 //  4) Döviz/altın borç kurla yeniden değerlenir.  5) Fon stopajı net kârı gösterir.  6) Taksitli nakit avans gelir/gider şişirmez.
 //  7) Bütçe limiti uyarısı %80 ve %100'de birer kez gelir.
-//  8) Aktarımda çıkan/giren hesap.  9) "Bunu alırsam ne olur?" erişimi.  10) Hızlı komut satırı.
+//  8) Aktarımda çıkan/giren hesap.  9) "Bunu alırsam ne olur?" erişimi.  10) Hızlı komut satırı.  11-12) Açılamayan kayıtlar.  13-14) Ayın değerlendirmesi.
 // Kurmaca veri (Deniz/Ece), sunucu gerekmez.
 const http = require('http'), fs = require('fs'), path = require('path');
 function loadPlaywright() { try { return require('playwright'); } catch (e) {} try { return require(path.join(require('child_process').execSync('npm root -g', { encoding: 'utf8' }).trim(), 'playwright')); } catch (e) { return null; } }
@@ -239,6 +239,49 @@ srv.listen(0, async () => {
     const { page, ctx } = await open('2026-11-10', { pf_t: [['<img src=x onerror=window.__inv=1>']] });
     await page.evaluate(() => App.Invalid.open()); await page.waitForTimeout(100);
     eq('XSS çalışmaz', await page.evaluate(() => window.__inv || 0), 0);
+    await ctx.close();
+  }
+  // 13) Ayın değerlendirmesi (yapay zekâsız): Ekim, önceki 3 ayla karşılaştırılır. Elle hesap:
+  //  Market 6.000 ort. → 11.000 (Migros 6.000, A101 3.000, kişiye havale 2.000): +5.000; limit 8.000, 3.000 aşım
+  //  Yiyecek 1.000 ort. → Yemeksepeti 6 × 450 = 2.700: +1.700; sık tekrar 2.700 → yarısı 1.350
+  //  Banka ücreti: yıllık üyelik 2.834 + gecikme faizi 120 = 2.954; abonelik 229,99
+  {
+    const hist = [];
+    ['2026-07', '2026-08', '2026-09'].forEach(m => hist.push(tx(m + '-05', 'income', 40000, 'Maaş', 'Maaş'), tx(m + '-06', 'expense', 15000, 'Kira', 'Kira'), tx(m + '-10', 'expense', 6000, 'Market', 'Migros'), tx(m + '-12', 'expense', 1000, 'Yiyecek', 'Restoran')));
+    const ekim = [tx('2026-10-05', 'income', 40000, 'Maaş', 'Maaş'), tx('2026-10-06', 'expense', 15000, 'Kira', 'Kira'), tx('2026-10-08', 'expense', 6000, 'Market', 'Migros'), tx('2026-10-15', 'expense', 3000, 'Market', 'A101'),
+      tx('2026-10-16', 'expense', 2000, 'Market', 'Giden para: Ahmet Yılmaz'), tx('2026-10-20', 'expense', 2834, 'Diğer', 'Yıllık Üyelik Ücreti'), tx('2026-10-21', 'expense', 120, 'Diğer', 'Gecikme faizi')];
+    for (let i = 0; i < 6; i++) ekim.push(tx('2026-10-' + String(10 + i * 3).padStart(2, '0'), 'expense', 450, 'Yiyecek', 'Yemeksepeti'));
+    const rec = { id: 'nf', type: 'expense', amount: 229.99, category: 'Eğlence', day: 3, note: 'Netflix', accountId: 'b', userId: '', active: true, isSubscription: true, autoLog: false, autoFrom: '', autoDone: '', ts: at('2026-01-01') };
+    const { page, ctx } = await open('2026-11-10', { pf_a: [bank(100000)], pf_t: hist.concat(ekim), pf_r: [rec], pf_b: { Market: 8000 } });
+    const r = await page.evaluate(() => App.Review.compute('2026-10'));
+    eq('özet rakamlar', [r.income, r.expense, r.net, r.avgExpense, r.histMonths], [40000, 31654, 8346, 22000, 3]);
+    eq('bütçe: Market 11.000 / 8.000', r.budget.map(b => [b.cat, b.spent, b.limit, b.pct, b.left]), [['Market', 11000, 8000, 138, -3000]]);
+    eq('sapmalar ve işyerleri (kişiye havale işyeri sayılmaz)', r.spikes.map(x => [x.cat, x.amount, x.avg, x.diff, x.places.map(p => p.name)]), [['Market', 11000, 6000, 5000, ['Migros', 'A101']], ['Yiyecek', 2700, 1000, 1700, ['Yemeksepeti']]]);
+    eq('banka ücreti ve faiz', [r.leaks.total, r.leaks.items.map(x => x.amount)], [2954, [2834, 120]]);
+    eq('sık küçük harcama', r.frequent.map(x => [x.name, x.count, x.total]), [['Yemeksepeti', 6, 2700]]);
+    eq('abonelik', [r.subs.count, r.subs.monthly], [1, 229.99]);
+    eq('kısma önerileri büyükten küçüğe', r.cuts.map(c => c.save), [5000, 2954, 1700, 1350, 229.99]);
+    eq('hatalar: bütçe aşımı, ücretler, kontrol edilmemiş kayıt', r.findings.map(x => [x.amount, x.text.replace(/<[^>]+>/g, '')]), [[3000, 'Market bütçesi ₺3.000,00 aşıldı (limit ₺8.000,00, harcanan ₺11.000,00).'], [2954, 'Faiz ve banka ücretlerine ₺2.954,00 ödendi.'], [0, r.openChecks + ' şüpheli kayıt henüz kontrol edilmedi; toplamlar değişebilir (Ay Kontrolü).']]);
+    eq('Ay Kontrolü kişiye giden havaleyi soruyor', r.openChecks >= 1, true);
+    eq('özet cümlesi', (await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Review.summary(App.Review.compute('2026-10')); return d.textContent; })), "Ekim'de ₺40.000,00 geldi, ₺31.654,00 harcandı; ₺8.346,00 arta kaldı. 1 bütçeden 1 tanesi aşıldı. En büyük kısma fırsatı: Market'i son 3 ayın ortalamasına (₺6.000,00) indirmek (ayda ~₺5.000,00).");
+    // Rapor penceresinden açılır
+    await page.evaluate(() => App.Report.open('2026-10')); await page.waitForTimeout(150);
+    await page.evaluate(() => [...document.querySelectorAll('#rapHolder button')].find(b => /Ayın Değerlendirmesi/.test(b.textContent)).click()); await page.waitForTimeout(100);
+    eq('pencere bölümleri', await page.evaluate(() => [...document.querySelectorAll('#revHolder .rv-h')].map(x => x.textContent)), ['📊 Bütçe durumu', '⚠️ Nerede kaçtı', '🔍 Gözden geçirmeye değer', '✂️ Kısabileceğin yerler']);
+    eq('PDF bölümü', await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2026-10'); const sec = [...d.querySelectorAll('.pr-sec')].find(x => /Ayın değerlendirmesi/.test(x.textContent)); return sec ? sec.querySelectorAll('.pr-al').length : 0; }), 9);
+    // Dışarı gidebilecek özet: kişi adı, kişiye giden havale, hesap adı ve bakiye yok
+    const fx = await page.evaluate(() => JSON.stringify(App.Review.facts('2026-10')));
+    eq('özette kişisel bilgi yok', ['Ahmet', 'Deniz', 'Ece', 'Vadesiz', '100000', 'balance'].filter(w => fx.includes(w)), []);
+    eq('özette tespitler var', ['Migros', 'Yemeksepeti', 'Üyelik', 'Netflix'].every(w => fx.includes(w)), true);
+    eq('belirtme eki', await page.evaluate(() => App.Review.compute('2026-10').cuts.slice(0, 3).map(c => c.title.split(' son ')[0])), ["Market'i", 'Faiz ve ücretlerden kurtulmak (kart borcunu', "Yiyecek'i"]);
+    await ctx.close();
+  }
+  // 14) Değerlendirme: verisi az ay hata vermez; ilk ay (geçmiş yok) karşılaştırma yapmaz
+  {
+    const { page, ctx } = await open('2026-11-10', { pf_t: [tx('2026-11-03', 'expense', 500, 'Market', 'Migros')] });
+    const r = await page.evaluate(() => { const x = App.Review.compute('2026-11'); App.Review.open('2026-11'); return [x.spikes.length, x.cuts.length, x.partial, document.querySelectorAll('#revHolder .rv-empty').length]; });
+    eq('geçmiş yok: sapma ve öneri yok, boş mesajlar görünür', r, [0, 0, true, 4]);
+    eq('boş ayda PDF bölümü çıkmaz', await page.evaluate(() => App.Review.pdfSection('2026-11')), '');
     await ctx.close();
   }
   eq('sayfa hatası yok', errors, []);

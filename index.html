@@ -477,6 +477,10 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
 .txn-mh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:2px 12px;padding:12px 4px 2px}.txn-mh:first-child{padding-top:0}.txn-mh b{font-size:.95rem}.txn-mh span{font-size:.82rem;color:var(--txt2)}
 .sug-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:9px 0;border-top:1px solid var(--border)}.sug-main{flex:1 1 12rem;min-width:0}.sug-t{font-weight:700;overflow-wrap:anywhere}.sug-acts{display:flex;gap:6px}
 .mck-step{font-weight:800;margin:0 0 6px}.mck-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;padding:10px 0;border-top:1px solid var(--border)}.mck-main{flex:1 1 13rem;min-width:0}.mck-t{font-weight:700;overflow-wrap:anywhere}.mck-s{font-size:.86rem;color:var(--txt2);line-height:1.45;overflow-wrap:anywhere}.mck-row.red .mck-t{color:var(--red)}.mck-row.done .mck-t{color:var(--green)}.mck-acts{display:flex;gap:6px}.mck-acts .btn{width:auto;white-space:nowrap}.mck-head{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}.mck-head select{max-width:100%}.mck-sum{font-weight:700}
+.rv-sec{margin:12px 0 4px}.rv-h{font-weight:800;font-size:.95rem;margin-bottom:6px}.rv-list{display:flex;flex-direction:column;gap:6px}
+.rv-it{padding:9px 11px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg2);line-height:1.45;font-size:.9rem;overflow-wrap:anywhere}
+.rv-it.red{border-color:var(--red)}.rv-it.yellow{border-color:var(--yellow,#eab308)}.rv-it.green{border-color:var(--green)}.rv-it b{white-space:nowrap}
+.rv-sum{line-height:1.55;font-size:.95rem}.rv-empty{color:var(--txt3);font-size:.88rem}
 .wi-res{margin-top:12px;display:flex;flex-direction:column;gap:6px}.wi-v{padding:10px 12px;border-radius:var(--r2);border:1px solid var(--border);line-height:1.45;overflow-wrap:anywhere}.wi-v.red{border-color:var(--red);color:var(--red)}.wi-v.yellow{border-color:var(--yellow,#eab308)}.wi-v.green{border-color:var(--green);color:var(--green)}.wi-l{display:flex;justify-content:space-between;gap:10px;font-size:.88rem}.wi-l span:first-child{color:var(--txt2)}.wi-l b{white-space:nowrap}
 .sms-mask{width:100%;min-height:120px;box-sizing:border-box;font:inherit;font-size:16px;background:var(--bg3,var(--bg));color:var(--txt);border:1px solid var(--border);border-radius:var(--r2);padding:10px}
 .pd-row.done .pd-amt{color:var(--green)}.pd-btn,.pd-wi{margin-top:8px}.pd-note{font-size:.86rem;color:var(--txt2);line-height:1.45;margin-top:6px}
@@ -1212,7 +1216,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.3.4</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.4.0</div>
 </section>
 
 </main>
@@ -5272,6 +5276,7 @@ App.Report=(function(){
     var html='<div class="modal-bd show" id="rapMdl" onclick="if(event.target===this)App.Report.close()"><div class="modal"><div class="modal-title">📄 Aylık Rapor</div>'+
       '<div class="f"><label for="rapMonth">Ay seç</label><select id="rapMonth" onchange="App.Report.prepare()">'+opts+'</select></div>'+
       '<label class="sub-check"><input type="checkbox" id="rapTxns"'+(_withTxns()?' checked':'')+' onchange="App.Report.toggleTxns()"> <span>Ayın bütün işlemlerini sona ekle</span></label><div id="rapChk"></div>'+
+      '<div class="set-actions" style="margin:0 0 10px"><button class="btn btn-sm btn-ghost" onclick="App.Review.open(document.getElementById(\'rapMonth\').value)">📝 Ayın Değerlendirmesi</button></div>'+
       '<div style="font-size:.86rem;color:var(--txt2);line-height:1.5">İlk sayfada ayın özeti, sonra ayrıntılar. '+help+'</div><div class="modal-actions">'+btns+'</div></div></div>';
     var div=document.createElement('div');div.id='rapHolder';div.innerHTML=html;App.UI.mountModal(div,'#rapMonth');
     prepare();
@@ -5645,6 +5650,8 @@ App.Report=(function(){
     h+=W.length?'<div class="pr-alerts">'+W.slice(0,4).map(function(w){var L=LV[w.level]||LV.info;return'<div class="pr-al"><span class="pr-st pr-st-'+L[0]+'"><i>'+L[2]+'</i>'+L[1]+'</span><div><b>'+esc(_plain(w.title))+'.</b> '+esc(_plain(w.text))+'</div></div>'}).join('')+'</div>'+
       (W.length>4?'<div class="pr-note">ve '+(W.length-4)+' not daha (İstatistikler sayfasında).</div>':''):'<div class="pr-empty">Bu ay dikkat gerektiren bir durum yok.</div>';
     h+='</div>';
+
+    if(App.Review&&flowCount)h+=App.Review.pdfSection(m);
 
     // Önümüzdeki 30 gün: her nakit hareketinden sonra hesaplarda kalan; kartla yapılacaklar ekstre gününde düşer
     if(fwd){
@@ -8754,6 +8761,108 @@ App.Cmd=(function(){
     if(S.txns().length!==n0){inp.value='';preview()}
   }
   return{parse:parse,preview:preview,run:run};
+})();
+
+// Ayın değerlendirmesi: nerede hata yapıldı, bütçe durumu, gözden geçirilecek harcamalar, kısılabilecek yerler. Bütün rakamlar uygulamanın kendi
+// hesaplarından gelir (yapay zekâ kullanılmaz); "gereksiz" kararı verilmez, istek grubundaki ve ortalamadan sapan harcamalar gösterilir.
+// facts(): aynı tespitlerin dışarı gönderilebilir hali (kişi adı, hesap, bakiye ve kişiye giden havale yok)
+App.Review=(function(){
+  var LEAK=/(faiz|komisyon|masraf|bsmv|kkdf|gecikme|nakit avans|hesap isletim|kart aidat|uyelik ucret|uyelik bedel|yillik ucret|kart ucret)/,MOVE=/^(gelen|giden)\s+(para|havale|eft|fast)/i;
+  var _MLOC=['Ocak\'ta','Şubat\'ta','Mart\'ta','Nisan\'da','Mayıs\'ta','Haziran\'da','Temmuz\'da','Ağustos\'ta','Eylül\'de','Ekim\'de','Kasım\'da','Aralık\'ta'];
+  function _place(t){return MOVE.test(t.note||'')?'':App.Insights._place(t)}
+  // Belirtme eki (Market'i, Kira'yı, Ulaşım'ı): son ünlüye göre; ünlüyle bitiyorsa araya y girer
+  function _acc(w){var s=String(w||''),v=(s.toLocaleLowerCase('tr-TR').match(/[aeıioöuü](?=[^aeıioöuü]*$)/)||['e'])[0],e={a:'ı',ı:'ı',e:'i',i:'i',o:'u',u:'u',ö:'ü',ü:'ü'}[v];return s+'\''+(/[aeıioöuü]$/i.test(s)?'y':'')+e}
+  function compute(m){
+    var today=td(),isCur=m===tm(),p=m.split('-'),dim=new Date(+p[0],+p[1],0).getDate(),an=App.Insights.compute(m),sp=App.Split.compute(m),hm=an.histMonths;
+    var tx=S.txns().filter(function(t){return t.date.slice(0,7)===m&&t.date<=today&&t.type==='expense'&&!isTransfer(t)});
+    var r={month:m,partial:isCur&&+today.slice(8)<dim,day:isCur?+today.slice(8):dim,days:dim,income:an.income,expense:an.expense,net:an.net,avgExpense:an.avgExpense,histMonths:hm,
+      budget:[],spikes:[],leaks:{total:0,items:[]},frequent:[],subs:{count:0,monthly:0,items:[]},split:null,findings:[],review:[],cuts:[],openChecks:0};
+    // Bütçeler: aylık olanlar ayın kendi limitiyle; haftalık/yıllık yalnız bu ayın raporunda (kendi dönemi)
+    (an.budgets||[]).forEach(function(b){r.budget.push({cat:b.k,limit:roundMoney(b.limit),spent:roundMoney(b.spent),pct:Math.round(b.pct),left:roundMoney(b.limit-b.spent),per:b.per||'month'})});
+    r.budget.sort(function(a,b){return b.pct-a.pct});
+    // Kategori sapmaları: son 3 ayın ortalamasına göre (İstatistikler'deki kural); hangi işyerlerinden geldiği
+    var cats={};(an.categories||[]).forEach(function(c){cats[c.key]=c.amount});
+    if(hm)Object.keys(cats).forEach(function(k){if(k==='Kredi Kartı Ödemesi'||k==='Kredi Ödemesi'||k==='Borç Ödemesi')return;var a=an.avgCategories[k]||0,c=cats[k],d=roundMoney(c-a);
+      if(a>0&&c>a*1.3&&d>=Math.max(300,an.avgExpense*0.05)){var pl={};tx.forEach(function(t){if(t.category!==k)return;var q=_place(t);if(q)pl[q]=(pl[q]||0)+t.amount});
+        r.spikes.push({cat:k,amount:roundMoney(c),avg:roundMoney(a),diff:d,group:App.Split.groupOf(k),places:Object.keys(pl).map(function(q){return{name:q,amount:roundMoney(pl[q])}}).sort(function(x,y){return y.amount-x.amount}).slice(0,3)})}});
+    r.spikes.sort(function(a,b){return b.diff-a.diff});r.spikes=r.spikes.slice(0,4);
+    // Bankaya giden ücret ve faiz (çoğu önlenebilir)
+    var lk={};tx.forEach(function(t){if(t.category==='Aidat'||t.category==='Kira'||t.category==='Eğitim')return;var f=nameFold((t.note||'')+' '+t.category);if(!LEAK.test(f))return;var k=String(t.note||t.category).replace(/\s*\(\d+\/\d+\)$/,'').slice(0,60);lk[k]=(lk[k]||0)+t.amount;r.leaks.total+=t.amount});
+    r.leaks.total=roundMoney(r.leaks.total);r.leaks.items=Object.keys(lk).map(function(k){return{name:k,amount:roundMoney(lk[k])}}).sort(function(a,b){return b.amount-a.amount}).slice(0,5);
+    // Sık tekrarlanan küçük istek harcamaları (yemek siparişi, kahve…)
+    var fq={};tx.forEach(function(t){if(t.installment||App.Split.groupOf(t.category)!=='want'||t.amount>1500)return;var q=_place(t);if(!q)return;var x=fq[q]=fq[q]||{name:q,count:0,total:0,cat:t.category};x.count++;x.total+=t.amount});
+    r.frequent=Object.keys(fq).map(function(k){var x=fq[k];x.total=roundMoney(x.total);return x}).filter(function(x){return x.count>=4&&x.total>=500}).sort(function(a,b){return b.total-a.total}).slice(0,3);
+    // Abonelikler (aylık karşılık)
+    S.recurring().forEach(function(x){if(!x.isSubscription||x.type!=='expense'||x.active===false)return;var v=App.Recurring.monthly(x);r.subs.count++;r.subs.monthly+=v;r.subs.items.push({name:x.note||x.category,amount:roundMoney(v)})});
+    r.subs.monthly=roundMoney(r.subs.monthly);r.subs.items.sort(function(a,b){return b.amount-a.amount});
+    if(sp.income>0)r.split={income:sp.income,need:sp.need,want:sp.want,save:sp.save,target:{need:sp.target.need,want:sp.target.want,save:sp.target.save},rates:sp.rates};
+    if(m<tm()&&App.MonthCheck)r.openChecks=App.MonthCheck.issues(m).length;
+    // Hatalar: para nerede kaçtı
+    var F=r.findings;
+    if(r.income>0&&r.net<0)F.push({level:'red',text:'Harcama gelirden <b>'+fmt(-r.net)+'</b> fazla.',amount:-r.net});
+    r.budget.forEach(function(b){if(b.pct>=100)F.push({level:'red',text:esc(b.cat)+' bütçesi <b>'+fmt(-b.left)+'</b> aşıldı (limit '+fmt(b.limit)+', harcanan '+fmt(b.spent)+').',amount:-b.left})});
+    if(r.split&&r.split.want>r.split.target.want+0.5)F.push({level:'yellow',text:'İstek harcaması hedefin <b>'+fmt(roundMoney(r.split.want-r.split.target.want))+'</b> üzerinde (hedef %'+r.split.rates.want+').',amount:roundMoney(r.split.want-r.split.target.want)});
+    if(r.split&&!isCur&&r.split.save>=0&&r.split.save<r.split.target.save-0.5)F.push({level:'yellow',text:'Birikim hedefinin <b>'+fmt(roundMoney(r.split.target.save-r.split.save))+'</b> gerisinde kalındı.',amount:roundMoney(r.split.target.save-r.split.save)});
+    if(r.leaks.total>0.009)F.push({level:'yellow',text:'Faiz ve banka ücretlerine <b>'+fmt(r.leaks.total)+'</b> ödendi.',amount:r.leaks.total});
+    (an.warnings||[]).forEach(function(w){if(w.level==='red'&&/son ödeme geçti|limiti (doldu|dolmak)|eksiye düş/.test(w.title))F.push({level:'red',text:esc(w.title)+'. '+esc(w.text),amount:0})});
+    if(r.openChecks)F.push({level:'yellow',text:r.openChecks+' şüpheli kayıt henüz kontrol edilmedi; toplamlar değişebilir (Ay Kontrolü).',amount:0});
+    // Gözden geçirmeye değer: "gereksiz" denmez, kullanıcı karar verir
+    var V=r.review;
+    r.spikes.forEach(function(x){V.push({text:esc(x.cat)+' <b>'+fmt(x.amount)+'</b>; son '+hm+' ayın ortalaması '+fmt(x.avg)+' (<b>+'+fmt(x.diff)+'</b>)'+(x.places.length?'. En çok: '+x.places.map(function(q){return esc(q.name)+' '+fmt(q.amount)}).join(', '):'')+'.'})});
+    r.frequent.forEach(function(x){V.push({text:esc(x.name)+': ayda <b>'+x.count+' kez</b>, toplam <b>'+fmt(x.total)+'</b> ('+esc(x.cat)+').'})});
+    r.leaks.items.forEach(function(x){V.push({text:esc(x.name)+': <b>'+fmt(x.amount)+'</b> (banka ücreti / faiz).'})});
+    if(r.subs.count)V.push({text:r.subs.count+' abonelik: ayda <b>'+fmt(r.subs.monthly)+'</b>, yılda '+fmt(roundMoney(r.subs.monthly*12))+(r.subs.items.length?' ('+r.subs.items.slice(0,4).map(function(q){return esc(q.name)}).join(', ')+')':'')+'.'});
+    // Kısabileceğin yerler: tahmini aylık kazanç, büyükten küçüğe
+    var C=[];
+    r.spikes.forEach(function(x){C.push({title:esc(_acc(x.cat))+' son '+hm+' ayın ortalamasına ('+fmt(x.avg)+') indirmek',save:x.diff})});
+    r.frequent.forEach(function(x){C.push({title:esc(x.name)+' harcamasını yarıya indirmek',save:roundMoney(x.total/2)})});
+    if(r.split&&r.split.want>r.split.target.want+0.5&&!r.spikes.some(function(x){return x.group==='want'}))C.push({title:'İstek harcamasını hedefe (%'+r.split.rates.want+') çekmek',save:roundMoney(r.split.want-r.split.target.want)});
+    if(r.leaks.total>0.009)C.push({title:'Faiz ve ücretlerden kurtulmak (kart borcunu son ödeme gününde tam ödemek, ücretsiz karta geçmek ya da yıllık ücrete itiraz etmek)',save:r.leaks.total});
+    if(r.subs.count)C.push({title:'Kullanılmayan abonelikleri iptal etmek (en fazla)',save:r.subs.monthly});
+    C.sort(function(a,b){return b.save-a.save});r.cuts=C.slice(0,5);
+    return r;
+  }
+  function summary(r){
+    var p=r.month.split('-'),mi=+p[1]-1,s=(r.partial?MF[mi]+' ilk '+r.day+' gününde ':_MLOC[mi]+' ')+(r.income>0?'<b>'+fmt(r.income)+'</b> geldi, ':'')+'<b>'+fmt(r.expense)+'</b> harcandı';
+    s+=r.income>0?(r.net<0?'; harcama gelirden <b>'+fmt(-r.net)+'</b> fazla.':'; <b>'+fmt(r.net)+'</b> arta kaldı.'):'.';
+    var ov=r.budget.filter(function(b){return b.pct>=100}).length;if(r.budget.length)s+=' '+r.budget.length+' bütçeden '+(ov?'<b>'+ov+'</b> tanesi aşıldı.':'hiçbiri aşılmadı.');
+    if(r.cuts.length)s+=' En büyük kısma fırsatı: '+r.cuts[0].title+' (ayda ~'+fmt(r.cuts[0].save)+').';
+    return s;
+  }
+  function _items(a,cls){return a.length?'<div class="rv-list">'+a.map(function(x){return'<div class="rv-it'+(x.level?' '+x.level:cls?' '+cls:'')+'">'+x.text+'</div>'}).join('')+'</div>':''}
+  function html(r){
+    var h='<div class="rv-sec"><div class="rv-sum">'+summary(r)+'</div></div>';
+    h+='<div class="rv-sec"><div class="rv-h">📊 Bütçe durumu</div>'+(r.budget.length?_items(r.budget.map(function(b){return{level:b.pct>=100?'red':b.pct>=80?'yellow':'green',text:esc(b.cat)+': '+fmt(b.spent)+' / '+fmt(b.limit)+' (<b>%'+b.pct+'</b>)'+(b.left>=0?' · kalan '+fmt(b.left):'')}})):'<div class="rv-empty">Bütçe limiti yok. Bütçe sayfasından kategorilere limit koyabilirsiniz.</div>')+'</div>';
+    h+='<div class="rv-sec"><div class="rv-h">⚠️ Nerede kaçtı</div>'+(r.findings.length?_items(r.findings):'<div class="rv-empty">Bu ay belirgin bir hata görünmüyor.</div>')+'</div>';
+    h+='<div class="rv-sec"><div class="rv-h">🔍 Gözden geçirmeye değer</div>'+(r.review.length?_items(r.review,''):'<div class="rv-empty">Ortalamadan sapan ya da sık tekrarlanan harcama yok.</div>')+'</div>';
+    h+='<div class="rv-sec"><div class="rv-h">✂️ Kısabileceğin yerler</div>'+(r.cuts.length?_items(r.cuts.map(function(c){return{level:'green',text:c.title+': ayda ~<b>'+fmt(c.save)+'</b>'}})):'<div class="rv-empty">Belirgin bir kısma fırsatı bulunamadı.</div>')+'</div>';
+    return h;
+  }
+  function open(m){
+    m=m&&/^\d{4}-\d{2}$/.test(m)?m:tm();var r=compute(m),p=m.split('-'),div=document.createElement('div');div.id='revHolder';
+    div.innerHTML='<div class="modal-bd show" onclick="if(event.target===this)App.UI.closeModal(\'revHolder\')"><div class="modal"><div class="modal-title">📝 '+esc(MF[+p[1]-1]+' '+p[0])+' Değerlendirmesi</div>'+
+      '<div class="set-sub">Rakamlar uygulamanın kendi hesaplarından gelir. "Gözden geçirmeye değer" kısmı, istek grubundaki ve ortalamadan sapan harcamalardır; gerekli olup olmadığına siz karar verirsiniz.</div>'+
+      '<div id="revBody">'+html(r)+'</div><div class="modal-actions"><button class="btn btn-primary" id="revClose" onclick="App.UI.closeModal(\'revHolder\')">Kapat</button></div></div></div>';
+    App.UI.mountModal(div,'#revClose');
+  }
+  // PDF: hatalar "Dikkat" bölümünde zaten var; burada gözden geçirilecekler ve kısma önerileri
+  function pdfSection(m){
+    var r=compute(m);if(!r.review.length&&!r.cuts.length)return'';
+    var row=function(st,lb,ic,t){return'<div class="pr-al"><span class="pr-st pr-st-'+st+'"><i>'+ic+'</i>'+lb+'</span><div>'+t+'</div></div>'};
+    return'<div class="pr-sec pr-keep"><div class="pr-h2">Ayın değerlendirmesi<span class="pr-h2s">uygulamanın hesabıyla · karar sizin</span></div><div class="pr-alerts">'+
+      r.cuts.map(function(c){return row('good','Kısılabilir','✓',c.title+': ayda ~<b>'+fmt(c.save)+'</b>')}).join('')+
+      r.review.slice(0,4).map(function(x){return row('info','Gözden geçir','i',x.text)}).join('')+'</div></div>';
+  }
+  // Dışarı gönderilebilir özet: tutarlar, kategoriler ve işyeri adları; kişi adı, hesap, bakiye, kişiye giden havale yok
+  function facts(m){
+    var r=compute(m);
+    return{month:m,partial:r.partial,day:r.day,days:r.days,income:r.income,expense:r.expense,net:r.net,avgExpense:r.avgExpense,histMonths:r.histMonths,
+      budget:r.budget,spikes:r.spikes.map(function(x){return{cat:x.cat,amount:x.amount,avg:x.avg,diff:x.diff,group:x.group,places:x.places}}),
+      leaks:r.leaks,frequent:r.frequent,subs:{count:r.subs.count,monthly:r.subs.monthly,yearly:roundMoney(r.subs.monthly*12),items:r.subs.items.slice(0,8)},
+      split:r.split,cuts:r.cuts.map(function(c){return{title:c.title.replace(/<[^>]+>/g,''),save:c.save}}),openChecks:r.openChecks,
+      categories:App.Insights.compute(m).categories.slice(0,10)};
+  }
+  return{compute:compute,summary:summary,html:html,open:open,pdfSection:pdfSection,facts:facts};
 })();
 
 // "Bunu alırsam ne olur?": harcama kaydedilmez; nakit akışı senaryo kalemleriyle yeniden hesaplanır. Faiz hesaba katılmaz
