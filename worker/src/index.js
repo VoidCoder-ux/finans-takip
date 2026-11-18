@@ -10,6 +10,7 @@
 
 import { readMarket, refreshMarket, isStale } from './market.js';
 import { readReceipt } from './receipt.js';
+import { writeReview } from './review.js';
 import { postSms, putSmsKey, deleteSmsKey, listInbox, ackInbox, purgeOldSms, ensureSchema } from './sms.js';
 
 const MAX_BODY = 2_000_000;
@@ -155,7 +156,7 @@ async function loadVault(env, id, token) {
 async function route(request, env, url, ctx) {
   const parts = url.pathname.split('/').filter(Boolean); // ['v1', ...]
   if (parts[1] === 'config' && parts.length === 2 && request.method === 'GET') {
-    return json({ api: 1, vapidPublicKey: vapidPublicKey(env), registrationRequired: !!env.REGISTRATION_KEY, live: !!env.HUB, receiptAI: !!env.DEEPSEEK_API_KEY, smsInbox: true });
+    return json({ api: 1, vapidPublicKey: vapidPublicKey(env), registrationRequired: !!env.REGISTRATION_KEY, live: !!env.HUB, receiptAI: !!env.DEEPSEEK_API_KEY, reviewAI: !!env.DEEPSEEK_API_KEY, smsInbox: true });
   }
   // Herkese açık piyasa verisi (kişisel veri yok). Eskimişse arka planda yenilenir; ?refresh=1 yenilemeyi bekler.
   if (parts[1] === 'market' && parts.length === 2 && request.method === 'GET') {
@@ -240,6 +241,16 @@ async function route(request, env, url, ctx) {
     const row = await loadVault(env, id, token);
     if (!row) throw new HttpError(404, 'no_vault');
     const r = await readReceipt(env, id, await readJson(request), istanbulDay());
+    return json(r.body, r.status);
+  }
+
+  // /v1/vault/:id/review: ayın değerlendirmesini yapay zekâyla yazdır (isteğe bağlı; fiş okumayla aynı günlük sınır)
+  if (parts.length === 4 && parts[3] === 'review') {
+    if (request.method !== 'POST') throw new HttpError(405, 'method_not_allowed');
+    if (!env.DEEPSEEK_API_KEY) throw new HttpError(501, 'review_ai_disabled');
+    const row = await loadVault(env, id, token);
+    if (!row) throw new HttpError(404, 'no_vault');
+    const r = await writeReview(env, id, await readJson(request), istanbulDay());
     return json(r.body, r.status);
   }
 

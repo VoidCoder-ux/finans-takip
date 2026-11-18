@@ -133,6 +133,8 @@ npx wrangler secret put DEEPSEEK_API_KEY     # anahtarı yapıştırın
 
 Model sunucunun listesinden kendiliğinden seçilir; belirli bir model için `wrangler.toml` `[vars]` altına `DEEPSEEK_MODEL = "..."` ekleyin. Günlük sınır: `RECEIPT_DAILY_LIMIT = "100"`. Kapatmak için `npx wrangler secret delete DEEPSEEK_API_KEY`.
 
+Aynı anahtar **ayın değerlendirmesini** de açar (Rapor > 📝 Ayın Değerlendirmesi > 🤖 Yapay Zekâyla Yaz, `POST /v1/vault/:id/review`). Uygulama yalnız kendi hesapladığı aylık özeti gönderir: kategori toplamları, bütçe limitleri, son 3 ayın ortalamaları, öne çıkan işyeri adları ve tespitler. Kişi adları, hesaplar, bakiyeler ve kişiye giden havaleler gönderilmez, sunucuda saklanmaz. Model rakam üretmez: telefon her cümledeki tutarı kendi rakamlarıyla karşılaştırır, tutmayan cümleyi göstermez. Fiş okumayla aynı günlük sınırı kullanır.
+
 ## Banka SMS'leriyle otomatik kayıt (iPhone Kestirmeler)
 
 Bankalar uygulama dışına veri vermediği için (açık bankacılık yalnız lisanslı kurumlara açık) hareketler bankanın SMS'inden alınır:
