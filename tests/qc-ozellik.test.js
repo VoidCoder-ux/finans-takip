@@ -5,7 +5,7 @@
 //  3) Ortak gider dengeleme: kişisel hesaptan ödenen ortak giderler eşit paylaşılır; ortak hesap ve istek harcaması sayılmaz.
 //  4) Döviz/altın borç kurla yeniden değerlenir.  5) Fon stopajı net kârı gösterir.  6) Taksitli nakit avans gelir/gider şişirmez.
 //  7) Bütçe limiti uyarısı %80 ve %100'de birer kez gelir.
-//  8) Aktarımda çıkan/giren hesap.  9) "Bunu alırsam ne olur?" erişimi.  10) Hızlı komut satırı.  11-12) Açılamayan kayıtlar.  13-14) Ayın değerlendirmesi.  15-16) Yapay zekânın yazdığı değerlendirme.
+//  8) Aktarımda çıkan/giren hesap.  9) "Bunu alırsam ne olur?" erişimi.  10) Hızlı komut satırı.  11-12) Açılamayan kayıtlar.  13-14) Ayın değerlendirmesi.  15-16) Yapay zekânın yazdığı değerlendirme.  17) Sabit gider öneriye girmez.  18-19) /review düzeltmeleri ve kararları.
 // Kurmaca veri (Deniz/Ece), sunucu gerekmez.
 const http = require('http'), fs = require('fs'), path = require('path');
 function loadPlaywright() { try { return require('playwright'); } catch (e) {} try { return require(path.join(require('child_process').execSync('npm root -g', { encoding: 'utf8' }).trim(), 'playwright')); } catch (e) { return null; } }
@@ -272,7 +272,8 @@ srv.listen(0, async () => {
     // Dışarı gidebilecek özet: kişi adı, kişiye giden havale, hesap adı ve bakiye yok
     const fx = await page.evaluate(() => JSON.stringify(App.Review.facts('2026-10')));
     eq('özette kişisel bilgi yok', ['Ahmet', 'Deniz', 'Ece', 'Vadesiz', '100000', 'balance'].filter(w => fx.includes(w)), []);
-    eq('özette tespitler var', ['Migros', 'Yemeksepeti', 'Üyelik', 'Netflix'].every(w => fx.includes(w)), true);
+    // Ücret satırı notla değil sabit etiketle gider ("Üyelik Ücreti" → "Kart ücreti")
+    eq('özette tespitler var', ['Migros', 'Yemeksepeti', 'Kart ücreti', 'Netflix'].every(w => fx.includes(w)), true);
     eq('belirtme eki', await page.evaluate(() => App.Review.compute('2026-10').cuts.slice(0, 3).map(c => c.title.split(' son ')[0])), ["Market'i", 'Faiz ve ücretlerden kurtulmak (kart borcunu', "Yiyecek'i"]);
     await ctx.close();
   }
@@ -340,7 +341,64 @@ srv.listen(0, async () => {
     eq('kira sapması sabit gider olarak işaretlenir', r.spikes.map(x => [x.cat, x.diff, x.fixed]), [['Kira', 7333.33, true], ['Eğlence', 2500, false]]);
     eq('kısma önerilerinde kira yok, eğlence var', r.cuts.map(c => [c.title.replace(/<[^>]+>/g, '').split(' son ')[0], c.save]), [["Eğlence'yi", 2500]]);
     eq('gözden geçir: kontrol et uyarısı', r.review.filter(x => /^Kira/.test(x.text.replace(/<[^>]+>/g, ''))).map(x => /Sabit bir gider: zam mı, iki kez mi kaydedildi, yoksa önceki bir ayın kaydı mı eksik/.test(x.text)), [true]);
-    eq('dışarı giden özette sabit işareti, işyeri yok', await page.evaluate(() => App.Review.facts('2026-10').spikes.map(x => [x.cat, x.fixed, x.places.length])), [['Kira', true, 0], ['Eğlence', false, 1]]);
+    // Sabit sapma işyerisiz gider; "Konser" tanınan bir zincir değil, dışarı adı gitmez
+    eq('dışarı giden özette sabit işareti, işyeri yok', await page.evaluate(() => App.Review.facts('2026-10').spikes.map(x => [x.cat, x.fixed, x.places ? x.places.length : null])), [['Kira', true, null], ['Eğlence', false, 0]]);
+    await ctx.close();
+  }
+  // 18) /review düzeltmeleri: birimli küçük sayı ve "bin" denetlenir; %99,9 bütçe "aşıldı" sayılmaz; yapay zekâ sonucu başka ayın penceresine yazılmaz,
+  // ay başına tek istek gider ve hazır PDF yenilenir; bozuk saklı kayıt raporu düşürmez; D&R gibi adlar HTML varlığıyla gitmez
+  {
+    const hist = [];
+    ['2026-07', '2026-08', '2026-09'].forEach(m => hist.push(tx(m + '-05', 'income', 40000, 'Maaş', 'Maaş'), tx(m + '-10', 'expense', 6000, 'Market', 'Migros')));
+    const ekim = [tx('2026-10-05', 'income', 40000, 'Maaş', 'Maaş'), tx('2026-10-08', 'expense', 7995, 'Market', 'Migros')];
+    for (let i = 0; i < 4; i++) ekim.push(tx('2026-10-' + String(11 + i).padStart(2, '0'), 'expense', 300, 'Eğlence', 'D&R'));
+    const { page, ctx } = await open('2026-11-10', { pf_a: [bank(100000)], pf_t: hist.concat(ekim), pf_b: { Market: 8000 } });
+    eq('birimli küçük sayılar ve "bin" kabul edilmez, birimsiz adet geçer', await page.evaluate(() => { const f = App.Review.facts('2026-10'), c = s => App.Review.check(s, f); return [c('Bu ay ₺25 tasarruf edebilirsin.'), c('Market harcaman %17 arttı.'), c('Ayda 18 TL kazanırsın.'), c('Markete 5 bin harcadın.'), c('D&R: ayda 4 kez.'), c('Market ₺7.995 oldu.')]; }), [false, false, false, false, true, true]);
+    eq('%99,9 dolan bütçe aşıldı sayılmaz', await page.evaluate(() => { const r = App.Review.compute('2026-10'); return [r.budget[0].pct, r.findings.filter(x => /bütçesi/.test(x.text)).length, /hiçbiri aşılmadı/.test(App.Review.summary(r))]; }), [100, 0, true]);
+    eq('dışarı giden öneri başlığında HTML varlığı yok', await page.evaluate(() => { const t = JSON.stringify(App.Review.facts('2026-10').cuts); return [t.includes('D&R'), t.includes('&amp;')]; }), [true, false]);
+    // Yarış: Ekim isteği sürerken pencere kapatılıp Eylül açılır; cevap Eylül'ün penceresine yazılmaz, aynı ay için ikinci istek gitmez
+    await page.route('https://sync.test/v1/config', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ reviewAI: true }) }));
+    await page.evaluate(() => {
+      window.__n = 0; window.__go = null; localStorage.setItem('ft_review_ai_ok', '1');
+      App.Sync.configured = () => true; App.Sync.cfg = () => ({ url: 'https://sync.test', vault: 'v', key: 'k' });
+      App.Sync.api = (c, m, p) => { if (p !== '/review') return Promise.resolve({ status: 404, body: {} }); window.__n++; return new Promise(res => { window.__go = () => res({ status: 200, body: { summary: "Ekim'de ₺40.000 geldi.", budget: '', mistakes: [], review: [], cuts: [] } }); }); };
+      App.Report.open('2026-10'); App.Review.open('2026-10'); App.Review.aiWrite('2026-10'); App.Review.aiWrite('2026-10');
+      App.UI.closeModal('revHolder'); App.Review.open('2026-09'); App.Review.aiWrite('2026-10');
+    });
+    await page.waitForTimeout(100);
+    const prep = await page.evaluate(() => { let n = 0; const o = App.Report.prepare; App.Report.prepare = function () { n++; return o.apply(this, arguments); }; window.__prepN = () => n; return true; });
+    await page.evaluate(() => window.__go()); await page.waitForTimeout(150);
+    eq('ay başına tek istek; Eylül penceresine Ekim yazılmaz; hazır PDF yenilenir', await page.evaluate(() => [window.__n, document.getElementById('revHolder').getAttribute('data-month'), /Ekim'de ₺40\.000 geldi/.test(document.getElementById('revAi').textContent), !!localStorage.getItem('ft_rev_ai_2026-10'), window.__prepN() >= 1]), [1, '2026-09', false, true, prep]);
+    // Bozuk saklı kayıt (imzası tutuyor ama listeler yanlış türde) raporu düşürmez
+    eq('bozuk saklı kayıt: rapor yine oluşur', await page.evaluate(() => { const k = 'ft_rev_ai_2026-10', o = JSON.parse(localStorage.getItem(k)); o.r.cuts = 'bozuk'; o.r.review = [{ x: 1 }]; localStorage.setItem(k, JSON.stringify(o)); const d = document.createElement('div'); d.innerHTML = App.Report.build('2026-10'); return [/Ayın değerlendirmesi/.test(d.textContent), /\[object Object\]/.test(d.textContent)]; }), [true, false]);
+    await ctx.close();
+  }
+  // 19) /review kararları: (D4) dışarı giden özette kişi adı, zincir olmayan işyeri adı ve uzun numara yok; (D5) yapay zekâ sabit gideri kısma önerisi
+  // olarak yazamaz; (D6) kredi faizi ve "ev masrafı" banka ücreti sayılmaz, EFT masrafı sayılır; (D7) PDF'te öneri bir kez çıkar
+  {
+    const hist = [];
+    ['2026-07', '2026-08', '2026-09'].forEach(m => hist.push(tx(m + '-05', 'income', 60000, 'Maaş', 'Maaş'), tx(m + '-10', 'expense', 6000, 'Market', 'Migros'), tx(m + '-12', 'expense', 1000, 'Yiyecek', 'Restoran')));
+    hist.push(tx('2026-07-06', 'expense', 22000, 'Kira', 'Kira'), tx('2026-08-06', 'expense', 22000, 'Kira', 'Kira'));
+    const ekim = [tx('2026-10-05', 'income', 60000, 'Maaş', 'Maaş'), tx('2026-10-06', 'expense', 22000, 'Kira', 'Kira'), tx('2026-10-08', 'expense', 6000, 'Market', 'Migros'),
+      tx('2026-10-09', 'expense', 3000, 'Market', 'GİDEN FAST AHMET YILMAZ'), tx('2026-10-16', 'expense', 2000, 'Diğer', 'Giden para: Faiz Kaya'),
+      tx('2026-10-17', 'expense', 50, 'Diğer', 'Hesap işletim ücreti TR12 0006 4000 0011 2345 6789 01'), tx('2026-10-18', 'expense', 12, 'Diğer', 'EFT masrafı'), tx('2026-10-19', 'expense', 400, 'Diğer', 'Ev masrafı'),
+      tx('2026-10-10', 'expense', 16000, 'Kredi Ödemesi', 'Kredi taksidi · Akbank', { id: 'kr10' })];
+    for (let i = 0; i < 5; i++) ekim.push(tx('2026-10-' + String(20 + i), 'expense', 300, 'Yiyecek', 'Köfteci Yusuf'));
+    for (let i = 0; i < 4; i++) ekim.push(tx('2026-10-' + String(25 + i), 'expense', 150, 'Yiyecek', 'Fast Food Corner'));   // "FAST" havalesi değil
+    const loan = { id: 'ln1', name: 'Taşıt', kind: 'tasit', principal: 300000, term: 24, first: '2026-08-10', installment: 16000, rate: 3, tax: true, accountId: 'b', prepay: [], closed: null, ts: at('2026-07-01') };
+    const { page, ctx } = await open('2026-11-10', { pf_a: [bank(100000)], pf_t: hist.concat(ekim), pf_l: [loan] });
+    await page.evaluate(() => App.Transactions.splitLoan('kr10'));
+    const fx = await page.evaluate(() => JSON.stringify(App.Review.facts('2026-10')));
+    eq('D4: özette kişi adı, zincir olmayan işyeri ve hesap numarası yok', ['Faiz Kaya', 'AHMET', 'Köfteci', 'TR12', '0006 4000'].filter(w => fx.includes(w)), []);
+    eq('D4: zincir adı ve ücret etiketi özette kalır', [fx.includes('Migros'), fx.includes('Hesap işletim ücreti')], [true, true]);
+    eq('D4: ekranda tam adlar görünmeye devam eder', await page.evaluate(() => App.Review.compute('2026-10').frequent.map(x => x.name)), ['Köfteci Yusuf', 'Fast Food Corner']);
+    const r = await page.evaluate(() => { const x = App.Review.compute('2026-10'); return { leaks: x.leaks.total, items: x.leaks.items.map(i => i.amount).sort((a, b) => a - b) }; });
+    eq('D6: yalnız gerçek banka ücretleri (hesap işletim 50 + EFT masrafı 12); kredi faizi, ev masrafı ve kişiye havale yok', r, { leaks: 62, items: [12, 50] });
+    eq('D5: sabit sapma özete farksız gider', await page.evaluate(() => App.Review.facts('2026-10').spikes.filter(x => x.fixed).map(x => [x.cat, 'diff' in x, 'avg' in x])), [['Kira', false, false]]);
+    eq('D5: yapay zekânın sabit gider kısma önerisi atılır', await page.evaluate(() => { const f = App.Review.facts('2026-10'), a = App.Review.accept({ summary: "Ekim'de ₺60.000 geldi.", cuts: ["Kira'yı ₺22.000'den aşağı çek.", 'Faturalarda tasarruf yap.', "Yiyecek'i azalt."] }, f); return [a.r.cuts, a.dropped]; }), [["Yiyecek'i azalt."], 2]);
+    // D7: yapay zekâ değerlendirmesi varsa PDF'te yalnız onun önerileri
+    const pdf = await page.evaluate(() => { const m = '2026-10', f = App.Review.facts(m), a = App.Review.accept({ summary: "Ekim'de ₺60.000 geldi.", cuts: ["Yiyecek'i azalt."] }, f); localStorage.setItem('ft_rev_ai_' + m, JSON.stringify({ sig: App.Review._sig(f), at: Date.now(), r: a.r, dropped: 0 })); const d = document.createElement('div'); d.innerHTML = App.Report.build(m); const sec = [...d.querySelectorAll('.pr-sec')].find(x => /Ayın değerlendirmesi/.test(x.textContent)); return [...sec.querySelectorAll('.pr-rv .pr-st')].map(x => x.textContent); });
+    eq('D7: PDF yalnız yapay zekânın önerisini ve gözden geçirilecekleri yazar', [pdf.filter(x => /Öneri/.test(x)).length, pdf.filter(x => /Kısılabilir/.test(x)).length, pdf.some(x => /Gözden geçir/.test(x))], [1, 0, true]);
     await ctx.close();
   }
   eq('sayfa hatası yok', errors, []);
