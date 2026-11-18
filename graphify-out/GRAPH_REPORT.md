@@ -1,17 +1,17 @@
-# Graph Report - finans-takip  (2026-11-16)
+# Graph Report - finans-takip  (2026-11-18)
 
 ## Corpus Check
-- 79 files · ~187,047 words
+- 81 files · ~191,262 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: (none) 4, .example 1, .toml 1)
 
 ## Summary
-- 1062 nodes · 1364 edges · 59 communities (55 shown, 4 thin omitted)
+- 1074 nodes · 1387 edges · 58 communities (54 shown, 4 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 17 edges (avg confidence: 0.9)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `cc8052c6`
+- Built from commit: `60e47f03`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -44,7 +44,7 @@
 - qc-report.test.js
 - qc-payday.test.js
 - qc-stmt-akbank.test.js
-- qc-tags.test.js
+- ref_fs
 - qc-transfers.test.js
 - readability.test.js
 - qc-split.test.js
@@ -58,8 +58,8 @@
 - scripts
 - ref_fs
 - receipt-pdf.test.js
-- qc-owner.test.js
-- ref_path
+- qc-tags.test.js
+- qc-split.test.js
 - Aile Kasası — Yayın Öncesi Kalite Denetimi (#5)
 - qc-audit7.test.js
 - Aile Kasası — Yayın Öncesi Kalite Denetimi (#4)
@@ -69,15 +69,14 @@
 - sw.js
 - CLAUDE.md
 - run-all.sh
-- qc-files.test.js
+- qc-push.test.js
 - qc-gelisim.test.js
 - src/market.js
-- qc-stmt-format.test.js
 - Diğer Bulgular
-- qc-finance2.test.js
+- ref_path
 
 ## God Nodes (most connected - your core abstractions)
-1. `route()` - 22 edges
+1. `route()` - 23 edges
 2. `Finans Takip — Cloudflare kurulumu` - 13 edges
 3. `openApp()` - 11 edges
 4. `Aile Kasası — Yayın Öncesi Kalite Denetimi (#5)` - 11 edges
@@ -103,11 +102,11 @@
 ## Import Cycles
 - None detected.
 
-## Communities (59 total, 4 thin omitted)
+## Communities (58 total, 4 thin omitted)
 
 ### Community 0 - "index.js"
-Cohesion: 0.08
-Nodes (52): RFC-8030, RFC-8292, b64url(), bearer(), cors(), fetch(), HttpError, istanbulDay() (+44 more)
+Cohesion: 0.07
+Nodes (55): RFC-8030, RFC-8292, b64url(), bearer(), cors(), fetch(), HttpError, istanbulDay() (+47 more)
 
 ### Community 1 - "qc-budget-period.test.js"
 Cohesion: 0.14
@@ -131,7 +130,7 @@ Nodes (14): ACCS, at(), fs, http, path, pay(), PLANNED, pw (+6 more)
 
 ### Community 6 - "ref_http"
 Cohesion: 0.05
-Nodes (23): ACCS, fs, http, path, pw, R, srv, TYPES (+15 more)
+Nodes (19): fs, http, path, pw, R, srv, today, TYPES (+11 more)
 
 ### Community 7 - "text-overlap.test.js"
 Cohesion: 0.10
@@ -217,9 +216,9 @@ Nodes (12): bal, fs, http, ME, path, pw, R, SEED (+4 more)
 Cohesion: 0.14
 Nodes (13): amt(), CP, ebc(), fs, http, PAGE, path, pw (+5 more)
 
-### Community 28 - "qc-tags.test.js"
-Cohesion: 0.06
-Nodes (23): fs, http, path, pw, R, srv, fs, http (+15 more)
+### Community 28 - "ref_fs"
+Cohesion: 0.05
+Nodes (29): fs, http, path, pw, R, srv, fs, http (+21 more)
 
 ### Community 29 - "qc-transfers.test.js"
 Cohesion: 0.13
@@ -273,13 +272,13 @@ Nodes (11): fs, http, L, path, pw, R, SEED, srv (+3 more)
 Cohesion: 0.19
 Nodes (11): fs, http, imagePdf(), path, pdf(), pw, R, srv (+3 more)
 
-### Community 42 - "qc-owner.test.js"
-Cohesion: 0.13
-Nodes (10): ACC, fs, http, path, pw, R, srv, TX (+2 more)
+### Community 42 - "qc-tags.test.js"
+Cohesion: 0.12
+Nodes (11): A, fs, http, path, pw, R, SEED, srv (+3 more)
 
-### Community 43 - "ref_path"
-Cohesion: 0.05
-Nodes (19): bal, fs, G, http, path, pw, R, SEED (+11 more)
+### Community 43 - "qc-split.test.js"
+Cohesion: 0.12
+Nodes (12): bal, fs, G, http, path, pw, R, SEED (+4 more)
 
 ### Community 44 - "Aile Kasası — Yayın Öncesi Kalite Denetimi (#5)"
 Cohesion: 0.17
@@ -301,49 +300,45 @@ Nodes (9): fs, http, iso(), path, pw, R, seed(), srv (+1 more)
 Cohesion: 0.33
 Nodes (5): 1. Hesaplama ve veri hataları (düzeltildi), 2. Eklenen özellikler, 3. Arayüz / erişilebilirlik taraması, 4. Bilinen sınırlar (açık), Finans Takip — Denetim Raporu #3
 
-### Community 53 - "qc-files.test.js"
-Cohesion: 0.17
-Nodes (8): fs, http, path, pw, R, srv, today, TYPES
+### Community 53 - "qc-push.test.js"
+Cohesion: 0.15
+Nodes (9): ACCS, fs, http, path, pw, R, srv, TYPES (+1 more)
 
 ### Community 54 - "qc-gelisim.test.js"
 Cohesion: 0.16
 Nodes (14): at(), bank(), card(), fs, http, open(), path, pw (+6 more)
 
 ### Community 55 - "src/market.js"
-Cohesion: 0.26
-Nodes (14): fetchCpi(), FETCHERS, fetchFunds(), fetchRates(), get(), MAX_AGE, num(), parseCpiHtml() (+6 more)
-
-### Community 56 - "qc-stmt-format.test.js"
-Cohesion: 0.17
-Nodes (9): fs, http, LINES, path, pw, R, SEED, srv (+1 more)
+Cohesion: 0.23
+Nodes (15): fetchCpi(), FETCHERS, fetchFunds(), fetchRates(), get(), isStale(), MAX_AGE, num() (+7 more)
 
 ### Community 57 - "Diğer Bulgular"
 Cohesion: 0.05
 Nodes (31): 1. Uygulama Envanteri, Butonlar, Diğer Bulgular, Düzeltme Sonrası Regresyon Listesi, Finans Takip QA / PWA / Finansal Hesaplama Denetimi, Formlar ve Alanlar, FT-001, FT-002 (+23 more)
 
-### Community 58 - "qc-finance2.test.js"
-Cohesion: 0.15
-Nodes (9): ACCS, fs, http, path, pw, R, srv, TYPES (+1 more)
+### Community 58 - "ref_path"
+Cohesion: 0.05
+Nodes (23): ACCS, fs, http, path, pw, R, srv, TYPES (+15 more)
 
 ## Knowledge Gaps
 - **3 isolated node(s):** `wrangler`, `RFC-8030`, `RFC-8292`
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 801 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 808 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Sayfa Bazlı Kapsama Notları` connect `statement-import.test.js` to `Diğer Bulgular`?**
-  _High betweenness centrality (0.025) - this node is a cross-community bridge._
+- **Why does `validDate()` connect `Diğer Bulgular` to `statement-import.test.js`?**
+  _High betweenness centrality (0.034) - this node is a cross-community bridge._
 - **What connects `wrangler`, `RFC-8030`, `RFC-8292` to the rest of the system?**
   _3 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `index.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.07595628415300547 - nodes in this community are weakly interconnected._
-- **Why does `Finans Takip QA / PWA / Finansal Hesaplama Denetimi` connect `Diğer Bulgular` to `statement-import.test.js`?**
-  _High betweenness centrality (0.017) - this node is a cross-community bridge._
+  _Cohesion score 0.07355769230769231 - nodes in this community are weakly interconnected._
 - **Should `qc-budget-period.test.js` be split into smaller, more focused modules?**
   _Cohesion score 0.14285714285714285 - nodes in this community are weakly interconnected._
 - **Should `gmail-script.test.js` be split into smaller, more focused modules?**
   _Cohesion score 0.05226480836236934 - nodes in this community are weakly interconnected._
 - **Should `statement-import.test.js` be split into smaller, more focused modules?**
   _Cohesion score 0.057692307692307696 - nodes in this community are weakly interconnected._
+- **Should `qc-rapor-ekim.test.js` be split into smaller, more focused modules?**
+  _Cohesion score 0.12418300653594772 - nodes in this community are weakly interconnected._
