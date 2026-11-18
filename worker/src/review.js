@@ -14,7 +14,8 @@ Answer with a single json object only:
 - budget: 1-2 sentences on the budget limits (field budget). If there are none, say so briefly.
 - mistakes: where money leaked: budget overruns, spending above income, fees and interest (leaks), missed saving target, unchecked records (openChecks). At most 4.
 - review: spending worth a second look: categories above their 3-month average (spikes, with places), frequent small purchases (frequent), subscriptions (subs). Do not declare anything unnecessary; the family decides. At most 4.
-- cuts: concrete, prioritised suggestions with the monthly amount from the cuts field. At most 4.
+- cuts: concrete, prioritised suggestions taken only from the cuts field, with its monthly amount. Never suggest anything that is not in cuts. At most 4.
+- Never suggest reducing fixed or essential costs: rent (Kira), building dues (Aidat), loan and card payments, insurance, taxes, education, health, children, utility bills. A spike with fixed: true is not a saving; mention it only in review as something to check (a raise, a double entry or a missing earlier record).
 Strict rules:
 - Use only numbers that appear in the JSON. Never add, subtract, multiply or compute new totals, differences or percentages.
 - Write money as ₺ with Turkish separators, for example ₺12.345,67 or ₺450. Do not write "bin" or "milyon".

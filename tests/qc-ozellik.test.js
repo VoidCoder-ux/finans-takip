@@ -328,6 +328,21 @@ srv.listen(0, async () => {
     eq('eşitleme yok: düğme gizli', await page.evaluate(() => document.getElementById('revAiBtn').hidden), true);
     await ctx.close();
   }
+  // 17) Sabit gider kısma önerisine girmez: kira her ay 22.000, Eylül'ün kira kaydı eksik → ortalama 14.666,67, Ekim +7.333,33 görünür.
+  // "Kirayı ortalamaya indir" denmez; gözden geçir listesinde "zam mı, çift kayıt mı, eksik kayıt mı" diye çıkar. Eğlence (istek) sapması öneri olur
+  {
+    const hist = [tx('2026-07-05', 'income', 40000, 'Maaş', 'Maaş'), tx('2026-07-06', 'expense', 22000, 'Kira', 'Kira'), tx('2026-07-12', 'expense', 1000, 'Eğlence', 'Sinema'),
+      tx('2026-08-05', 'income', 40000, 'Maaş', 'Maaş'), tx('2026-08-06', 'expense', 22000, 'Kira', 'Kira'), tx('2026-08-12', 'expense', 1000, 'Eğlence', 'Sinema'),
+      tx('2026-09-05', 'income', 40000, 'Maaş', 'Maaş'), tx('2026-09-12', 'expense', 1000, 'Eğlence', 'Sinema'),
+      tx('2026-10-05', 'income', 40000, 'Maaş', 'Maaş'), tx('2026-10-06', 'expense', 22000, 'Kira', 'Kira'), tx('2026-10-12', 'expense', 3500, 'Eğlence', 'Konser')];
+    const { page, ctx } = await open('2026-11-10', { pf_a: [bank(100000)], pf_t: hist });
+    const r = await page.evaluate(() => App.Review.compute('2026-10'));
+    eq('kira sapması sabit gider olarak işaretlenir', r.spikes.map(x => [x.cat, x.diff, x.fixed]), [['Kira', 7333.33, true], ['Eğlence', 2500, false]]);
+    eq('kısma önerilerinde kira yok, eğlence var', r.cuts.map(c => [c.title.replace(/<[^>]+>/g, '').split(' son ')[0], c.save]), [["Eğlence'yi", 2500]]);
+    eq('gözden geçir: kontrol et uyarısı', r.review.filter(x => /^Kira/.test(x.text.replace(/<[^>]+>/g, ''))).map(x => /Sabit bir gider: zam mı, iki kez mi kaydedildi, yoksa önceki bir ayın kaydı mı eksik/.test(x.text)), [true]);
+    eq('dışarı giden özette sabit işareti, işyeri yok', await page.evaluate(() => App.Review.facts('2026-10').spikes.map(x => [x.cat, x.fixed, x.places.length])), [['Kira', true, 0], ['Eğlence', false, 1]]);
+    await ctx.close();
+  }
   eq('sayfa hatası yok', errors, []);
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
   await browser.close(); srv.close(); process.exit(fail ? 1 : 0);

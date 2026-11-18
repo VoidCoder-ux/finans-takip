@@ -1,7 +1,7 @@
 # Graph Report - finans-takip  (2026-11-18)
 
 ## Corpus Check
-- 81 files · ~191,262 words
+- 81 files · ~191,622 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: (none) 4, .example 1, .toml 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `60e47f03`
+- Built from commit: `aa1062a9`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -44,7 +44,7 @@
 - qc-report.test.js
 - qc-payday.test.js
 - qc-stmt-akbank.test.js
-- ref_fs
+- qc-tags.test.js
 - qc-transfers.test.js
 - readability.test.js
 - qc-split.test.js
@@ -58,8 +58,8 @@
 - scripts
 - ref_fs
 - receipt-pdf.test.js
-- qc-tags.test.js
-- qc-split.test.js
+- qc-owner.test.js
+- ref_path
 - Aile Kasası — Yayın Öncesi Kalite Denetimi (#5)
 - qc-audit7.test.js
 - Aile Kasası — Yayın Öncesi Kalite Denetimi (#4)
@@ -69,7 +69,7 @@
 - sw.js
 - CLAUDE.md
 - run-all.sh
-- qc-push.test.js
+- qc-files.test.js
 - qc-gelisim.test.js
 - src/market.js
 - Diğer Bulgular
@@ -216,7 +216,7 @@ Nodes (12): bal, fs, http, ME, path, pw, R, SEED (+4 more)
 Cohesion: 0.14
 Nodes (13): amt(), CP, ebc(), fs, http, PAGE, path, pw (+5 more)
 
-### Community 28 - "ref_fs"
+### Community 28 - "qc-tags.test.js"
 Cohesion: 0.05
 Nodes (29): fs, http, path, pw, R, srv, fs, http (+21 more)
 
@@ -272,11 +272,11 @@ Nodes (11): fs, http, L, path, pw, R, SEED, srv (+3 more)
 Cohesion: 0.19
 Nodes (11): fs, http, imagePdf(), path, pdf(), pw, R, srv (+3 more)
 
-### Community 42 - "qc-tags.test.js"
+### Community 42 - "qc-owner.test.js"
 Cohesion: 0.12
 Nodes (11): A, fs, http, path, pw, R, SEED, srv (+3 more)
 
-### Community 43 - "qc-split.test.js"
+### Community 43 - "ref_path"
 Cohesion: 0.12
 Nodes (12): bal, fs, G, http, path, pw, R, SEED (+4 more)
 
@@ -300,7 +300,7 @@ Nodes (9): fs, http, iso(), path, pw, R, seed(), srv (+1 more)
 Cohesion: 0.33
 Nodes (5): 1. Hesaplama ve veri hataları (düzeltildi), 2. Eklenen özellikler, 3. Arayüz / erişilebilirlik taraması, 4. Bilinen sınırlar (açık), Finans Takip — Denetim Raporu #3
 
-### Community 53 - "qc-push.test.js"
+### Community 53 - "qc-files.test.js"
 Cohesion: 0.15
 Nodes (9): ACCS, fs, http, path, pw, R, srv, TYPES (+1 more)
 
