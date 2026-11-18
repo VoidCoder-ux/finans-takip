@@ -268,7 +268,7 @@ srv.listen(0, async () => {
     await page.evaluate(() => App.Report.open('2026-10')); await page.waitForTimeout(150);
     await page.evaluate(() => [...document.querySelectorAll('#rapHolder button')].find(b => /Ayın Değerlendirmesi/.test(b.textContent)).click()); await page.waitForTimeout(100);
     eq('pencere bölümleri', await page.evaluate(() => [...document.querySelectorAll('#revHolder .rv-h')].map(x => x.textContent)), ['📊 Bütçe durumu', '⚠️ Nerede kaçtı', '🔍 Gözden geçirmeye değer', '✂️ Kısabileceğin yerler']);
-    eq('PDF bölümü', await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2026-10'); const sec = [...d.querySelectorAll('.pr-sec')].find(x => /Ayın değerlendirmesi/.test(x.textContent)); return sec ? sec.querySelectorAll('.pr-al').length : 0; }), 9);
+    eq('PDF bölümü', await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2026-10'); const sec = [...d.querySelectorAll('.pr-sec')].find(x => /Ayın değerlendirmesi/.test(x.textContent)); return sec ? [sec.querySelectorAll('.pr-rv').length, sec.querySelectorAll('.pr-al').length] : 0; }), [9, 0]);
     // Dışarı gidebilecek özet: kişi adı, kişiye giden havale, hesap adı ve bakiye yok
     const fx = await page.evaluate(() => JSON.stringify(App.Review.facts('2026-10')));
     eq('özette kişisel bilgi yok', ['Ahmet', 'Deniz', 'Ece', 'Vadesiz', '100000', 'balance'].filter(w => fx.includes(w)), []);

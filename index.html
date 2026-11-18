@@ -691,14 +691,14 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
   .pr-legend b{color:#111614;font-weight:700}
   .pr-sw{display:inline-block;width:9px;height:9px;border-radius:2px;flex:0 0 9px}
   .pr-alerts{display:grid;gap:6px}
-  .pr-al{display:grid;grid-template-columns:74px 1fr;gap:10px;align-items:start;padding:7px 10px;border-radius:8px;background:#f5f6f5;break-inside:avoid}
+  .pr-al,.pr-rv{display:grid;grid-template-columns:74px 1fr;gap:10px;align-items:start;padding:7px 10px;border-radius:8px;background:#f5f6f5;break-inside:avoid}
   .pr-st{display:flex;gap:5px;align-items:center;font-size:11px;font-weight:800;white-space:nowrap;line-height:17px}
   .pr-st i{display:block;width:16px;height:16px;border-radius:99px;font-style:normal;font-size:10px;font-weight:800;line-height:16px;text-align:center;color:#fff}
   .pr-st-crit{color:#b42318}.pr-st-crit i{background:#d03b3b}
   .pr-st-warn{color:#8a5a00}.pr-st-warn i{background:#fab219;color:#3a2a00}
   .pr-st-good{color:#0b6b1f}.pr-st-good i{background:#0ca30c}
   .pr-st-info{color:#4f5753}.pr-st-info i{background:#7d8481}
-  .pr-al>div{line-height:1.4}
+  .pr-al>div,.pr-rv>div{line-height:1.4}
   .pr-tbl{width:100%;max-width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px}
   .pr-tbl th{font-size:11px;font-weight:700;color:#4f5753;text-align:left;padding:5px 6px;border-bottom:1.5px solid #c9cecb;background:#f6f7f6;vertical-align:bottom}
   .pr-tbl td{padding:5px 6px;border-bottom:1px solid #e3e6e4;vertical-align:middle;overflow-wrap:anywhere}
@@ -5364,7 +5364,7 @@ App.Report=(function(){
         if(el.tagName==='TR'&&!hd&&_rowCut(el))cuts.push(r.y+r.h);
         if(/\bpr-sec\b/.test(el.className)){cuts.push(r.y);cuts.push(r.y+r.h)}
         if(/\bpr-keep\b/.test(el.className)&&r.h<(A4.h-2*A4.m)*0.5)keep.push([r.y,r.y+r.h]);   // kısa bölüm bölünmez, gerekirse bütün olarak sonraki sayfaya
-        if(/\bpr-al\b/.test(el.className))cuts.push(r.y+r.h);
+        if(/\bpr-(al|rv)\b/.test(el.className))cuts.push(r.y+r.h);
         if(/\bpr-break\b/.test(el.className)){var nx=el.nextElementSibling;breaks.push(nx?X(nx.getBoundingClientRect()).y:r.y)}
         if(/\bpr-guide\b/.test(el.className)){var pv=el.previousElementSibling,pr=pv&&X(pv.getBoundingClientRect());guide=pr?pr.y+pr.h:r.y}   // rehberden önceki içeriğin sonu
       });
@@ -8845,10 +8845,11 @@ App.Review=(function(){
       '<div id="revBody">'+html(r)+'</div><div class="modal-actions"><button class="btn btn-primary" id="revClose" onclick="App.UI.closeModal(\'revHolder\')">Kapat</button></div></div></div>';
     App.UI.mountModal(div,'#revClose');
   }
-  // PDF: hatalar "Dikkat" bölümünde zaten var; burada gözden geçirilecekler ve kısma önerileri
+  // PDF: hatalar "Dikkat" bölümünde zaten var; burada gözden geçirilecekler ve kısma önerileri. Satırlar Dikkat'in görünümünde ama ayrı sınıfta
+  // (pr-rv): Dikkat'in uyarı sayısına karışmaz
   function pdfSection(m){
     var r=compute(m);if(!r.review.length&&!r.cuts.length)return'';
-    var row=function(st,lb,ic,t){return'<div class="pr-al"><span class="pr-st pr-st-'+st+'"><i>'+ic+'</i>'+lb+'</span><div>'+t+'</div></div>'};
+    var row=function(st,lb,ic,t){return'<div class="pr-rv"><span class="pr-st pr-st-'+st+'"><i>'+ic+'</i>'+lb+'</span><div>'+t+'</div></div>'};
     return'<div class="pr-sec pr-keep"><div class="pr-h2">Ayın değerlendirmesi<span class="pr-h2s">uygulamanın hesabıyla · karar sizin</span></div><div class="pr-alerts">'+
       r.cuts.map(function(c){return row('good','Kısılabilir','✓',c.title+': ayda ~<b>'+fmt(c.save)+'</b>')}).join('')+
       r.review.slice(0,4).map(function(x){return row('info','Gözden geçir','i',x.text)}).join('')+'</div></div>';
