@@ -1217,7 +1217,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.4.1</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.4.2</div>
 </section>
 
 </main>
@@ -8771,6 +8771,10 @@ App.Review=(function(){
   var LEAK=/(faiz|komisyon|masraf|bsmv|kkdf|gecikme|nakit avans|hesap isletim|kart aidat|uyelik ucret|uyelik bedel|yillik ucret|kart ucret)/,MOVE=/^(gelen|giden)\s+(para|havale|eft|fast)/i;
   var _MLOC=['Ocak\'ta','Şubat\'ta','Mart\'ta','Nisan\'da','Mayıs\'ta','Haziran\'da','Temmuz\'da','Ağustos\'ta','Eylül\'de','Ekim\'de','Kasım\'da','Aralık\'ta'];
   function _place(t){return MOVE.test(t.note||'')?'':App.Insights._place(t)}
+  // Sabit / vazgeçilmez giderler: ortalamadan saparsa "kontrol et" diye gösterilir, kısma önerisine girmez (kirayı düşür denmez).
+  // Kısma önerisi yalnız istek grubunda ve günlük harcamada (market, ulaşım, ev): bunlar ayın içinde gerçekten azaltılabilir
+  var FIXED={'Kira':1,'Aidat':1,'Sigorta':1,'Vergi ve Harç':1,'Eğitim':1,'Sağlık':1,'Çocuk':1,'Faturalar':1},FLEX={'Market':1,'Ulaşım':1,'Ev ve Bakım':1};
+  function _cuttable(k){return!FIXED[k]&&(FLEX[k]||App.Split.groupOf(k)==='want')}
   // Belirtme eki (Market'i, Kira'yı, Ulaşım'ı): son ünlüye göre; ünlüyle bitiyorsa araya y girer
   function _acc(w){var s=String(w||''),v=(s.toLocaleLowerCase('tr-TR').match(/[aeıioöuü](?=[^aeıioöuü]*$)/)||['e'])[0],e={a:'ı',ı:'ı',e:'i',i:'i',o:'u',u:'u',ö:'ü',ü:'ü'}[v];return s+'\''+(/[aeıioöuü]$/i.test(s)?'y':'')+e}
   function compute(m){
@@ -8785,7 +8789,7 @@ App.Review=(function(){
     var cats={};(an.categories||[]).forEach(function(c){cats[c.key]=c.amount});
     if(hm)Object.keys(cats).forEach(function(k){if(k==='Kredi Kartı Ödemesi'||k==='Kredi Ödemesi'||k==='Borç Ödemesi')return;var a=an.avgCategories[k]||0,c=cats[k],d=roundMoney(c-a);
       if(a>0&&c>a*1.3&&d>=Math.max(300,an.avgExpense*0.05)){var pl={};tx.forEach(function(t){if(t.category!==k)return;var q=_place(t);if(q)pl[q]=(pl[q]||0)+t.amount});
-        r.spikes.push({cat:k,amount:roundMoney(c),avg:roundMoney(a),diff:d,group:App.Split.groupOf(k),places:Object.keys(pl).map(function(q){return{name:q,amount:roundMoney(pl[q])}}).sort(function(x,y){return y.amount-x.amount}).slice(0,3)})}});
+        r.spikes.push({cat:k,amount:roundMoney(c),avg:roundMoney(a),diff:d,group:App.Split.groupOf(k),fixed:!_cuttable(k),places:Object.keys(pl).map(function(q){return{name:q,amount:roundMoney(pl[q])}}).sort(function(x,y){return y.amount-x.amount}).slice(0,3)})}});
     r.spikes.sort(function(a,b){return b.diff-a.diff});r.spikes=r.spikes.slice(0,4);
     // Bankaya giden ücret ve faiz (çoğu önlenebilir)
     var lk={};tx.forEach(function(t){if(t.category==='Aidat'||t.category==='Kira'||t.category==='Eğitim')return;var f=nameFold((t.note||'')+' '+t.category);if(!LEAK.test(f))return;var k=String(t.note||t.category).replace(/\s*\(\d+\/\d+\)$/,'').slice(0,60);lk[k]=(lk[k]||0)+t.amount;r.leaks.total+=t.amount});
@@ -8809,13 +8813,14 @@ App.Review=(function(){
     if(r.openChecks)F.push({level:'yellow',text:r.openChecks+' şüpheli kayıt henüz kontrol edilmedi; toplamlar değişebilir (Ay Kontrolü).',amount:0});
     // Gözden geçirmeye değer: "gereksiz" denmez, kullanıcı karar verir
     var V=r.review;
-    r.spikes.forEach(function(x){V.push({text:esc(x.cat)+' <b>'+fmt(x.amount)+'</b>; son '+hm+' ayın ortalaması '+fmt(x.avg)+' (<b>+'+fmt(x.diff)+'</b>)'+(x.places.length?'. En çok: '+x.places.map(function(q){return esc(q.name)+' '+fmt(q.amount)}).join(', '):'')+'.'})});
+    r.spikes.forEach(function(x){V.push({text:esc(x.cat)+' <b>'+fmt(x.amount)+'</b>; son '+hm+' ayın ortalaması '+fmt(x.avg)+' (<b>+'+fmt(x.diff)+'</b>)'+
+      (x.fixed?'. Sabit bir gider: zam mı, iki kez mi kaydedildi, yoksa önceki bir ayın kaydı mı eksik? Kontrol edin.':(x.places.length?'. En çok: '+x.places.map(function(q){return esc(q.name)+' '+fmt(q.amount)}).join(', '):'')+'.')})});
     r.frequent.forEach(function(x){V.push({text:esc(x.name)+': ayda <b>'+x.count+' kez</b>, toplam <b>'+fmt(x.total)+'</b> ('+esc(x.cat)+').'})});
     r.leaks.items.forEach(function(x){V.push({text:esc(x.name)+': <b>'+fmt(x.amount)+'</b> (banka ücreti / faiz).'})});
     if(r.subs.count)V.push({text:r.subs.count+' abonelik: ayda <b>'+fmt(r.subs.monthly)+'</b>, yılda '+fmt(roundMoney(r.subs.monthly*12))+(r.subs.items.length?' ('+r.subs.items.slice(0,4).map(function(q){return esc(q.name)}).join(', ')+')':'')+'.'});
     // Kısabileceğin yerler: tahmini aylık kazanç, büyükten küçüğe
     var C=[];
-    r.spikes.forEach(function(x){C.push({title:esc(_acc(x.cat))+' son '+hm+' ayın ortalamasına ('+fmt(x.avg)+') indirmek',save:x.diff})});
+    r.spikes.forEach(function(x){if(!x.fixed)C.push({title:esc(_acc(x.cat))+' son '+hm+' ayın ortalamasına ('+fmt(x.avg)+') indirmek',save:x.diff})});
     r.frequent.forEach(function(x){C.push({title:esc(x.name)+' harcamasını yarıya indirmek',save:roundMoney(x.total/2)})});
     if(r.split&&r.split.want>r.split.target.want+0.5&&!r.spikes.some(function(x){return x.group==='want'}))C.push({title:'İstek harcamasını hedefe (%'+r.split.rates.want+') çekmek',save:roundMoney(r.split.want-r.split.target.want)});
     if(r.leaks.total>0.009)C.push({title:'Faiz ve ücretlerden kurtulmak (kart borcunu son ödeme gününde tam ödemek, ücretsiz karta geçmek ya da yıllık ücrete itiraz etmek)',save:r.leaks.total});
@@ -8912,7 +8917,7 @@ App.Review=(function(){
   function facts(m){
     var r=compute(m);
     return{month:m,partial:r.partial,day:r.day,days:r.days,income:r.income,expense:r.expense,net:r.net,avgExpense:r.avgExpense,histMonths:r.histMonths,
-      budget:r.budget,spikes:r.spikes.map(function(x){return{cat:x.cat,amount:x.amount,avg:x.avg,diff:x.diff,group:x.group,places:x.places}}),
+      budget:r.budget,spikes:r.spikes.map(function(x){return{cat:x.cat,amount:x.amount,avg:x.avg,diff:x.diff,group:x.group,fixed:x.fixed,places:x.fixed?[]:x.places}}),
       leaks:r.leaks,frequent:r.frequent,subs:{count:r.subs.count,monthly:r.subs.monthly,yearly:roundMoney(r.subs.monthly*12),items:r.subs.items.slice(0,8)},
       split:r.split,cuts:r.cuts.map(function(c){return{title:c.title.replace(/<[^>]+>/g,''),save:c.save}}),openChecks:r.openChecks,
       categories:App.Insights.compute(m).categories.slice(0,10)};

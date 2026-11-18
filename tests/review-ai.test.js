@@ -31,6 +31,7 @@ const ai = content => async url => /models$/.test(url) ? new Response(JSON.strin
   const r1 = await writeReview(env, 'v1', { facts }, day);
   eq('başarılı: süzülmüş çıktı ve kullanım', [r1.status, r1.body.summary, r1.body.mistakes.length, r1.body.used, r1.body.limit], [200, "Ekim'de ₺40.000 geldi.", 5, 1, 2]);
   eq('modele yalnız özet gider, JSON çıktı istenir', [sent.messages[1].content.includes('"income":40000'), sent.response_format.type], [true, 'json_object']);
+  eq('komut: sabit gider (kira) kısma önerisi olmaz, öneri yalnız cuts alanından', [/Never suggest reducing fixed or essential costs: rent \(Kira\)/.test(sent.messages[0].content), /Never suggest anything that is not in cuts/.test(sent.messages[0].content)], [true, true]);
   eq('fiş okumayla ortak günlük sınır', [(await readReceipt(env, 'v1', { text: 'MIGROS TOPLAM 12,50 TL', categories: ['Market'] }, day)).status, (await writeReview(env, 'v1', { facts }, day)).status], [200, 429]);
   eq('girdi: özet yok / dizi / çok uzun', [(await writeReview(env, 'v2', {}, day)).status, (await writeReview(env, 'v2', { facts: [1] }, day)).status, (await writeReview(env, 'v2', { facts: { x: 'a'.repeat(MAX_FACTS) } }, day)).status], [400, 400, 413]);
   eq('reddedilen girdi hak tüketmez', db.rows.get('v2|' + day) || 0, 0);
