@@ -481,6 +481,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
 .rv-it{padding:9px 11px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg2);line-height:1.45;font-size:.9rem;overflow-wrap:anywhere}
 .rv-it.red{border-color:var(--red)}.rv-it.yellow{border-color:var(--yellow,#eab308)}.rv-it.green{border-color:var(--green)}.rv-it b{white-space:nowrap}
 .rv-sum{line-height:1.55;font-size:.95rem}.rv-empty{color:var(--txt3);font-size:.88rem}
+.rv-ai{padding:12px;border-radius:var(--r2);border:1.5px solid var(--teal);background:var(--bg2)}.rv-ai .rv-it{background:var(--bg1,transparent)}.rv-sub{font-weight:700;font-size:.86rem;color:var(--txt2);margin:10px 0 4px}.rv-foot{font-size:.8rem;color:var(--txt3);margin-top:8px}
 .wi-res{margin-top:12px;display:flex;flex-direction:column;gap:6px}.wi-v{padding:10px 12px;border-radius:var(--r2);border:1px solid var(--border);line-height:1.45;overflow-wrap:anywhere}.wi-v.red{border-color:var(--red);color:var(--red)}.wi-v.yellow{border-color:var(--yellow,#eab308)}.wi-v.green{border-color:var(--green);color:var(--green)}.wi-l{display:flex;justify-content:space-between;gap:10px;font-size:.88rem}.wi-l span:first-child{color:var(--txt2)}.wi-l b{white-space:nowrap}
 .sms-mask{width:100%;min-height:120px;box-sizing:border-box;font:inherit;font-size:16px;background:var(--bg3,var(--bg));color:var(--txt);border:1px solid var(--border);border-radius:var(--r2);padding:10px}
 .pd-row.done .pd-amt{color:var(--green)}.pd-btn,.pd-wi{margin-top:8px}.pd-note{font-size:.86rem;color:var(--txt2);line-height:1.45;margin-top:6px}
@@ -1216,7 +1217,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.4.0</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.4.1</div>
 </section>
 
 </main>
@@ -8842,15 +8843,68 @@ App.Review=(function(){
     m=m&&/^\d{4}-\d{2}$/.test(m)?m:tm();var r=compute(m),p=m.split('-'),div=document.createElement('div');div.id='revHolder';
     div.innerHTML='<div class="modal-bd show" onclick="if(event.target===this)App.UI.closeModal(\'revHolder\')"><div class="modal"><div class="modal-title">📝 '+esc(MF[+p[1]-1]+' '+p[0])+' Değerlendirmesi</div>'+
       '<div class="set-sub">Rakamlar uygulamanın kendi hesaplarından gelir. "Gözden geçirmeye değer" kısmı, istek grubundaki ve ortalamadan sapan harcamalardır; gerekli olup olmadığına siz karar verirsiniz.</div>'+
-      '<div id="revBody">'+html(r)+'</div><div class="modal-actions"><button class="btn btn-primary" id="revClose" onclick="App.UI.closeModal(\'revHolder\')">Kapat</button></div></div></div>';
-    App.UI.mountModal(div,'#revClose');
+      '<div id="revAi" aria-live="polite"></div><div id="revBody">'+html(r)+'</div><div class="modal-actions"><button class="btn btn-ghost" id="revAiBtn" hidden onclick="App.Review.aiWrite(\''+m+'\')">🤖 Yapay Zekâyla Yaz</button><button class="btn btn-primary" id="revClose" onclick="App.UI.closeModal(\'revHolder\')">Kapat</button></div></div></div>';
+    App.UI.mountModal(div,'#revClose');_aiRender(m);
+    _aiReady().then(function(ok){var b=document.getElementById('revAiBtn');if(b&&ok){b.hidden=false;if(_aiGet(m))b.textContent='🔄 Yeniden Yaz'}});
+  }
+  // ---- Yapay zekâ (isteğe bağlı): facts() sunucu üzerinden gider, Türkçe değerlendirme döner. Her cümledeki rakamlar facts() içindeki
+  // rakamlarla karşılaştırılır; tutmayan cümle gösterilmez. Sonuç verinin imzasıyla saklanır: veri değişince yeniden yazdırılması istenir
+  var _aiConf=null;
+  function _aiReady(){
+    if(!App.Sync||!App.Sync.configured())return Promise.resolve(false);if(_aiConf!==null)return Promise.resolve(_aiConf);
+    return fetch(App.Sync.cfg().url+'/v1/config',{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){_aiConf=!!(j&&j.reviewAI);return _aiConf}).catch(function(){return false});
+  }
+  function _sig(o){var s=JSON.stringify(o),h=0;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return(h>>>0).toString(36)+s.length}
+  // Metindeki sayılar: Türkçe biçim (12.345,67), düz (450) ya da noktalı ondalık (12.5)
+  function _nums(str){return(String(str||'').match(/\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+(?:,\d+)?(?:\.\d+)?/g)||[]).map(function(t){return parseFloat(/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(t)?t.replace(/\./g,'').replace(',','.'):t.replace(',','.'))}).filter(function(x){return isFinite(x)})}
+  function _pool(o,out){out=out||[];if(typeof o==='number'&&isFinite(o))out.push(Math.abs(o));else if(typeof o==='string')_nums(o).forEach(function(x){out.push(x)});else if(o&&typeof o==='object')Object.keys(o).forEach(function(k){_pool(o[k],out)});return out}
+  // Her sayı ya küçük bir tam sayıdır (gün, ay, adet) ya da uygulamanın rakamlarından biridir (kuruş yuvarlaması kadar fark; aşım eksi tutulur, metinde artı yazılır)
+  function check(str,facts){var pool=_pool(facts);return _nums(str).every(function(x){if(x<=31&&x===Math.floor(x))return true;return pool.some(function(v){return Math.abs(x-v)<=1||Math.abs(x-Math.round(v))<0.5})})}
+  function _clean(s){return String(s||'').replace(/\*\*|__|\x60/g,'').replace(/\s+/g,' ').trim()}
+  function _aiKey(m){return'ft_rev_ai_'+m}
+  function _aiGet(m,any){try{var o=JSON.parse(localStorage.getItem(_aiKey(m))||'null');if(!o||!o.r)return null;return any||o.sig===_sig(facts(m))?o:null}catch(e){return null}}
+  function _aiHtml(o){
+    var r=o.r,list=function(t,a){return a&&a.length?'<div class="rv-sub">'+t+'</div><div class="rv-list">'+a.map(function(x){return'<div class="rv-it">'+esc(x)+'</div>'}).join('')+'</div>':''};
+    return'<div class="rv-sec rv-ai"><div class="rv-h">🤖 Yapay zekânın değerlendirmesi</div>'+(r.summary?'<div class="rv-sum">'+esc(r.summary)+'</div>':'')+(r.budget?'<div class="rv-sum" style="margin-top:6px">'+esc(r.budget)+'</div>':'')+
+      list('Nerede kaçtı',r.mistakes)+list('Gözden geçirmeye değer',r.review)+list('Öneriler',r.cuts)+
+      '<div class="rv-foot">Rakamlar uygulamanın hesabıyla karşılaştırıldı'+(o.dropped?'; tutmayan '+o.dropped+' cümle gösterilmedi':'')+' · '+esc(new Date(o.at).toLocaleString('tr-TR',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}))+'</div></div>';
+  }
+  function _aiRender(m){
+    var el=document.getElementById('revAi');if(!el)return;var o=_aiGet(m);
+    if(o){el.innerHTML=_aiHtml(o);return}
+    el.innerHTML=_aiGet(m,true)?'<div class="set-sub" style="margin:8px 0">🤖 Yapay zekânın değerlendirmesi bu ayın eski verisiyle yazılmıştı; kayıtlar değişti. Güncel hali için yeniden yazdırın.</div>':'';
+  }
+  // Sunucu cevabını süzer: rakamı tutmayan cümle atılır; özet tutmazsa sonuç kullanılmaz
+  function accept(b,f){
+    var n=0,ok=function(s){s=_clean(s);if(!s)return'';if(check(s,f))return s;n++;return''},l=function(a){return(Array.isArray(a)?a:[]).map(ok).filter(Boolean).slice(0,5)};
+    var r={summary:ok(b&&b.summary),budget:ok(b&&b.budget),mistakes:l(b&&b.mistakes),review:l(b&&b.review),cuts:l(b&&b.cuts)};
+    return r.summary?{r:r,dropped:n}:null;
+  }
+  var AI_ERR={daily_limit:'Bugünkü yapay zekâ sınırı doldu (fiş okumayla ortak); yarın tekrar deneyin.',review_ai_disabled:'Sunucuda DeepSeek anahtarı tanımlı değil.',ai_key:'Sunucudaki DeepSeek API anahtarı geçersiz.',ai_billing:'DeepSeek hesabında bakiye yok.',ai_busy:'Yapay zekâ şu an yoğun; biraz sonra deneyin.',ai_unreachable:'Yapay zekâ servisine ulaşılamadı.',too_large:'Ayın özeti çok uzun.'};
+  function aiWrite(m){
+    var go=function(){
+      var b=document.getElementById('revAiBtn'),el=document.getElementById('revAi'),f=facts(m);if(b){b.disabled=true;b.textContent='⏳ Yazılıyor…'}
+      var done=function(){if(b){b.disabled=false;b.textContent=_aiGet(m)?'🔄 Yeniden Yaz':'🤖 Yapay Zekâyla Yaz'}};
+      App.Sync.api(App.Sync.cfg(),'POST','/review',{facts:f}).then(function(r){
+        if(r.status!==200){App.UI.toast(AI_ERR[r.body&&r.body.error]||'Yapay zekâ değerlendirmeyi yazamadı.','err');done();return}
+        var a=accept(r.body,f);
+        if(!a){App.UI.toast('Yapay zekânın yazdığı rakamlar uygulamanın hesabıyla tutmadı; gösterilmedi. Uygulamanın değerlendirmesi aşağıda.','err');done();return}
+        try{localStorage.setItem(_aiKey(m),JSON.stringify({sig:_sig(f),at:Date.now(),r:a.r,dropped:a.dropped}))}catch(e){}
+        _aiRender(m);done();if(el&&el.scrollIntoView)el.scrollIntoView({behavior:'smooth',block:'start'});
+      }).catch(function(){App.UI.toast('Sunucuya ulaşılamadı.','err');done()});
+    };
+    var ok=false;try{ok=localStorage.getItem('ft_review_ai_ok')==='1'}catch(e){}
+    if(ok)return go();
+    App.UI.confirmModal({title:'Yapay Zekâyla Yaz',text:'Bu ayın özeti sunucunuz üzerinden DeepSeek\'e gönderilecek: kategori toplamları, bütçe limitleri, son 3 ayın ortalamaları, öne çıkan işyeri adları ve uygulamanın tespitleri.\n\nKişi adları, hesaplar, bakiyeler ve kişiye giden havaleler gönderilmez; sunucuda saklanmaz. Fiş okumayla aynı günlük sınırı kullanır.\n\nDevam edilsin mi?',okLabel:'Gönder ve Yaz'},function(){try{localStorage.setItem('ft_review_ai_ok','1')}catch(e){}go()});
   }
   // PDF: hatalar "Dikkat" bölümünde zaten var; burada gözden geçirilecekler ve kısma önerileri. Satırlar Dikkat'in görünümünde ama ayrı sınıfta
   // (pr-rv): Dikkat'in uyarı sayısına karışmaz
   function pdfSection(m){
-    var r=compute(m);if(!r.review.length&&!r.cuts.length)return'';
+    var r=compute(m),ai=_aiGet(m);if(!r.review.length&&!r.cuts.length&&!ai)return'';
     var row=function(st,lb,ic,t){return'<div class="pr-rv"><span class="pr-st pr-st-'+st+'"><i>'+ic+'</i>'+lb+'</span><div>'+t+'</div></div>'};
-    return'<div class="pr-sec pr-keep"><div class="pr-h2">Ayın değerlendirmesi<span class="pr-h2s">uygulamanın hesabıyla · karar sizin</span></div><div class="pr-alerts">'+
+    return'<div class="pr-sec pr-keep"><div class="pr-h2">Ayın değerlendirmesi<span class="pr-h2s">'+(ai?'yorum yapay zekânın, rakamlar uygulamanın':'uygulamanın hesabıyla · karar sizin')+'</span></div>'+
+      (ai?'<p class="pr-story">'+esc(ai.r.summary)+(ai.r.budget?' '+esc(ai.r.budget):'')+'</p>':'')+'<div class="pr-alerts">'+
+      (ai?ai.r.cuts.map(function(c){return row('good','Öneri','✓',esc(c))}).join(''):'')+
       r.cuts.map(function(c){return row('good','Kısılabilir','✓',c.title+': ayda ~<b>'+fmt(c.save)+'</b>')}).join('')+
       r.review.slice(0,4).map(function(x){return row('info','Gözden geçir','i',x.text)}).join('')+'</div></div>';
   }
@@ -8863,7 +8917,7 @@ App.Review=(function(){
       split:r.split,cuts:r.cuts.map(function(c){return{title:c.title.replace(/<[^>]+>/g,''),save:c.save}}),openChecks:r.openChecks,
       categories:App.Insights.compute(m).categories.slice(0,10)};
   }
-  return{compute:compute,summary:summary,html:html,open:open,pdfSection:pdfSection,facts:facts};
+  return{compute:compute,summary:summary,html:html,open:open,pdfSection:pdfSection,facts:facts,check:check,accept:accept,aiWrite:aiWrite};
 })();
 
 // "Bunu alırsam ne olur?": harcama kaydedilmez; nakit akışı senaryo kalemleriyle yeniden hesaplanır. Faiz hesaba katılmaz

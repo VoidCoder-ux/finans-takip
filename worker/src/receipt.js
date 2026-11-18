@@ -2,7 +2,7 @@
 // Fotoğraf gönderilmez (DeepSeek'in genel modelleri metin tabanlıdır). Yalnız DEEPSEEK_API_KEY tanımlıysa açıktır ve yalnız
 // eşitlemedeki cihazlar (kasa belirteci) kullanabilir. Kasa başına günlük sınır maliyeti ve kötüye kullanımı sınırlar.
 
-const DEFAULT_BASE = 'https://api.deepseek.com';
+export const DEFAULT_BASE = 'https://api.deepseek.com';
 // Model adları zamanla değişiyor (deepseek-chat 2026'da emekliye ayrıldı); sunucunun listesinden ilk uygun olan seçilir
 const PREFERRED = ['deepseek-flash', 'deepseek-v4-flash', 'deepseek-v4.1-flash', 'deepseek-chat'];
 export const MAX_TEXT = 8000;
@@ -57,7 +57,7 @@ async function bump(env, id, day) {
     ON CONFLICT(vault_id, day) DO UPDATE SET n = n + 1 RETURNING n`).bind(id, day).first();
   return row ? row.n : 1;
 }
-async function useQuota(env, vaultId, day) {
+export async function useQuota(env, vaultId, day) {
   const limit = Math.max(1, Number(env.RECEIPT_DAILY_LIMIT) || DEFAULT_DAILY_LIMIT);
   const glimit = Math.max(1, Number(env.RECEIPT_GLOBAL_DAILY_LIMIT) || DEFAULT_GLOBAL_LIMIT);
   const used = await bump(env, vaultId, day);
@@ -71,10 +71,10 @@ async function dec(env, id, day) {
 }
 
 // Başarısız çağrı günlük hakkı tüketmesin
-async function refund(env, vaultId, day) { await dec(env, vaultId, day); await dec(env, ALL, day); }
+export async function refund(env, vaultId, day) { await dec(env, vaultId, day); await dec(env, ALL, day); }
 
 let _model = null;
-async function pickModel(env, base) {
+export async function pickModel(env, base) {
   if (env.DEEPSEEK_MODEL) return env.DEEPSEEK_MODEL;
   if (_model) return _model;
   try {

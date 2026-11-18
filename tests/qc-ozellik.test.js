@@ -5,7 +5,7 @@
 //  3) Ortak gider dengeleme: kişisel hesaptan ödenen ortak giderler eşit paylaşılır; ortak hesap ve istek harcaması sayılmaz.
 //  4) Döviz/altın borç kurla yeniden değerlenir.  5) Fon stopajı net kârı gösterir.  6) Taksitli nakit avans gelir/gider şişirmez.
 //  7) Bütçe limiti uyarısı %80 ve %100'de birer kez gelir.
-//  8) Aktarımda çıkan/giren hesap.  9) "Bunu alırsam ne olur?" erişimi.  10) Hızlı komut satırı.  11-12) Açılamayan kayıtlar.  13-14) Ayın değerlendirmesi.
+//  8) Aktarımda çıkan/giren hesap.  9) "Bunu alırsam ne olur?" erişimi.  10) Hızlı komut satırı.  11-12) Açılamayan kayıtlar.  13-14) Ayın değerlendirmesi.  15-16) Yapay zekânın yazdığı değerlendirme.
 // Kurmaca veri (Deniz/Ece), sunucu gerekmez.
 const http = require('http'), fs = require('fs'), path = require('path');
 function loadPlaywright() { try { return require('playwright'); } catch (e) {} try { return require(path.join(require('child_process').execSync('npm root -g', { encoding: 'utf8' }).trim(), 'playwright')); } catch (e) { return null; } }
@@ -282,6 +282,50 @@ srv.listen(0, async () => {
     const r = await page.evaluate(() => { const x = App.Review.compute('2026-11'); App.Review.open('2026-11'); return [x.spikes.length, x.cuts.length, x.partial, document.querySelectorAll('#revHolder .rv-empty').length]; });
     eq('geçmiş yok: sapma ve öneri yok, boş mesajlar görünür', r, [0, 0, true, 4]);
     eq('boş ayda PDF bölümü çıkmaz', await page.evaluate(() => App.Review.pdfSection('2026-11')), '');
+    await ctx.close();
+  }
+  // 15) Yapay zekâ değerlendirmesi: onay, yalnız özet gider, rakamı tutmayan cümle atılır, sonuç verinin imzasıyla saklanır, PDF'e girer
+  {
+    const hist = [];
+    ['2026-07', '2026-08', '2026-09'].forEach(m => hist.push(tx(m + '-05', 'income', 40000, 'Maaş', 'Maaş'), tx(m + '-06', 'expense', 15000, 'Kira', 'Kira'), tx(m + '-10', 'expense', 6000, 'Market', 'Migros')));
+    const ekim = [tx('2026-10-05', 'income', 40000, 'Maaş', 'Maaş'), tx('2026-10-06', 'expense', 15000, 'Kira', 'Kira'), tx('2026-10-08', 'expense', 11000, 'Market', 'Migros'), tx('2026-10-16', 'expense', 2000, 'Market', 'Giden para: Ahmet Yılmaz')];
+    const { page, ctx } = await open('2026-11-10', { pf_a: [bank(100000)], pf_t: hist.concat(ekim), pf_b: { Market: 8000 } });
+    await page.route('https://sync.test/v1/config', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ reviewAI: true }) }));
+    await page.evaluate(() => {
+      window.__calls = []; window.__resp = null;
+      App.Sync.configured = () => true; App.Sync.cfg = () => ({ url: 'https://sync.test', vault: 'v', key: 'k' });
+      App.Sync.api = (c, m, p, b) => { if (p !== '/review') return Promise.resolve({ status: 404, body: {} }); window.__calls.push(b); return Promise.resolve(window.__resp); };
+    });
+    eq('rakam denetimi', await page.evaluate(() => { const f = App.Review.facts('2026-10'); return [App.Review.check('Market bütçesi ₺5.000,00 aşıldı, %163 doldu, 3 ay', f), App.Review.check('Kartına ₺9.999 faiz ödedin', f), App.Review.check('₺40.000 geldi', f), App.Review.check('Market ₺13.000 oldu', f)]; }), [true, false, true, true]);
+    await page.evaluate(() => { window.__resp = { status: 200, body: { summary: "Ekim'de ₺40.000 geldi, ₺28.000 harcadın. **Market** öne çıkıyor.", budget: 'Market bütçesi ₺8.000 iken ₺13.000 harcandı.', mistakes: ['Market bütçesini ₺5.000 aştın.', 'Kartına ₺9.999 faiz ödedin.'], review: ['<img src=x onerror=window.__ai=1> Migros ₺11.000.'], cuts: ["Market'i ortalamaya indirirsen ayda ₺7.000 kalır."] } }; App.Review.open('2026-10'); });
+    await page.waitForFunction(() => { const b = document.getElementById('revAiBtn'); return b && !b.hidden; }, null, { timeout: 5000 });
+    await page.evaluate(() => document.getElementById('revAiBtn').click()); await page.waitForTimeout(100);
+    eq('ilk seferde onay sorulur, gönderilmez', await page.evaluate(() => [!!document.querySelector('.modal-bd.show [data-act="ok"]') && /DeepSeek/.test([...document.querySelectorAll('.modal-bd.show')].pop().textContent), window.__calls.length]), [true, 0]);
+    await page.evaluate(() => { const m = [...document.querySelectorAll('.modal-bd.show')].pop(); m.querySelector('[data-act="ok"]').click(); }); await page.waitForTimeout(200);
+    const sent = await page.evaluate(() => JSON.stringify(window.__calls[0]));
+    eq('yalnız özet gider: kişi adı, havale, hesap, bakiye yok', [!!sent && sent.includes('"facts"'), ['Ahmet', 'Deniz', 'Ece', 'Vadesiz', '100000'].filter(w => sent.includes(w))], [true, []]);
+    const box = await page.evaluate(() => document.getElementById('revAi').innerText.replace(/\s+/g, ' '));
+    // ₺9.999 hiçbir rakamda yok, atılır; ₺7.000 Market'in ortalamadan farkı (13.000 − 6.000), kalır
+    eq('gösterilen değerlendirme', [/Ekim'de ₺40\.000 geldi, ₺28\.000 harcadın\. Market öne çıkıyor\./.test(box), /9\.999/.test(box), /tutmayan 1 cümle gösterilmedi/.test(box), /ayda ₺7\.000 kalır/.test(box)], [true, false, true, true]);
+    eq('model metni kaçışlı', await page.evaluate(() => [window.__ai || 0, document.querySelectorAll('#revAi img').length]), [0, 0]);
+    eq('saklanır; düğme "Yeniden Yaz"', await page.evaluate(() => [!!localStorage.getItem('ft_rev_ai_2026-10'), document.getElementById('revAiBtn').textContent]), [true, '🔄 Yeniden Yaz']);
+    eq('PDF başında yapay zekânın özeti', await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2026-10'); const sec = [...d.querySelectorAll('.pr-sec')].find(x => /Ayın değerlendirmesi/.test(x.textContent)); return [!!sec && /Ekim'de ₺40\.000 geldi/.test(sec.textContent), !!sec && /yorum yapay zekânın, rakamlar uygulamanın/.test(sec.textContent)]; }), [true, true]);
+    // İkinci seferde onay sorulmaz; rakamları hiç tutmayan cevap kullanılmaz, eski sonuç kalır
+    await page.evaluate(() => { window.__resp = { status: 200, body: { summary: 'Bu ay ₺77.777 harcadın.', budget: '', mistakes: [], review: [], cuts: [] } }; App.Review.aiWrite('2026-10'); }); await page.waitForTimeout(200);
+    eq('tutmayan özet: uyarı, eski sonuç durur', await page.evaluate(() => [window.__calls.length, [...document.querySelectorAll('.toast')].some(t => /rakamlar uygulamanın hesabıyla tutmadı/.test(t.textContent)), /₺28\.000 harcadın/.test(document.getElementById('revAi').textContent)]), [2, true, true]);
+    await page.evaluate(() => { window.__resp = { status: 429, body: { error: 'daily_limit' } }; App.Review.aiWrite('2026-10'); }); await page.waitForTimeout(200);
+    eq('günlük sınır mesajı', await page.evaluate(() => [...document.querySelectorAll('.toast')].some(t => /sınırı doldu/.test(t.textContent))), true);
+    // Veri değişince eski değerlendirme gösterilmez, PDF'e girmez
+    await page.evaluate(() => { App.UI.closeModal('revHolder'); const t = S.txns(); t.unshift({ id: 'yeni', type: 'expense', amount: 500, category: 'Market', date: '2026-10-20', note: 'A101', accountId: 'b', userId: 'u_a', ts: Date.now(), balanceApplied: true }); S.saveTxns(t); App.Review.open('2026-10'); });
+    await page.waitForTimeout(150);
+    eq('veri değişti: yeniden yazdırma notu, PDF\'te yok', await page.evaluate(() => { const d = document.createElement('div'); d.innerHTML = App.Report.build('2026-10'); return [/eski verisiyle yazılmıştı/.test(document.getElementById('revAi').textContent), /yorum yapay zekânın|₺28\.000 harcadın/.test(d.textContent)]; }), [true, false]);
+    await ctx.close();
+  }
+  // 16) Sunucuda yapay zekâ yoksa düğme görünmez
+  {
+    const { page, ctx } = await open('2026-11-10', {});
+    await page.evaluate(() => App.Review.open('2026-11')); await page.waitForTimeout(150);
+    eq('eşitleme yok: düğme gizli', await page.evaluate(() => document.getElementById('revAiBtn').hidden), true);
     await ctx.close();
   }
   eq('sayfa hatası yok', errors, []);
