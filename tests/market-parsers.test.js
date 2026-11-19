@@ -7,7 +7,7 @@ function eq(label, a, e) { const ok = JSON.stringify(a) === JSON.stringify(e); o
 const { TCMB, TRUNCGIL, TEFAS, TEFAS_LEGACY, CPI } = require('./fixtures/market.js');
 
 (async () => {
-  const m = await import(path.join(__dirname, '..', 'worker', 'src', 'market.js'));
+  const m = await import(require('url').pathToFileURL(path.join(__dirname, '..', 'worker', 'src', 'market.js')).href);
   eq('num: Turkish grouping', [m.num('4.381,20'), m.num('41.6583'), m.num('1,5'), m.num(''), m.num('₺ 28.580'), m.num('48.7710')], [4381.2, 41.6583, 1.5, 0, 28580, 48.771]);
   const t = m.parseTcmbXml(TCMB);
   eq('TCMB: USD/EUR/GBP forex buying + bulletin date', [t.rates.USD, t.rates.EUR, t.rates.GBP, t.date], [41.6583, 48.771, 55.9322, '2026-09-26']);
