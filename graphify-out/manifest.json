@@ -12,15 +12,15 @@
     "semantic_hash": ""
   },
   "sw.js": {
-    "mtime": 1795035039.0406797,
-    "seen": 1795035091.3859386,
-    "ast_hash": "7cc8f65db05b2169f923ffd3d3587c08",
+    "mtime": 1795106778.1784184,
+    "seen": 1795107395.2728493,
+    "ast_hash": "c95cb175b8d54311fdeb1dfdeb0741e8",
     "semantic_hash": ""
   },
   "tests/bank-sms.test.js": {
-    "mtime": 1792693362.057098,
-    "seen": 1792693400.8039746,
-    "ast_hash": "1289dd411b7271d65b1075878fa6b46e",
+    "mtime": 1795106345.9823642,
+    "seen": 1795107395.2728522,
+    "ast_hash": "a60bcf84db1c2dda8d83002ef5b5071e",
     "semantic_hash": ""
   },
   "tests/browser-behavior.test.js": {
@@ -66,9 +66,9 @@
     "semantic_hash": ""
   },
   "tests/market-parsers.test.js": {
-    "mtime": 1792358735.1087632,
-    "seen": 1792685983.0401497,
-    "ast_hash": "96acfef7b07122c652cd10aab08dbbcb",
+    "mtime": 1795106753.6559424,
+    "seen": 1795107395.2736619,
+    "ast_hash": "efa79622530be11f52bcd0410efc3ca6",
     "semantic_hash": ""
   },
   "tests/ozet-summary.test.js": {
@@ -300,9 +300,9 @@
     "semantic_hash": ""
   },
   "tests/receipt-quota.test.js": {
-    "mtime": 1792358735.1417494,
-    "seen": 1792685983.0402076,
-    "ast_hash": "5dac496637cef4923cee424967b05032",
+    "mtime": 1795106753.6559424,
+    "seen": 1795107395.278663,
+    "ast_hash": "6e66bdb98637411c228c48adc42baf3a",
     "semantic_hash": ""
   },
   "tests/run-all.sh": {
@@ -384,9 +384,9 @@
     "semantic_hash": ""
   },
   "worker/src/sms.js": {
-    "mtime": 1792358735.2907193,
-    "seen": 1792685983.040228,
-    "ast_hash": "f757e5ed82a2d23c25133cd9506ace9d",
+    "mtime": 1795106430.2325375,
+    "seen": 1795107395.2802918,
+    "ast_hash": "e17c442580da907643642bb1a169542d",
     "semantic_hash": ""
   },
   ".github/workflows/deploy.yml": {
@@ -438,9 +438,9 @@
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1795035038.3937197,
-    "seen": 1795035091.3959742,
-    "ast_hash": "d0d41dda6060cfcb8e5c0beabf1129f8",
+    "mtime": 1795106777.8284168,
+    "seen": 1795107395.2811613,
+    "ast_hash": "9a1eceebfc38081f72097f648af97ae4",
     "semantic_hash": ""
   },
   "tests/fixtures/earsiv-qr.txt": {
@@ -528,9 +528,9 @@
     "semantic_hash": ""
   },
   "tests/qc-ozellik.test.js": {
-    "mtime": 1795034932.4899619,
-    "seen": 1795035091.390346,
-    "ast_hash": "2d9b118da146a70f73a203edb5d5fbc1",
+    "mtime": 1795106365.8785603,
+    "seen": 1795107395.2768168,
+    "ast_hash": "cc4ceaed46e5f31f7b2cfd322cb75857",
     "semantic_hash": ""
   },
   "tests/review-ai.test.js": {
@@ -543,6 +543,12 @@
     "mtime": 1795034319.126626,
     "seen": 1795035091.3948421,
     "ast_hash": "c3c9a50c7a3cc61373e253c8523610b8",
+    "semantic_hash": ""
+  },
+  "tests/email-extract.test.js": {
+    "mtime": 1795106345.8431697,
+    "seen": 1795107395.2732115,
+    "ast_hash": "b7a7b2028f366b8276b5941d7d3583c5",
     "semantic_hash": ""
   }
 }
