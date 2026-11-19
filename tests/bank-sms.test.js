@@ -58,6 +58,13 @@ srv.listen(0, async () => {
     eq('refund is income', await P('Yapi Kredi: MIGROS isyerinden yaptiginiz 245,50 TL tutarindaki islem iade edilmistir.'), ['income', 'income', 245.5, 'MIGROS', '', 'Yapı Kredi']);
     eq('declined transaction ignored', (await P('Yapi Kredi kartinizla yapilmak istenen 1.500,00 TL tutarindaki islem yetersiz limit nedeniyle gerceklestirilemedi.'))[0], 'ignore');
     eq('OTP ignored', (await P('Akbank dogrulama kodunuz: 482913. 245,50 TL islem icin.'))[0], 'ignore');
+    // İşyeri adı: "'ne / 'e" yönelme eki, "faturanız", "ödeme yapıldı: X", sonda işyeri adı (temassız); alıcı adından sonra "açıklama:"
+    const M = t => P(t).then(x => x[3]);
+    eq('merchant with dative suffix (Yemeksepeti\'ne, Steam\'e)', [await M("Bonus Kartiniz ile 18/11/26 13:45'te YEMEKSEPETI'ne 320,50TL harcama yapildi."), await M("Kartinizla STEAM'e 250,00 TL odeme yapildi.")], ['YEMEKSEPETI', 'STEAM']);
+    eq('merchant from "faturanız"', await M('Turkcell faturaniz 349,90 TL otomatik odeme talimatinizla hesabinizdan odenmistir.'), 'Turkcell');
+    eq('merchant after "ödeme yapıldı:"', await M('Papara hesabindan 250,00 TL tutarinda odeme yapildi: STEAM'), 'STEAM');
+    eq('merchant at the end (contactless); bank name or code is not a merchant', [await M('18.11.2026 09:12 *1234 kartinizla temassiz 42,00 TL harcama yapildi. ISTANBULKART'), await M('Kartinizla 42,00 TL harcama yapildi. AKBANK'), await M('Kartinizla 42,00 TL harcama yapildi. B002')], ['ISTANBULKART', '', '']);
+    eq('recipient before "açıklama:"', await M('Hesabinizdan 22.000,00 TL tutarinda HAVALE ALICI: AYSE DEMIR aciklama: KIRA gonderilmistir.'), 'AYSE DEMIR');
     eq('only limit info ignored', (await P('Yapi Kredi kartinizin kullanilabilir limiti 8.000,00 TL olmustur.'))[0], 'ignore');
     eq('limit line with colon is not a payment', (await P('Yapi Kredi: Kullanilabilir limitiniz: 8.000,00 TL.'))[0], 'ignore');
     eq('card bill payment → review', (await P('Kredi kartiniza 5.000,00 TL odeme yapilmistir. Yapi Kredi'))[0], 'review');

@@ -19,7 +19,7 @@ function fakeDB() {
   };
 }
 (async () => {
-  const { readReceipt } = await import(path.join(__dirname, '..', 'worker', 'src', 'receipt.js'));
+  const { readReceipt } = await import(require('url').pathToFileURL(path.join(__dirname, '..', 'worker', 'src', 'receipt.js')).href);
   const realFetch = global.fetch;
   global.fetch = async (url) => /models$/.test(url) ? new Response(JSON.stringify({ data: [{ id: 'deepseek-flash' }] })) : new Response(JSON.stringify({ choices: [{ message: { content: '{"readable":true,"merchant":"Migros","date":"2026-09-27","total":12.5,"category":"Market","items":[]}' } }] }));
   const db = fakeDB(), env = { DB: db, DEEPSEEK_API_KEY: 'test', RECEIPT_DAILY_LIMIT: '2', RECEIPT_GLOBAL_DAILY_LIMIT: '3' };

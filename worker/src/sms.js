@@ -48,9 +48,19 @@ const OWNER_RE = /(?:[A-ZÇĞİÖŞÜ][A-ZÇĞİÖŞÜ.'-]*\s+){1,4}ad[ıi]na ai
 const OWNER2_RE = /((?:ile biten|ile sonlanan|nolu|no'lu|numaralı)\s+)(?:[^\s,.;:]+\s+){1,4}?ad[ıi]na ait\s+/gi;
 // E-postanın Gmail'e geldiği an (Türkiye saati); işlem tarihi yazmayan e-postalar (ör. Akbank) için
 export function trDate(ms) { const d = new Date(ms + 3 * 3600_000), p = n => String(n).padStart(2, '0'); return p(d.getUTCDate()) + '.' + p(d.getUTCMonth() + 1) + '.' + d.getUTCFullYear() + ' ' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()); }
+// Banka işlem cümlesiyle kampanya cümlesini aynı paragrafa yazabilir ("… harcama yapılmıştır. Bu harcamanızdan 2,46 TL chip-para kazandınız."):
+// satır cümlelere bölünür, yalnız kampanya cümlesi atılır. Bölme büyük harf / rakamla başlayan cümlede ya da ";" sonrasında yapılır
+// ("A.Ş. isyerinde" bölünmez); atılmayan parçalar sırasıyla yeniden birleşir
+const SENT_RE = /(?<=[.!?])\s+(?=[A-ZÇĞİÖŞÜ0-9%])|(?<=;)\s+/;
+function stripPromo(l) {
+  if (!PROMO_RE.test(fold(l))) return l;
+  return l.split(SENT_RE).filter(p => !PROMO_RE.test(fold(p))).join(' ').trim();
+}
 const TXN_RE = /(harcama|alisveris|islem|tutar|odeme|yatir|gonderil|gelmis|gelen|cekil|cekim|iade|maas|\beft\b|\bfast\b|havale|tahsil|borclandir|provizyon|hesabiniza|hesabinizdan|kartinizla|kartinizdan|kartiniz ile)/;
 export function extractEmail(raw, dateMs) {
-  const lines = emailToText(raw).split(/\r?\n/).map(l => l.replace(/[ \t\u00a0\u200b]+/g, ' ').replace(OWNER_RE, '').replace(OWNER2_RE, '$1').trim()).filter(Boolean);
+  const all = emailToText(raw).split(/\r?\n/).map(l => l.replace(/[ \t\u00a0\u200b]+/g, ' ').replace(OWNER_RE, '').replace(OWNER2_RE, '$1').trim()).filter(Boolean);
+  // G\u00f6nderen ve konu sat\u0131r\u0131 oldu\u011fu gibi kal\u0131r; g\u00f6vdede kampanya c\u00fcmleleri i\u015flem c\u00fcmlesinden ayr\u0131l\u0131r
+  const lines = all.slice(0, 2).concat(all.slice(2).map(stripPromo).filter(Boolean));
   const head = lines.slice(0, 2).filter(l => !FOOTER_RE.test(fold(l))).map(l => l.replace(/<[^<>\s@]+@[^<>\s]+>/g, '').trim()).filter(Boolean);   // gönderen + konu (banka adı, işlem türü)
   const body = lines.slice(2);
   let end = body.findIndex(l => FOOTER_RE.test(fold(l)));if (end < 0) end = body.length;

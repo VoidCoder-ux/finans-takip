@@ -401,6 +401,17 @@ srv.listen(0, async () => {
     eq('D7: PDF yalnız yapay zekânın önerisini ve gözden geçirilecekleri yazar', [pdf.filter(x => /Öneri/.test(x)).length, pdf.filter(x => /Kısılabilir/.test(x)).length, pdf.some(x => /Gözden geçir/.test(x))], [1, 0, true]);
     await ctx.close();
   }
+  // 20) Banka hareketini ekle: aile üyesine giden para "Aktarım" seçili gelir; üyenin tek kişisel hesabı varsa karşı hesap o olur.
+  // Bulunamazsa karşı hesap alanı "Aktarım değil" demez (Tür ile çelişmesin), "Karşı hesabı seçin" der
+  {
+    const accs = [bank(50000), bank(8000, 'e', { owner: 'personal', userId: 'u_b', name: 'Ece Vadesiz' }), bank(3000, 'd2', { owner: 'personal', userId: 'u_a', name: 'Deniz Birikim' })];
+    const q = (id, text) => ({ id, text, label: 'u_a', receivedAt: at('2026-11-10'), reason: 'Aile içi ya da kendi hesaplarınız arası aktarım olabilir: karşı hesap uygulamadaysa Ekle > Aktarım seçin', p: { type: 'expense', amount: 2000, date: '2026-11-10', note: 'Giden para', category: 'Diğer', accountId: 'b' }, ts: 1 });
+    const { page, ctx } = await open('2026-11-10', { pf_a: accs, pf_sq: [q('sq1', 'Hesabinizdan ECE YILMAZ adina 2.000,00 TL FAST ile gonderilmistir.'), q('sq2', 'Hesabinizdan AYSE YILMAZ adina 2.000,00 TL FAST ile gonderilmistir.')] });
+    const dlg = id => page.evaluate(id => { App.BankSms.accept(id); const m = [...document.querySelectorAll('.modal-bd.show')].pop(), t = m.querySelector('[data-pkey="to"]'), r = [m.querySelector('[data-pkey="type"]').value, t.value, t.options[0].textContent]; App.UI.closeModal && [...document.querySelectorAll('.modal-bd.show')].pop().querySelector('[data-act="cancel"]').click(); return r; }, id);
+    eq('aile üyesine giden para: karşı hesap üyenin hesabı', await dlg('sq1'), ['move', 'e', '— Karşı hesabı seçin —']);
+    eq('hesabı bulunamayan kişi: alan "Karşı hesabı seçin" der', await dlg('sq2'), ['move', '', '— Karşı hesabı seçin —']);
+    await ctx.close();
+  }
   eq('sayfa hatası yok', errors, []);
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
   await browser.close(); srv.close(); process.exit(fail ? 1 : 0);
