@@ -1,17 +1,17 @@
 # Graph Report - finans-takip  (2026-11-18)
 
 ## Corpus Check
-- 81 files · ~191,622 words
+- 81 files · ~193,309 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: (none) 4, .example 1, .toml 1)
 
 ## Summary
-- 1074 nodes · 1387 edges · 58 communities (54 shown, 4 thin omitted)
+- 1075 nodes · 1390 edges · 58 communities (54 shown, 4 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 17 edges (avg confidence: 0.9)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `aa1062a9`
+- Built from commit: `ec6664c6`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -44,7 +44,7 @@
 - qc-report.test.js
 - qc-payday.test.js
 - qc-stmt-akbank.test.js
-- qc-tags.test.js
+- ref_fs
 - qc-transfers.test.js
 - readability.test.js
 - qc-split.test.js
@@ -53,7 +53,7 @@
 - qc-finance.test.js
 - qc-goals.test.js
 - Finans Takip — Cloudflare kurulumu
-- qc-cards.test.js
+- qc-owner.test.js
 - manifest.json
 - scripts
 - ref_fs
@@ -106,7 +106,7 @@
 
 ### Community 0 - "index.js"
 Cohesion: 0.07
-Nodes (55): RFC-8030, RFC-8292, b64url(), bearer(), cors(), fetch(), HttpError, istanbulDay() (+47 more)
+Nodes (57): RFC-8030, RFC-8292, b64url(), bearer(), cors(), fetch(), HttpError, istanbulDay() (+49 more)
 
 ### Community 1 - "qc-budget-period.test.js"
 Cohesion: 0.14
@@ -129,8 +129,8 @@ Cohesion: 0.12
 Nodes (14): ACCS, at(), fs, http, path, pay(), PLANNED, pw (+6 more)
 
 ### Community 6 - "ref_http"
-Cohesion: 0.05
-Nodes (19): fs, http, path, pw, R, srv, today, TYPES (+11 more)
+Cohesion: 0.04
+Nodes (24): fs, http, path, pw, R, srv, TYPES, USERS (+16 more)
 
 ### Community 7 - "text-overlap.test.js"
 Cohesion: 0.10
@@ -216,9 +216,9 @@ Nodes (12): bal, fs, http, ME, path, pw, R, SEED (+4 more)
 Cohesion: 0.14
 Nodes (13): amt(), CP, ebc(), fs, http, PAGE, path, pw (+5 more)
 
-### Community 28 - "qc-tags.test.js"
+### Community 28 - "ref_fs"
 Cohesion: 0.05
-Nodes (29): fs, http, path, pw, R, srv, fs, http (+21 more)
+Nodes (30): fs, http, path, pw, R, srv, fs, http (+22 more)
 
 ### Community 29 - "qc-transfers.test.js"
 Cohesion: 0.13
@@ -252,9 +252,9 @@ Nodes (10): fs, G, http, path, pw, R, SEED, srv (+2 more)
 Cohesion: 0.13
 Nodes (14): API özeti, Banka e-postalarıyla otomatik kayıt (Gmail), Banka SMS'leriyle otomatik kayıt (iPhone Kestirmeler), Banka uygulaması bildirimleriyle otomatik kayıt (iPhone, iOS 27+), Ekstre içe aktarma, Finans Takip — Cloudflare kurulumu, Fiş okutma, Geliştirme ve test (+6 more)
 
-### Community 37 - "qc-cards.test.js"
-Cohesion: 0.17
-Nodes (8): fs, http, path, pw, R, srv, TYPES, USERS
+### Community 37 - "qc-owner.test.js"
+Cohesion: 0.13
+Nodes (10): ACC, fs, http, path, pw, R, srv, TX (+2 more)
 
 ### Community 38 - "manifest.json"
 Cohesion: 0.14
@@ -309,8 +309,8 @@ Cohesion: 0.16
 Nodes (14): at(), bank(), card(), fs, http, open(), path, pw (+6 more)
 
 ### Community 55 - "src/market.js"
-Cohesion: 0.23
-Nodes (15): fetchCpi(), FETCHERS, fetchFunds(), fetchRates(), get(), isStale(), MAX_AGE, num() (+7 more)
+Cohesion: 0.26
+Nodes (14): fetchCpi(), FETCHERS, fetchFunds(), fetchRates(), get(), MAX_AGE, num(), parseCpiHtml() (+6 more)
 
 ### Community 57 - "Diğer Bulgular"
 Cohesion: 0.05
@@ -318,7 +318,7 @@ Nodes (31): 1. Uygulama Envanteri, Butonlar, Diğer Bulgular, Düzeltme Sonrası
 
 ### Community 58 - "ref_path"
 Cohesion: 0.05
-Nodes (23): ACCS, fs, http, path, pw, R, srv, TYPES (+15 more)
+Nodes (15): fs, http, path, pw, R, srv, path, TODAY (+7 more)
 
 ## Knowledge Gaps
 - **3 isolated node(s):** `wrangler`, `RFC-8030`, `RFC-8292`
@@ -328,17 +328,17 @@ Nodes (23): ACCS, fs, http, path, pw, R, srv, TYPES (+15 more)
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `validDate()` connect `Diğer Bulgular` to `statement-import.test.js`?**
-  _High betweenness centrality (0.034) - this node is a cross-community bridge._
+- **Why does `Sayfa Bazlı Kapsama Notları` connect `statement-import.test.js` to `Diğer Bulgular`?**
+  _High betweenness centrality (0.025) - this node is a cross-community bridge._
 - **What connects `wrangler`, `RFC-8030`, `RFC-8292` to the rest of the system?**
   _3 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `index.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.07355769230769231 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07146087743102668 - nodes in this community are weakly interconnected._
+- **Why does `validDate()` connect `Diğer Bulgular` to `statement-import.test.js`?**
+  _High betweenness centrality (0.023) - this node is a cross-community bridge._
 - **Should `qc-budget-period.test.js` be split into smaller, more focused modules?**
   _Cohesion score 0.14285714285714285 - nodes in this community are weakly interconnected._
 - **Should `gmail-script.test.js` be split into smaller, more focused modules?**
   _Cohesion score 0.05226480836236934 - nodes in this community are weakly interconnected._
 - **Should `statement-import.test.js` be split into smaller, more focused modules?**
   _Cohesion score 0.057692307692307696 - nodes in this community are weakly interconnected._
-- **Should `qc-rapor-ekim.test.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.12418300653594772 - nodes in this community are weakly interconnected._

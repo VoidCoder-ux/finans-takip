@@ -39,12 +39,20 @@ const ai = content => async url => /models$/.test(url) ? new Response(JSON.strin
   global.fetch = ai('```json\n' + good + '\n```');
   eq('kod bloğu içindeki JSON', (await writeReview({ DB: fakeDB(), DEEPSEEK_API_KEY: 'test' }, 'v1', { facts }, day)).status, 200);
   // Bozuk çıktı ve meşgul servis: hak geri verilir
-  for (const [ad, f, st] of [['bozuk çıktı', ai('merhaba'), 502], ['özetsiz çıktı', ai(JSON.stringify({ summary: '' })), 502], ['meşgul', async url => /models$/.test(url) ? new Response('{"data":[]}') : new Response('busy', { status: 503 }), 503], ['anahtar geçersiz', async url => /models$/.test(url) ? new Response('{"data":[]}') : new Response('no', { status: 401 }), 503]]) {
+  for (const [ad, f, st] of [['ağ hatası', async url => { if (/models$/.test(url)) return new Response('{"data":[]}'); throw new Error('net'); }, 503], ['bakiye yok', async url => /models$/.test(url) ? new Response('{"data":[]}') : new Response('no', { status: 402 }), 503], ['bozuk çıktı', ai('merhaba'), 502], ['özetsiz çıktı', ai(JSON.stringify({ summary: '' })), 502], ['meşgul', async url => /models$/.test(url) ? new Response('{"data":[]}') : new Response('busy', { status: 503 }), 503], ['anahtar geçersiz', async url => /models$/.test(url) ? new Response('{"data":[]}') : new Response('no', { status: 401 }), 503]]) {
     global.fetch = f; db = fakeDB();
     const r = await writeReview({ DB: db, DEEPSEEK_API_KEY: 'test' }, 'v1', { facts }, day);
     eq(ad + ' → hata, hak geri verilir', [r.status, db.rows.get('v1|' + day), db.rows.get('__all__|' + day)], [st, 0, 0]);
   }
-  eq('cleanReview: boşluk, uzunluk ve tür', cleanReview({ summary: 'a\n\n b', mistakes: 'tek metin', review: [null, '', 'x'.repeat(500)], cuts: [1] }), { summary: 'a b', budget: '', mistakes: [], review: ['x'.repeat(400)], cuts: ['1'] });
+  // Yalnız metin alınır: sayı ve nesne öğe atılır (eskiden "1" ve "[object Object]" olarak gösteriliyordu)
+  eq('cleanReview: boşluk, uzunluk ve tür', cleanReview({ summary: 'a\n\n b', mistakes: 'tek metin', review: [null, '', 'x'.repeat(500)], cuts: [1, { title: 'Market', amount: 5000 }, 'Yemek'] }), { summary: 'a b', budget: '', mistakes: [], review: ['x'.repeat(400)], cuts: ['Yemek'] });
+  eq('cleanReview: metin olmayan özet boş kalır', cleanReview({ summary: { text: 'x' } }).summary, '');
+  // Emekli model: 400 "model" cevabından sonra sıradaki çağrı modeli listeden yeniden seçer
+  let modelsHits = 0;
+  global.fetch = async url => { if (/models$/.test(url)) { modelsHits++; return new Response(JSON.stringify({ data: [{ id: 'deepseek-flash' }] })); } return new Response('{"error":{"message":"Model Not Exist"}}', { status: 400 }); };
+  const env3 = { DB: fakeDB(), DEEPSEEK_API_KEY: 'test' };
+  const before = modelsHits; await writeReview(env3, 'v1', { facts }, day); await writeReview(env3, 'v1', { facts }, day);
+  eq('emekli model önbellekten silinir, liste yeniden okunur', modelsHits - before >= 1, true);
   global.fetch = realFetch;
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
   process.exit(fail ? 1 : 0);

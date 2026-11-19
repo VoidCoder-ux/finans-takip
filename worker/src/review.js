@@ -2,7 +2,7 @@
 // DeepSeek'e gider, okunur bir Türkçe değerlendirme döner. Rakamları model üretmez: uygulama her cümledeki tutarı kendi rakamlarıyla
 // karşılaştırır, tutmayan cümleyi göstermez. Fiş okumayla aynı günlük sınırı kullanır.
 
-import { useQuota, refund, pickModel, DEFAULT_BASE } from './receipt.js';
+import { useQuota, refund, pickModel, resetModel, DEFAULT_BASE } from './receipt.js';
 
 export const MAX_FACTS = 16000;
 
@@ -24,7 +24,8 @@ Strict rules:
 - Empty list when there is nothing to say. Keep each item to one or two sentences.`;
 
 export function cleanReview(r) {
-  const s = (v, n) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, n);
+  // Yalnız metin alınır: model nesne ya da sayı döndürürse "[object Object]" gösterilmesin
+  const s = (v, n) => typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, n) : '';
   const list = v => (Array.isArray(v) ? v : []).map(x => s(x, 400)).filter(Boolean).slice(0, 5);
   return { summary: s(r && r.summary, 900), budget: s(r && r.budget, 600), mistakes: list(r && r.mistakes), review: list(r && r.review), cuts: list(r && r.cuts) };
 }
@@ -64,6 +65,7 @@ export async function writeReview(env, vaultId, body, day) {
     if (res.status === 401 || res.status === 403) return { status: 503, body: { error: 'ai_key' } };
     if (res.status === 402) return { status: 503, body: { error: 'ai_billing' } };
     if (res.status === 429 || res.status === 503) return { status: 503, body: { error: 'ai_busy' } };
+    if ((res.status === 400 || res.status === 404) && /model/i.test(detail)) resetModel();
     return { status: 502, body: { error: 'ai_error' } };
   }
   let content = '';

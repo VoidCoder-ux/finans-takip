@@ -41,9 +41,16 @@ const mock = http.createServer((q, s) => {
     eq('config advertises receipt AI', cfg.receiptAI, true);
     eq('no token → 401', (await api('POST', path, null, { text })).status, 401);
     eq('unknown vault → 404', (await api('POST', path, token, { text })).status, 404);
+    const rpath = '/v1/vault/' + id + '/review';
+    eq('config advertises review AI', cfg.reviewAI, true);
+    eq('review: no token → 401', (await api('POST', rpath, null, { facts: { a: 1 } })).status, 401);
+    eq('review: unknown vault → 404', (await api('POST', rpath, token, { facts: { a: 1 } })).status, 404);
     await api('PUT', '/v1/vault/' + id, token, { baseVersion: 0, data: 'QUJD' });
     eq('wrong token → 403', (await api('POST', path, other, { text })).status, 403);
     eq('GET not allowed', (await api('GET', path, token)).status, 405);
+    eq('review: wrong token → 403', (await api('POST', rpath, other, { facts: { a: 1 } })).status, 403);
+    eq('review: GET not allowed', (await api('GET', rpath, token)).status, 405);
+    eq('review: facts required before calling AI', (await api('POST', rpath, token, {})).status, 400);
     eq('empty text rejected before calling AI', (await api('POST', path, token, { text: '  ' })).status, 400);
     eq('oversize text rejected', (await api('POST', path, token, { text: 'x'.repeat(9000) })).status, 413);
     last = null;

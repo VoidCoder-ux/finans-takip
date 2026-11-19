@@ -74,6 +74,8 @@ async function dec(env, id, day) {
 export async function refund(env, vaultId, day) { await dec(env, vaultId, day); await dec(env, ALL, day); }
 
 let _model = null;
+// Model adı artık geçersizse (400/404 "model") sıradaki çağrı listeden yeniden seçer
+export function resetModel() { _model = null; }
 export async function pickModel(env, base) {
   if (env.DEEPSEEK_MODEL) return env.DEEPSEEK_MODEL;
   if (_model) return _model;
