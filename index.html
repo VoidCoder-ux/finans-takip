@@ -31,7 +31,12 @@
 // Tema ilk çizimden önce: açık ya da "Sistemle aynı" kullanan biri açılışta bir an koyu ekran görmesin (asıl ayar App.UI.setTheme'de)
 try{var _th=(JSON.parse(localStorage.getItem('pf_s')||'null')||{}).theme;if(_th==='light'||(_th==='auto'&&window.matchMedia&&!matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.setAttribute('data-theme','light')}catch(e){}
 // iPhone Safari basılma stilini (:active) ancak sayfada bir dokunma dinleyicisi varken uygular
-document.addEventListener('touchstart',function(){},{passive:true});</script>
+document.addEventListener('touchstart',function(){},{passive:true});
+// "+" düğmesi aşağı kaydırırken gizlenir (altından geçen kartın düğmesini kapatmasın), yukarı kaydırınca ya da sayfa başında görünür.
+// Kaydırma hem pencerede hem .content kutusunda olabilir: her kaydırılan öğenin son konumu ayrı tutulur
+(function(){var last=new WeakMap();document.addEventListener('scroll',function(e){var f=document.getElementById('fabAdd');if(!f)return;
+  var el=e.target&&e.target.nodeType===1?e.target:document.scrollingElement,y=el.scrollTop,p=last.has(el)?last.get(el):0,d=y-p;last.set(el,y);
+  if(y<40||d<-6)f.classList.remove('fab-hide');else if(d>6)f.classList.add('fab-hide')},{passive:true,capture:true})})();</script>
 <style>
 :root{
   --teal:#14b8a6;--teal-d:#0d9488;--blue:#60a5fa;--purple:#a78bfa;--accent:#0f766e;
@@ -770,6 +775,8 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
    düğme yazısı uzun basınca seçilmez, bağlam menüsü açılmaz */
 button,.btn,[role=button],.bnav-item{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 @media(hover:none){button:not(:disabled):active,.btn:not(:disabled):active,[role=button]:active,.bnav-item:active{scale:.96;opacity:.75;transition:scale .08s ease,opacity .08s ease}}
+/* "+" düğmesi kaydırırken aşağı kayıp gizlenir */
+.fab{transition:transform .2s ease,opacity .2s ease}.fab.fab-hide{transform:translateY(calc(100% + 100px));opacity:0;pointer-events:none}
 /* Hareketi Azalt (iPhone Ayarlar › Erişilebilirlik): geçiş ve animasyonlar kapanır */
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 </style>
@@ -1732,6 +1739,7 @@ App.UI=(function(){
   var _type='income';
   function nav(pg,opts){
     var page=document.getElementById('page-'+pg);if(!page)return;
+    var fab=document.getElementById('fabAdd');if(fab)fab.classList.remove('fab-hide');
     var prev=document.body.getAttribute('data-page');
     document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active')});
     document.querySelectorAll('[data-nav]').forEach(function(b){b.classList.remove('active');b.removeAttribute('aria-current')});

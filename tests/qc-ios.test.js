@@ -95,6 +95,23 @@ srv.listen(0, async () => {
     await ctx.close();
   }
 
+  // 5) "+" düğmesi aşağı kaydırırken gizlenir (kartlardaki düğmelerin üstüne binmesin), yukarı kaydırınca ve sayfa değişince geri gelir
+  {
+    const T = [];
+    for (let i = 0; i < 60; i++) T.push({ id: 't' + i, type: 'expense', amount: 100 + i, category: 'Market', date: '2026-11-' + String(1 + (i % 20)).padStart(2, '0'), note: 'Market ' + i, accountId: 'b', userId: 'u_a', ts: 1, balanceApplied: true });
+    const { page, ctx } = await open(S(), { hasTouch: true, isMobile: true });
+    await page.evaluate(t => { localStorage.setItem('pf_a', JSON.stringify([{ id: 'b', name: 'Vadesiz', type: 'bank', owner: 'shared', balance: 9000, openingBalance: 9000, ts: 1 }])); localStorage.setItem('pf_t', JSON.stringify(t)); }, T);
+    await page.reload(); await page.waitForTimeout(250);
+    await page.evaluate(() => App.UI.nav('islemler')); await page.waitForTimeout(200);
+    const scrollBy = dy => page.evaluate(dy => { const c = document.querySelector('.content'), el = c && c.scrollHeight > c.clientHeight + 5 && getComputedStyle(c).overflowY !== 'visible' ? c : document.scrollingElement; el.scrollTop += dy; }, dy).then(() => page.waitForTimeout(120));
+    const hidden = () => page.evaluate(() => document.getElementById('fabAdd').classList.contains('fab-hide'));
+    await scrollBy(600); const down = await hidden();
+    await scrollBy(-150); const up = await hidden();
+    await scrollBy(600); await page.evaluate(() => App.UI.nav('ozet')); await page.waitForTimeout(150); const nav = await hidden();
+    eq('"+" aşağı kaydırınca gizlenir, yukarıda ve sayfa değişince görünür', [down, up, nav], [true, false, false]);
+    await ctx.close();
+  }
+
   eq('sayfa hatası yok', errors, []);
   await browser.close(); srv.close();
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
