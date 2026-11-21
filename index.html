@@ -7,6 +7,19 @@
 <title>Aile Kasası</title>
 <link rel="manifest" href="manifest.json"/>
 <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png"/>
+<!-- iPhone açılış ekranı (ana ekrandan açılırken boş ekran yerine): her iPhone boyu için ayrı görsel, icons/splash -->
+<link rel="apple-touch-startup-image" media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="icons/splash/splash-750x1334.png"/>
+<link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1242x2208.png"/>
+<link rel="apple-touch-startup-image" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1125x2436.png"/>
+<link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" href="icons/splash/splash-828x1792.png"/>
+<link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1242x2688.png"/>
+<link rel="apple-touch-startup-image" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1170x2532.png"/>
+<link rel="apple-touch-startup-image" media="screen and (device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1284x2778.png"/>
+<link rel="apple-touch-startup-image" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1179x2556.png"/>
+<link rel="apple-touch-startup-image" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1290x2796.png"/>
+<link rel="apple-touch-startup-image" media="screen and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1206x2622.png"/>
+<link rel="apple-touch-startup-image" media="screen and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1320x2868.png"/>
+<link rel="apple-touch-startup-image" media="screen and (device-width: 420px) and (device-height: 912px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="icons/splash/splash-1260x2736.png"/>
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png"/>
 <meta name="theme-color" content="#14b8a6"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -14,7 +27,9 @@
 <meta name="apple-mobile-web-app-title" content="Aile Kasası"/>
 <meta name="application-name" content="Aile Kasası"/>
 <meta name="mobile-web-app-capable" content="yes"/>
-<script>try{var _fs=localStorage.getItem('ft_fs');if(_fs==='l'||_fs==='xl')document.documentElement.setAttribute('data-fs',_fs)}catch(e){}</script>
+<script>try{var _fs=localStorage.getItem('ft_fs');if(_fs==='l'||_fs==='xl')document.documentElement.setAttribute('data-fs',_fs)}catch(e){}
+// Tema ilk çizimden önce: açık ya da "Sistemle aynı" kullanan biri açılışta bir an koyu ekran görmesin (asıl ayar App.UI.setTheme'de)
+try{var _th=(JSON.parse(localStorage.getItem('pf_s')||'null')||{}).theme;if(_th==='light'||(_th==='auto'&&window.matchMedia&&!matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
 <style>
 :root{
   --teal:#14b8a6;--teal-d:#0d9488;--blue:#60a5fa;--purple:#a78bfa;--accent:#0f766e;
@@ -749,6 +764,12 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
   .pr-foot{margin-top:14px;border-top:1px solid #e3e6e4;padding-top:6px;font-size:10.5px;color:#7d8481}
   thead{display:table-header-group}
 }
+/* iPhone hissi: dokunmatikte basılan düğme hafifçe küçülür ve solar (scale ayrı özellik: düğmenin kendi transform'unu bozmaz);
+   düğme yazısı uzun basınca seçilmez, bağlam menüsü açılmaz */
+button,.btn,[role=button],.bnav-item{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+@media(hover:none){button:not(:disabled):active,.btn:not(:disabled):active,[role=button]:active,.bnav-item:active{scale:.96;opacity:.75;transition:scale .08s ease,opacity .08s ease}}
+/* Hareketi Azalt (iPhone Ayarlar › Erişilebilirlik): geçiş ve animasyonlar kapanır */
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
@@ -1183,7 +1204,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
 <section class="page" id="page-ayarlar">
   <div class="ph"><div><div class="ph-title">Ayarlar</div><div class="ph-sub">Görünüm, veri, kategoriler ve gizlilik</div></div></div>
   <div class="set-grid">
-    <div class="card set-card"><div class="sh-title">🎨 Görünüm</div><div class="set-sub">Açık / koyu tema</div><button class="btn btn-sm btn-ghost" onclick="App.UI.toggleTheme()" id="setThemeBtn">Temayı Değiştir</button>
+    <div class="card set-card"><div class="sh-title">🎨 Görünüm</div><div class="set-sub">Tema. "Sistemle aynı" telefonun koyu/açık ayarını izler (gece kendiliğinden koyu olur).</div><div class="fs-pick" id="themePick" role="radiogroup" aria-label="Tema"><button type="button" class="fs-opt" role="radio" data-theme-opt="dark" onclick="App.UI.pickTheme('dark')">Koyu</button><button type="button" class="fs-opt" role="radio" data-theme-opt="light" onclick="App.UI.pickTheme('light')">Açık</button><button type="button" class="fs-opt" role="radio" data-theme-opt="auto" onclick="App.UI.pickTheme('auto')">Sistemle aynı</button></div>
       <div class="set-sub" style="margin-top:4px">Yazı boyutu (bu cihazda; her telefon kendi seçimini hatırlar)</div>
       <div class="fs-pick" id="fsPick" role="radiogroup" aria-label="Yazı boyutu"><button type="button" class="fs-opt" data-fs="n" onclick="App.UI.setFontSize('n')" style="font-size:.9rem">Normal</button><button type="button" class="fs-opt" data-fs="l" onclick="App.UI.setFontSize('l')" style="font-size:1rem">Büyük</button><button type="button" class="fs-opt" data-fs="xl" onclick="App.UI.setFontSize('xl')" style="font-size:1.1rem">Çok Büyük</button></div></div>
     <div class="card set-card"><div class="sh-title">💾 Yedek</div><div class="set-sub" id="setBackupInfo">Tüm yerel veriyi JSON olarak indirip başka cihaza taşıyın.</div><div id="setInvalid"></div><div class="set-actions"><button class="btn btn-sm btn-ghost" onclick="App.Backup.open()">Yedek / Geri Yükle</button><button class="btn btn-sm btn-ghost" onclick="App.Onboarding.open()">Kurulum Kontrolü</button></div></div>
@@ -1218,7 +1239,7 @@ input[data-money]:placeholder-shown+.money-hint{display:none}
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.4.4</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.4.5</div>
 </section>
 
 </main>
@@ -1429,7 +1450,7 @@ var S=(function(){
   function normalizeList(raw,name,fn,invalid){return arr(raw).map(function(x,i){if(!x||typeof x!=='object'||Array.isArray(x)){invalid.push({store:name,index:i,value:x,error:'Kayıt biçimi bozuk'});return null}try{return fn(x,i)}catch(e){invalid.push({store:name,index:i,value:x,error:e.message});return null}}).filter(Boolean)}
   function normalize(){
     var invalid=[],legacyOpening=false;
-    _s=obj(_s);_s.theme=_s.theme==='light'?'light':'dark';_s.rates=Object.assign({},DEFAULT_RATES,obj(_s.rates));
+    _s=obj(_s);_s.theme=_s.theme==='light'||_s.theme==='auto'?_s.theme:'dark';_s.rates=Object.assign({},DEFAULT_RATES,obj(_s.rates));
     delete _s.deepseekApiKey;
     if(_s.activeTag){var at=obj(_s.activeTag),atn=cleanTags([at.name])[0];if(atn)_s.activeTag={name:atn,from:validDate(at.from)?at.from:''};else delete _s.activeTag}
     // 50/30/20: oranlar 0–100 tam sayı ve toplamı 100 (değilse önerilen oranlar); kategori grubu need/want/save
@@ -1968,18 +1989,27 @@ App.UI=(function(){
   function setFontSize(v){v=v==='l'||v==='xl'?v:'n';try{if(v==='n')localStorage.removeItem('ft_fs');else localStorage.setItem('ft_fs',v)}catch(e){}
     if(v==='n')document.documentElement.removeAttribute('data-fs');else document.documentElement.setAttribute('data-fs',v);renderFontPick();if(typeof renderAllViews==='function')renderAllViews()}
   function renderFontPick(){var cur=document.documentElement.getAttribute('data-fs')||'n';document.querySelectorAll('#fsPick .fs-opt').forEach(function(b){var on=b.getAttribute('data-fs')===cur;b.classList.toggle('on',on);b.setAttribute('aria-checked',on)})}
+  // Tema: dark | light | auto (Sistemle aynı: telefonun koyu/açık ayarını izler). Seçilmemişse koyu
+  var _mq=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+  function _eff(t){return t==='auto'?(_mq&&!_mq.matches?'light':'dark'):t==='light'?'light':'dark'}
   function setTheme(t){
-    document.documentElement.setAttribute('data-theme',t);
+    t=t==='light'||t==='auto'?t:'dark';var e=_eff(t);
+    document.documentElement.setAttribute('data-theme',e);
     var tr=document.getElementById('toggleTrack');
-    if(t==='light'){tr.classList.add('on');document.getElementById('themeIcon').textContent='🌙';document.getElementById('themeLabel').textContent='Koyu Tema'}
-    else{tr.classList.remove('on');document.getElementById('themeIcon').textContent='☀️';document.getElementById('themeLabel').textContent='Açık Tema'}
-    S.saveSetting('theme',t);
+    if(tr){if(e==='light'){tr.classList.add('on');document.getElementById('themeIcon').textContent='🌙';document.getElementById('themeLabel').textContent='Koyu Tema'}
+    else{tr.classList.remove('on');document.getElementById('themeIcon').textContent='☀️';document.getElementById('themeLabel').textContent='Açık Tema'}}
+    if(S.settings().theme!==t)S.saveSetting('theme',t);
+    renderThemePick();
   }
+  function renderThemePick(){var cur=S.settings().theme||'dark';document.querySelectorAll('#themePick .fs-opt').forEach(function(b){var on=b.getAttribute('data-theme-opt')===cur;b.classList.toggle('on',on);b.setAttribute('aria-checked',on)})}
+  function _themeRedraw(){renderAllViews();var st=document.getElementById('page-istatistikler');if(st&&st.classList.contains('active'))App.Charts.refresh()}
+  function pickTheme(t){setTheme(t);_themeRedraw()}
+  // Kenar çubuğundaki düğme görünen temanın tersine geçer (Sistemle aynı seçiliyse elle seçime döner)
   function toggleTheme(){
-    var cur=document.documentElement.getAttribute('data-theme');setTheme(cur==='dark'?'light':'dark');
-    renderAllViews();
-    if(document.getElementById('page-istatistikler').classList.contains('active'))App.Charts.refresh();
+    var cur=document.documentElement.getAttribute('data-theme');setTheme(cur==='dark'?'light':'dark');_themeRedraw();
   }
+  // Telefonun ayarı değişince (gece otomatik koyu) "Sistemle aynı" seçiliyse tema sayfa yenilenmeden döner
+  if(_mq){var _onMq=function(){if(S.settings().theme!=='auto')return;var e=_eff('auto');if(document.documentElement.getAttribute('data-theme')!==e){setTheme('auto');_themeRedraw()}};if(_mq.addEventListener)_mq.addEventListener('change',_onMq);else if(_mq.addListener)_mq.addListener(_onMq)}
   // Özet bölümleri katlanabilir; tercih yalnız bu tarayıcıda tutulur (pf_ önekli değil: sekme senkronunu tetiklemez)
   var COLLAPSE_KEY='ft_ui_collapsed';
   function _collapsed(){try{return JSON.parse(localStorage.getItem(COLLAPSE_KEY)||'{}')||{}}catch(e){return{}}}
@@ -2017,7 +2047,7 @@ App.UI=(function(){
     initDayLabel();
   }
   function initDayLabel(){var d=new Date();document.getElementById('todayDate').textContent=d.getDate()+' '+MF[d.getMonth()]+' '+d.getFullYear()+', '+['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'][d.getDay()]}
-  return{nav,renderPage,currentPage,initDayLabel,subTab,toggleTheme,setFontSize,renderFontPick,initCollapsibles,setType,getType,onCatChange,renderPayChips,pickAcc,addAccQuick,rememberAcc,quickAdd,moreMenu,moreClose,mountModal,closeModal,confirmModal,promptModal,applyA11y,initSelects,refreshAccSelects,refreshUserSelects,refreshFilterDropdowns,toast,toastAction,flipSign,setTheme,bindEvents,initDates,syncActiveProfilePill}
+  return{nav,renderPage,currentPage,initDayLabel,subTab,toggleTheme,pickTheme,renderThemePick,setFontSize,renderFontPick,initCollapsibles,setType,getType,onCatChange,renderPayChips,pickAcc,addAccQuick,rememberAcc,quickAdd,moreMenu,moreClose,mountModal,closeModal,confirmModal,promptModal,applyA11y,initSelects,refreshAccSelects,refreshUserSelects,refreshFilterDropdowns,toast,toastAction,flipSign,setTheme,bindEvents,initDates,syncActiveProfilePill}
 })();
 
 App.Accounts=(function(){
@@ -8292,7 +8322,7 @@ App.Settings=(function(){
       try{if(navigator.storage&&navigator.storage.persisted)navigator.storage.persisted().then(function(p){b.textContent=b.textContent.split(' · ')[0]+' · Kalıcı depolama: '+(p?'açık':'kapalı (tarayıcı yer açmak için silebilir)')}).catch(function(){})}catch(e){}}
     if(App.Invalid)App.Invalid.renderCard();
     var c=document.getElementById('setCpiInfo');if(c){var lm=App.Inflation.latestMonth().split('-');c.textContent='Son endeks: '+MF[+lm[1]-1]+' '+lm[0]+(App.Inflation.isStale()?' · güncelleme gerekiyor':'')}
-    var t=document.getElementById('setThemeBtn');if(t)t.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'☀️ Açık temaya geç':'🌙 Koyu temaya geç';
+    App.UI.renderThemePick();
     App.Notifications.syncBtn();App.Categories.render();App.UI.syncActiveProfilePill();if(App.Lock)App.Lock.renderCard();if(App.Sync)App.Sync.renderCard();if(App.Push)App.Push.render();if(App.Market)App.Market.renderCard();
   }
   function wipe(){

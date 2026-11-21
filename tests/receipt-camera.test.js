@@ -23,6 +23,8 @@ srv.listen(0,'127.0.0.1',async()=>{
     };
   },QR);
   const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
+  // Saat sabit: fişin tarihi (20 Eylül 2026) "iki aydan eski" uyarısına düşmesin (gerçek saate bağlı test 21 Kasım'da kırılıyordu)
+  await p.clock.setFixedTime(new Date('2026-10-01T12:00:00'));
   await p.goto('http://127.0.0.1:'+srv.address().port+'/index.html');
   await p.evaluate(()=>{localStorage.clear();localStorage.setItem('pf_a',JSON.stringify([{id:'a1700000000000_aaaa',name:'Banka',type:'bank',owner:'shared',balance:1000,openingBalance:1000,ts:1}]));localStorage.setItem('pf_s',JSON.stringify({onboarded:true}))});
   await p.reload();await p.waitForFunction(()=>window.App&&App.Receipt);
