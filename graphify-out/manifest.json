@@ -438,9 +438,9 @@
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1795284821.8845983,
-    "seen": 1795285643.09764,
-    "ast_hash": "04b6e35e7485468dd41626c6a927c78c",
+    "mtime": 1795286563.6866827,
+    "seen": 1795287260.635427,
+    "ast_hash": "b30fd737153b6d9345a63e8e3f713e09",
     "semantic_hash": ""
   },
   "tests/fixtures/earsiv-qr.txt": {
@@ -552,9 +552,9 @@
     "semantic_hash": ""
   },
   "tests/qc-ios.test.js": {
-    "mtime": 1795284815.9649081,
-    "seen": 1795285643.0889888,
-    "ast_hash": "7c7701c38b6cd5e015660b8350f0823e",
+    "mtime": 1795286506.9080482,
+    "seen": 1795287260.62872,
+    "ast_hash": "f9b25d9739301d28eea07cc296904a0d",
     "semantic_hash": ""
   },
   "icons/splash/splash-1125x2436.png": {
