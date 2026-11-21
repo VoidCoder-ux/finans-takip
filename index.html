@@ -29,7 +29,9 @@
 <meta name="mobile-web-app-capable" content="yes"/>
 <script>try{var _fs=localStorage.getItem('ft_fs');if(_fs==='l'||_fs==='xl')document.documentElement.setAttribute('data-fs',_fs)}catch(e){}
 // Tema ilk çizimden önce: açık ya da "Sistemle aynı" kullanan biri açılışta bir an koyu ekran görmesin (asıl ayar App.UI.setTheme'de)
-try{var _th=(JSON.parse(localStorage.getItem('pf_s')||'null')||{}).theme;if(_th==='light'||(_th==='auto'&&window.matchMedia&&!matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+try{var _th=(JSON.parse(localStorage.getItem('pf_s')||'null')||{}).theme;if(_th==='light'||(_th==='auto'&&window.matchMedia&&!matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.setAttribute('data-theme','light')}catch(e){}
+// iPhone Safari basılma stilini (:active) ancak sayfada bir dokunma dinleyicisi varken uygular
+document.addEventListener('touchstart',function(){},{passive:true});</script>
 <style>
 :root{
   --teal:#14b8a6;--teal-d:#0d9488;--blue:#60a5fa;--purple:#a78bfa;--accent:#0f766e;
@@ -1204,7 +1206,7 @@ button,.btn,[role=button],.bnav-item{-webkit-user-select:none;user-select:none;-
 <section class="page" id="page-ayarlar">
   <div class="ph"><div><div class="ph-title">Ayarlar</div><div class="ph-sub">Görünüm, veri, kategoriler ve gizlilik</div></div></div>
   <div class="set-grid">
-    <div class="card set-card"><div class="sh-title">🎨 Görünüm</div><div class="set-sub">Tema. "Sistemle aynı" telefonun koyu/açık ayarını izler (gece kendiliğinden koyu olur).</div><div class="fs-pick" id="themePick" role="radiogroup" aria-label="Tema"><button type="button" class="fs-opt" role="radio" data-theme-opt="dark" onclick="App.UI.pickTheme('dark')">Koyu</button><button type="button" class="fs-opt" role="radio" data-theme-opt="light" onclick="App.UI.pickTheme('light')">Açık</button><button type="button" class="fs-opt" role="radio" data-theme-opt="auto" onclick="App.UI.pickTheme('auto')">Sistemle aynı</button></div>
+    <div class="card set-card"><div class="sh-title">🎨 Görünüm</div><div class="set-sub">Tema. "Sistemle aynı" telefonun koyu/açık ayarını izler (gece kendiliğinden koyu olur).</div><div class="fs-pick" id="themePick" role="radiogroup" aria-label="Tema"><button type="button" class="fs-opt" role="radio" data-theme-opt="dark" style="font-size:1rem" onclick="App.UI.pickTheme('dark')">Koyu</button><button type="button" class="fs-opt" role="radio" data-theme-opt="light" style="font-size:1rem" onclick="App.UI.pickTheme('light')">Açık</button><button type="button" class="fs-opt" role="radio" data-theme-opt="auto" style="font-size:1rem" onclick="App.UI.pickTheme('auto')">Sistemle aynı</button></div>
       <div class="set-sub" style="margin-top:4px">Yazı boyutu (bu cihazda; her telefon kendi seçimini hatırlar)</div>
       <div class="fs-pick" id="fsPick" role="radiogroup" aria-label="Yazı boyutu"><button type="button" class="fs-opt" data-fs="n" onclick="App.UI.setFontSize('n')" style="font-size:.9rem">Normal</button><button type="button" class="fs-opt" data-fs="l" onclick="App.UI.setFontSize('l')" style="font-size:1rem">Büyük</button><button type="button" class="fs-opt" data-fs="xl" onclick="App.UI.setFontSize('xl')" style="font-size:1.1rem">Çok Büyük</button></div></div>
     <div class="card set-card"><div class="sh-title">💾 Yedek</div><div class="set-sub" id="setBackupInfo">Tüm yerel veriyi JSON olarak indirip başka cihaza taşıyın.</div><div id="setInvalid"></div><div class="set-actions"><button class="btn btn-sm btn-ghost" onclick="App.Backup.open()">Yedek / Geri Yükle</button><button class="btn btn-sm btn-ghost" onclick="App.Onboarding.open()">Kurulum Kontrolü</button></div></div>
