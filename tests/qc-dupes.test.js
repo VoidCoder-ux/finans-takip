@@ -175,6 +175,39 @@ srv.listen(0, async () => {
   const r10b = await ING([SMS('c2', '2222 nolu hesabinizdan kredi karti borcunuza 5.000,00 TL odeme yapilmistir. Yapi Kredi')]);
   eq('hesap tarafı: aktarım yazıldı, bekleyen kart mesajı kalktı', [r10b.transfers, await snap()], [1, { bal: { yk: 145000, ak: 20000, ykc: -3000, n: 3000 }, tot: { income: 0, expense: 0, count: 0 }, txns: [['expense', 5000, 'Transfer', 'yk', true], ['income', 5000, 'Transfer', 'ykc', true]], q: 0 }]);
 
+  // 11) Aynı harcama SMS'le (kart no var) ve banka uygulamasının bildirimiyle (banka adı, kart no yok) gelir. Bildirimin hesabı yalnız
+  // varsayılan hesap tahmini olduğundan "farklı hesap" sayılıp iki kayıt oluşuyordu. Tek kayıt kalır, kesin hesap (kart) kullanılır
+  const P_MIG = 'MIGROS isyerinde 1.250,00 TL harcama yapildi.';
+  const rows = () => page.evaluate(() => S.txns().filter(t => t.amount === 1250).map(t => [t.via || 'sms', t.accountId]));
+  const withDef = () => seed({ pf_s: { onboarded: true, users: U, activeUser: 'u_a', lastBackupAt: Date.now(), smsDefaults: { u_a: 'yk' } } });
+  await load(withDef());
+  await ING([SMS('s11', MIG)]); const r11 = await ING([PUSH('p11', P_MIG)]);
+  eq('SMS sonra bildirim (bildirimde hesap yok): tek kayıt, kartta', [r11.added, r11.dupes, await rows()], [0, 1, [['sms', 'ykc']]]);
+  await load(withDef());
+  await ING([PUSH('p11', P_MIG)]); const r11b = await ING([SMS('s11', MIG)]);
+  eq('bildirim önce (varsayılan hesaba yazılmıştı): SMS gelince tek kayıt kalır, karta taşınır, bakiyeler doğru', [r11b.added, await rows(), await page.evaluate(() => [App.Accounts.get('yk').balance, App.Accounts.get('ykc').balance])], [0, [['push', 'ykc']], [150000, -9250]]);
+  await load(seed());
+  const r11c = await ING([PUSH('p11', P_MIG)]); const r11d = await ING([SMS('s11', MIG)]);
+  eq('varsayılan hesap yok: bildirim onaya düşer; SMS gelince eklenir ve bekleyen bildirim kalkar', [r11c.queued, r11d.added, await page.evaluate(() => S.smsQueue().length), await rows()], [1, 1, 0, [['sms', 'ykc']]]);
+  await load(seed());
+  await ING([SMS('s11', MIG)]); const r11e = await ING([PUSH('p11', P_MIG)]);
+  eq('varsayılan hesap yok, SMS önce: bildirim onaya bile düşmez', [r11e.queued, r11e.dupes, await rows()], [0, 1, [['sms', 'ykc']]]);
+  await load(withDef());
+  await ING([SMS('s11', MIG)]); const r11f = await ING([PUSH('p11', 'A101 isyerinde 1.250,00 TL harcama yapildi.')]);
+  eq('aynı tutar ama başka işyeri (A101): ayrı harcama, iki kayıt', [r11f.added, (await rows()).length], [1, 2]);
+  await load(withDef());
+  await ING([SMS('s11', MIG)]); const r11g = await ING([PUSH('p11', 'Yapı Kredi: 2222 nolu hesabınızdan MIGROS isyerinde 1.250,00 TL harcama yapıldı.')]);
+  eq('bildirim kesin olarak başka hesabı söylüyorsa (…2222 vadesiz): ayrı harcama', [r11g.added, (await rows()).length], [1, 2]);
+  // Onayda kalmış eski bildirim: pencerede "zaten kayıtlı" uyarısı
+  await load(Object.assign(seed(), { pf_t: [{ id: 'sms_old', type: 'expense', amount: 1250, category: 'Market', date: '2027-10-20', note: 'Migros', accountId: 'ykc', userId: 'u_a', ts: 1, balanceApplied: true, src: 'sms' }],
+    pf_sq: [{ id: 'sqold', text: P_MIG, label: 'bildirim_u_a', receivedAt: RECV, reason: 'Hangi hesaba ait olduğu bulunamadı', p: { type: 'expense', amount: 1250, date: '2027-10-20', note: 'Migros', category: 'Market', accountId: '' }, ts: 1 }] }));
+  eq('onaydaki eski bildirim: "zaten kayıtlı" uyarısı', await page.evaluate(() => { App.BankSms.accept('sqold'); const m = [...document.querySelectorAll('.modal-bd.show')].pop(), t = m.textContent; m.querySelector('[data-act="cancel"]').click(); return /zaten kayıtlı/.test(t) && /SMS/.test(t); }), true);
+
+  // 12) Düzeltmeden önce oluşmuş ikili kayıtlar: Ay Kontrolü gösterir (iki kanaldan aynı harcama). Aynı kanaldan iki aynı tutar ve başka işyeri gösterilmez
+  const T12 = (id, amt, note, acc, via, date) => Object.assign({ id, type: 'expense', amount: amt, category: 'Market', date: date || '2027-09-24', note, accountId: acc, userId: 'u_a', ts: 1, balanceApplied: true, src: 'sms' }, via ? { via } : {});
+  await load(Object.assign(seed(), { pf_t: [T12('s1', 200, 'BİM', 'ykc'), T12('p1', 200, 'BİM', 'yk', 'push'), T12('k1', 45, 'Starbucks', 'ykc'), T12('k2', 45, 'Starbucks', 'ykc'), T12('s3', 300, 'Migros', 'ykc'), T12('p3', 300, 'A101', 'yk', 'push'), T12('s4', 90, 'Opet', 'ykc'), T12('p4', 90, 'Opet', 'yk', 'push', '2027-09-27')] }));
+  eq('Ay Kontrolü: iki kanaldan gelen aynı harcama gösterilir (yalnız BİM)', await page.evaluate(() => App.MonthCheck.issues('2027-09').filter(x => /iki kez kaydedilmiş/.test(x.title)).map(x => [x.id, /SMS/.test(x.text) && /bildirim/.test(x.text)])), [['ch2:s1:p1', true]]);
+
   eq('sayfa hatası yok', errors, []);
   await browser.close(); srv.close();
   console.log('\n' + pass + ' passed, ' + fail + ' failed');

@@ -1248,7 +1248,7 @@ button,.btn,[role=button],.bnav-item{-webkit-user-select:none;user-select:none;-
     <div class="set-sub" style="margin-bottom:12px">Bu cihazdaki tüm işlemler, hesaplar ve ayarlar silinir. Önce yedek almanız önerilir.</div>
     <button class="btn btn-sm btn-ghost" style="border-color:var(--red);color:var(--red)" onclick="App.Settings.wipe()">Tüm Verileri Sil</button>
   </div>
-  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.4.5</div>
+  <div class="set-sub" id="appVersion" style="text-align:center;margin:4px 0 8px">Uygulama sürümü: 2026.11.4.6</div>
 </section>
 
 </main>
@@ -6507,11 +6507,12 @@ App.BankSms=(function(){
   }
   function _userOf(label){var u=String(label||'').replace(/^[A-Za-z0-9]{8}_/,'');return App.Users.get(u)?u:S.settings().activeUser}
   // Hesap: son 4 hane → banka adı + tür → kişinin varsayılan SMS hesabı
+  // p.accBy: hesabın nereden bulunduğu. 'last4' ve 'bank' kesin; 'default' (kişinin varsayılan SMS hesabı) yalnız tahmindir
   function resolveAccount(p,userId){
-    var accs=S.accounts();
-    if(p.last4){var hit=accs.filter(function(a){return a.last4&&a.last4.split(',').indexOf(p.last4)>=0});if(hit.length===1)return hit[0].id;if(hit.length>1)return''}
-    var b=byBank(p,userId);if(b)return b;
-    var d=(S.settings().smsDefaults||{})[userId];return d&&App.Accounts.get(d)?d:'';
+    var accs=S.accounts();p.accBy='';
+    if(p.last4){var hit=accs.filter(function(a){return a.last4&&a.last4.split(',').indexOf(p.last4)>=0});if(hit.length===1){p.accBy='last4';return hit[0].id}if(hit.length>1)return''}
+    var b=byBank(p,userId);if(b){p.accBy='bank';return b}
+    var d=(S.settings().smsDefaults||{})[userId];if(d&&App.Accounts.get(d)){p.accBy='default';return d}return'';
   }
   // Banka adı (+ kart/hesap türü) ile tek bir hesap bulunursa o
   function byBank(p,userId){
@@ -6552,9 +6553,31 @@ App.BankSms=(function(){
   }
   // Aynı hareket elle/fişle/tekrarlayanla ya da öbür kanaldan (SMS ↔ e-posta) zaten girildiyse yeniden ekleme.
   // Aynı kanaldan gelen aynı tutarlı iki kayıt (iki kahve) ayrı harcamadır
-  function _dupe(p,accId){
-    var d0=new Date(p.date+'T12:00:00'),sums=_lpSums();
-    return S.txns().find(function(t){if((t.src==='sms'&&(t.via||'sms')===(p.via||'sms'))||t.type!==p.type||(isTransfer(t)&&!t.lp)||Math.abs((t.lp||t.sg?sums[t.lp||t.sg]:t.amount)-p.amount)>0.009)return false;if(accId&&t.accountId&&t.accountId!==accId)return false;return Math.abs((new Date(t.date+'T12:00:00')-d0)/864e5)<=2});
+  // Hesaplar farklı olsa da öbür kanalın kaydıyla aynı harcama sayılır, eğer iki taraftan biri hesabı yalnız tahmin ettiyse
+  // (bildirimde banka adı / kart no yok → varsayılan hesap). Bu durumda işyeri adları da uyuşmalı ve en çok bir gün fark olmalı.
+  // chanOnly: yalnız bankadan gelen (SMS/e-posta/bildirim) kayıtlara bakılır (onaya düşecek ya da hesabı bilinmeyen mesaj için)
+  function _dupe(p,accId,note,chanOnly){
+    var d0=new Date(p.date+'T12:00:00'),sums=_lpSums(),guess=p.accBy!=='last4'&&p.accBy!=='bank';
+    return S.txns().find(function(t){if((t.src==='sms'&&(t.via||'sms')===(p.via||'sms'))||t.type!==p.type||(isTransfer(t)&&!t.lp)||Math.abs((t.lp||t.sg?sums[t.lp||t.sg]:t.amount)-p.amount)>0.009)return false;
+      if(chanOnly&&t.src!=='sms')return false;
+      var dd=Math.abs((new Date(t.date+'T12:00:00')-d0)/864e5);if(dd>2)return false;
+      if((chanOnly&&!accId)||(accId&&t.accountId&&t.accountId!==accId))return t.src==='sms'&&(guess||t.accGuess===t.accountId)&&dd<=1&&_sameShop(t.note,p,note);
+      return true});
+  }
+  // Kendi kuralıyla onaya düşen mesajlar (kart ödemesi, ATM, provizyon, nakit avans, aktarım): "zaten kayıtlı" kontrolü onlara uygulanmaz
+  var SPECIAL=/Kredi kartı borç ödemesi|ATM|Provizyon|Nakit avans|aktarım|Aynı tutarda/;
+  // Kayıt eklendi: aynı hareketin öbür kanaldan gelip onayda bekleyen eşi kaldırılır (aynı tür ve tutar, ±1 gün, işyeri uyuşuyor,
+  // hesaplar aynı ya da taraflardan birinin hesabı tahmin). Kaldırılan sayısı döner
+  function _dropQueued(p,accId,note,q){
+    var d0=new Date(p.date+'T12:00:00'),n=0,guess=p.accBy!=='last4'&&p.accBy!=='bank';
+    for(var i=q.length-1;i>=0;i--){var x=q[i],xp=x.p||{};
+      if(_viaOf(x.label)===(p.via||'')||xp.type!==p.type||Math.abs((+xp.amount||0)-p.amount)>0.009||SPECIAL.test(x.reason||'')||!xp.date)continue;
+      if(Math.abs((new Date(xp.date+'T12:00:00')-d0)/864e5)>1)continue;
+      var xGuess=xp.accBy!==undefined?(xp.accBy!=='last4'&&xp.accBy!=='bank'):!xp.last4;
+      if(xp.accountId&&accId&&xp.accountId!==accId&&!guess&&!xGuess)continue;
+      if(!_sameShop(xp.note,p,note))continue;
+      q.splice(i,1);n++}
+    return n;
   }
   // Faiz + anapara olarak ikiye bölünmüş kredi taksidinin toplamı (aynı taksit başka kanaldan gelirse tekrar sayılsın)
   function _lpSums(){var o={};S.txns().forEach(function(t){var k=t.lp||t.sg;if(k)o[k]=roundMoney((o[k]||0)+t.amount)});return o}
@@ -6581,9 +6604,15 @@ App.BankSms=(function(){
   function _words(x){return fold(x).replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(function(w){return w.length>=3&&!GENERIC.test(w)})}
   function _sure(t,p,note){
     if(t.src==='sms'||t.src==='import'||t.recurringId||!t.note||t.note===t.category)return true;
-    var b1=App.Receipt&&App.Receipt.brand?App.Receipt.brand(t.note):null,b2=App.Receipt&&App.Receipt.brand?App.Receipt.brand((p.merchant||'')+' '+note):null;
+    return _sameShop(t.note,p,note);
+  }
+  // İki kaydın işyeri adı uyuşuyor mu (zincir adı ya da ortak kelime). Adı olmayan genel not ("Akbank kart harcaması") her şeyle uyuşur.
+  // Banka ve kart programı adları işyeri sayılmaz
+  var BANKW=/^(akbank|garanti|bbva|ziraat|yapi|ykb|halkbank|vakifbank|vakif|isbank|qnb|finansbank|enpara|denizbank|teb|ing|axess|wings|bonus|world|worldcard|adios|maximum|paraf|bankkart|harcamasi|hesabindan|hesaptan|karti|gelen|giden|para|gida|taksit)$/;
+  function _sameShop(tnote,p,note){
+    var b1=App.Receipt&&App.Receipt.brand?App.Receipt.brand(tnote||''):null,b2=App.Receipt&&App.Receipt.brand?App.Receipt.brand((p.merchant||'')+' '+note):null;
     if(b1&&b2)return b1.name===b2.name;
-    var w1=_words(t.note),w2=_words((p.merchant||'')+' '+(p.party||'')+' '+note);
+    var w1=_words(tnote).filter(function(w){return!BANKW.test(w)}),w2=_words((p.merchant||'')+' '+(p.party||'')+' '+note).filter(function(w){return!BANKW.test(w)});
     if(!w1.length||!w2.length)return true;
     return w1.some(function(w){return w2.some(function(v){return v.indexOf(w)===0||w.indexOf(v)===0})});
   }
@@ -6635,7 +6664,9 @@ App.BankSms=(function(){
       return!!App.Transactions.addPlan({amount:p.amount,count:p.installments,start:p.date,accountId:accId,userId:userId,category:cat,name:String(note).replace(/\s*\(\d+ taksit\)$/,''),idBase:id,src:'sms',via:p.via||'',tags:cleanTags(activeTagFor(p.date))});
     }
     var today=td(),t={id:id,type:p.type,amount:p.amount,category:cat,date:p.date,note:note,accountId:accId,userId:userId,ts:Date.now(),balanceApplied:p.date<=today,src:'sms'};
-    if(recId)t.recurringId=recId;if(p.via)t.via=p.via;if(p.transfer)t.xfer=true;if(p.bk&&cat==='Transfer'){t.bk=p.bk;t.xext=true;delete t.xfer}
+    if(recId)t.recurringId=recId;if(p.via)t.via=p.via;if(p.transfer)t.xfer=true;
+    // Hesap yalnız varsayılan hesap tahminiyse işaretlenir (tahmin edilen hesabın kimliği: elle başka hesaba taşınırsa geçersiz olur)
+    if(p.accBy==='default'&&accId)t.accGuess=accId;if(p.bk&&cat==='Transfer'){t.bk=p.bk;t.xext=true;delete t.xfer}
     // Etkin etiket (tatil vb.) bankadan gelen harcama ve gelirlere de eklenir; düzenli ödemeye (maaş eşleşmesi) eklenmez
     var atg=!recId&&activeTagFor(p.date);if(atg)t.tags=[atg];
     if(isRefund(t)){var rc=App.Transactions.guessRefCat(t);if(rc)t.refCat=rc}
@@ -6728,19 +6759,26 @@ App.BankSms=(function(){
         var sal=_salaryTxn(p,userId);
         // Planlı maaş bir kez bankadaki gerçek maaşla eşleşir (src:'sms'); aynı ay gelen ikinci "maaş" mesajı (ikramiye, ek ödeme) onu ezmez, ayrı kayıt olur
         if(sal){var ch={},changed=Math.abs(sal.amount-p.amount)>0.009||sal.date!==p.date||!sal.accountId;if(Math.abs(sal.amount-p.amount)>0.009)ch.amount=p.amount;if(sal.date!==p.date)ch.date=p.date;if(!sal.accountId)ch.accountId=accId;ch.src='sms';if(p.via)ch.via=p.via;App.Transactions.patch(sal.id,ch);if(changed)res.updated++;else res.dupes++;return sal.id}
-        var dp=_dupe(p,accId);
-        if(dp&&_sure(dp,p,note)){res.dupes++;return}
+        var dp=_dupe(p,accId,note);
+        if(dp&&_sure(dp,p,note)){res.dupes++;
+          // Eş kayıt varsayılan hesaba tahminle yazılmıştı, bu mesaj hesabı kesin söylüyor: kayıt doğru hesaba taşınır (bakiyeyle birlikte)
+          if(dp.accGuess&&dp.accGuess===dp.accountId&&accId&&dp.accountId!==accId&&(p.accBy==='last4'||p.accBy==='bank'))App.Transactions.patch(dp.id,{accountId:accId,accGuess:''});
+          return}
         if(dp){p.kind='review';p.reason='Aynı tutarda elle girilmiş kayıt var ("'+String(dp.note).slice(0,40)+'", '+fd(dp.date)+'). Aynı harcamaysa Yoksay, ayrı harcamaysa Ekle.'}
       }
       if(p.kind!=='review'){
         var rec=_salaryRec(p,userId);if(rec&&rec.userId&&App.Users.get(rec.userId))userId=rec.userId;
-        if(_add(sid,p,accId,userId,cat,note,rec?rec.id:'')){res.added++;if(p.loanPay&&App.Transactions.splitLoan(sid))res.loanSplit=(res.loanSplit||0)+1}return;
+        if(_add(sid,p,accId,userId,cat,note,rec?rec.id:'')){res.added++;if(p.loanPay&&App.Transactions.splitLoan(sid))res.loanSplit=(res.loanSplit||0)+1;
+          // Aynı harcama öbür kanaldan gelip onaya düşmüştü (bildirimde hesap yoktu): artık kayıtlı, onaydan kalkar
+          var dn=_dropQueued(p,accId,note,q);if(dn){res.dupes+=dn;qChanged=true}}return;
       }
+      // Onaya düşecek mesaj (ör. hesabı bulunamadı) öbür kanaldan zaten kayıtlıysa sorulmaz
+      if(!SPECIAL.test(p.reason||'')&&_dupe(p,accId,note,true)){res.dupes++;return}
       // "Kredi kartınıza ödeme yapıldı": kart ve ödemenin çıktığı hesap bulunursa doğrudan bankadan karta aktarım
       var ql=q.length;
       if(p.kind==='review'&&/Kredi kartı borç ödemesi/.test(p.reason)&&_cardPay(p,accId,userId,sid,res,q)){if(q.length!==ql)qChanged=true;return}
       if(/Kredi kartı borç ödemesi/.test(p.reason))note='Kart borcu ödemesi';
-      var qi={id:'sq'+sid,text:String(it.text).slice(0,1000),label:String(it.label||'').slice(0,100),receivedAt:it.receivedAt||Date.now(),reason:p.reason||'Kontrol gerekiyor',p:{type:p.type||'expense',amount:p.amount,date:p.date,note:note,category:cat,accountId:p.accountId||accId,last4:p.last4},ts:Date.now()};
+      var qi={id:'sq'+sid,text:String(it.text).slice(0,1000),label:String(it.label||'').slice(0,100),receivedAt:it.receivedAt||Date.now(),reason:p.reason||'Kontrol gerekiyor',p:{type:p.type||'expense',amount:p.amount,date:p.date,note:note,category:cat,accountId:p.accountId||accId,last4:p.last4,accBy:p.accBy||''},ts:Date.now()};
       if(p.to)qi.p.to=p.to;q.push(qi);qChanged=true;res.queued++;
     }
     if(qChanged)S.saveSmsQueue(q);
@@ -6875,7 +6913,10 @@ App.BankSms=(function(){
       if(/^Aile içi/.test(x.reason||'')){var pf=fold(parse(x.text,+x.receivedAt||0).party||''),mem=pf&&App.Users.list().find(function(u){var n=fold(u.name).trim().split(/\s+/)[0].replace(/[^a-z0-9]/g,'');return n.length>=3&&new RegExp('\\b'+n+'\\b').test(pf)});
         var ma=mem?S.accounts().filter(function(a){return a.id!==p.accountId&&a.owner==='personal'&&a.userId===mem.id&&a.type!=='card'}):[];toDef=ma.length===1?ma[0].id:''}
       if(p.to&&p.to!==p.accountId&&App.Accounts.get(p.to))toDef=p.to}
-    App.UI.promptModal({title:'Banka Hareketini Ekle',text:x.text,fields:[
+    // Aynı hareket öbür kanaldan (SMS / e-posta / bildirim) zaten kayıtlıysa uyarılır: "Ekle" ikinci kayıt olur
+    var xv=_viaOf(x.label)||'sms',tw0=p.date&&S.txns().find(function(t){return t.src==='sms'&&(t.via||'sms')!==xv&&t.type===p.type&&!isTransfer(t)&&Math.abs(t.amount-p.amount)<0.01&&Math.abs((new Date(t.date+'T12:00:00')-new Date(p.date+'T12:00:00'))/864e5)<=2}),
+      tw0a=tw0&&App.Accounts.get(tw0.accountId),warn=tw0?'⚠ Bu hareket '+({sms:'SMS',email:'e-posta',push:'bildirim'})[tw0.via||'sms']+' ile zaten kayıtlı görünüyor: '+(tw0.note||tw0.category)+' · '+fd(tw0.date)+(tw0a?' · '+accLabel(tw0a):'')+'. Aynı harcamaysa Vazgeç\'e basıp Yoksay deyin.\n\n':'';
+    App.UI.promptModal({title:'Banka Hareketini Ekle',text:warn+x.text,fields:[
       {key:'type',label:'Tür',type:'select',options:[{value:'expense',label:'Gider'},{value:'income',label:'Gelir'},{value:'move',label:'↔ Aktarım (gider değil)'}],value:isMove?'move':p.type},
       {key:'to',label:'Aktarımsa karşı hesap (kart ödemesi, ATM, kendi hesabınız)',type:'select',options:tos,value:toDef},
       {key:'amount',label:'Tutar (₺)',type:'number',value:p.amount},
@@ -7154,7 +7195,7 @@ App.BankSms=(function(){
     App.UI.mountModal(div,'#smsMaskIn');maskRun();
   }
   function maskCopy(){var b=document.getElementById('smsMaskOut');if(!b||!b.value){App.UI.toast('Önce mesaj yapıştırın.','info');return}(navigator.clipboard?navigator.clipboard.writeText(b.value):Promise.reject()).then(function(){App.UI.toast('Kopyalandı.','ok')},function(){b.focus();b.select();App.UI.toast('Seçili metni kopyalayın.','info')})}
-  return{mask:mask,maskRun:maskRun,maskOpen:maskOpen,maskCopy:maskCopy,ignOpen:ignOpen,ignClear:ignClear,ignReview:ignReview,parse:parse,ingest:ingest,summary:_summary,resolveAccount:resolveAccount,byBank:byBank,twin:twin,paste:paste,pull:pull,setup:setup,disable:disable,test:test,copy:copy,guide:guide,setDefault:setDefault,renderCard:renderCard,renderQueue:renderQueue,accept:accept,dismiss:dismiss,dismissAll:dismissAll,init:init,url:url,_fold:fold,
+  return{sameShop:_sameShop,mask:mask,maskRun:maskRun,maskOpen:maskOpen,maskCopy:maskCopy,ignOpen:ignOpen,ignClear:ignClear,ignReview:ignReview,parse:parse,ingest:ingest,summary:_summary,resolveAccount:resolveAccount,byBank:byBank,twin:twin,paste:paste,pull:pull,setup:setup,disable:disable,test:test,copy:copy,guide:guide,setDefault:setDefault,renderCard:renderCard,renderQueue:renderQueue,accept:accept,dismiss:dismiss,dismissAll:dismissAll,init:init,url:url,_fold:fold,
     mailSetup:mailSetup,mailDisable:mailDisable,mailGuide:mailGuide,mailCopy:mailCopy,mailScript:mailScript,mailUrl:mailUrl,_mailManifest:MANIFEST,
     pushSetup:pushSetup,pushDisable:pushDisable,pushGuide:pushGuide,pushCopy:pushCopy,pushTest:pushTest,pushUrl:pushUrl};
 })();
@@ -8712,6 +8753,12 @@ App.MonthCheck=(function(){
         else if(hasCard)add('cp:'+t.id,'red','💳','Kart ödemesi gider sayılmış',row(t)+'. Kartın harcamaları zaten gider sayıldı, ödeme ikinci kez sayılıyor. Kart uygulamadaysa kaydı açıp "Kendi hesaplarınız arası aktarım mı?" sorusunda kartı seçin.',ed(t));return}
       if(_own(t)){seen[t.id]=1;add('own:'+t.id,'yellow','↔️',t.type==='income'?'Kendi adınızdan gelen para gelir sayılmış olabilir':'Kendi adınıza giden para gider sayılmış olabilir',row(t)+'. Kendi hesaplarınız arasındaysa kaydı açıp karşı hesabı seçin.',ed(t))}});
     sameAmtPairs(tx.filter(function(t){return t.type==='expense'&&t.amount>=1000&&t.accountId&&!t.recurringId&&!seen[t.id]}),20).forEach(function(p){add('two:'+p[0].id+':'+p[1].id,'yellow','🔁','Aynı tutarda iki büyük harcama',fd(p[0].date)+' ve '+fd(p[1].date)+' · '+fmt(p[0].amount)+' · '+App.Accounts.getName(p[0].accountId)+'. Biri fazla ya da provizyon olabilir; bankanın hareketleriyle karşılaştırın.',['İşlemlerde gör',"App.MonthCheck.find('"+m+"','"+jsAttr(String(p[0].amount))+"')"])});
+    // Aynı harcama iki kanaldan (SMS + bildirim / e-posta) iki kez kaydedilmiş olabilir: aynı tür ve tutar, en çok 1 gün, kanallar farklı, işyeri uyuşuyor.
+    // Aynı kanaldan iki aynı tutar (iki kahve) ayrı harcamadır, gösterilmez. Silinmesi önerilen: hesabı tahmin olan ya da bildirimden gelen
+    var CHN={sms:'SMS',email:'e-posta',push:'bildirim'},chx=tx.filter(function(t){return t.src==='sms'&&!isTransfer(t)&&!t.installment&&!seen[t.id]});
+    chx.forEach(function(a,i){chx.slice(i+1).forEach(function(b){if((a.via||'sms')===(b.via||'sms')||a.type!==b.type||Math.abs(a.amount-b.amount)>0.009||Math.abs((new Date(a.date+'T12:00:00')-new Date(b.date+'T12:00:00'))/864e5)>1||!App.BankSms.sameShop(a.note,{},b.note))return;
+      var x=(a.accGuess&&a.accGuess===a.accountId)||(a.via==='push'&&b.via!=='push')?a:b;
+      add('ch2:'+a.id+':'+b.id,'red','🔁','Aynı harcama iki kez kaydedilmiş olabilir',row(a)+' ('+CHN[a.via||'sms']+') ve '+row(b)+' ('+CHN[b.via||'sms']+'). Banka aynı harcamayı iki yoldan bildirdiyse biri fazladır: fazla olanı açıp silin. İki ayrı harcamaysa "Sorun yok" deyin.',['Fazla olanı aç',"App.Transactions.edit('"+jsAttr(x.id)+"')"])})});
     S.accounts().forEach(function(a){if(a.type!=='card'||!((a.openingBalance||0)<0))return;var o=-a.openingBalance,st=balanceStart(a),t=tx.find(function(x){return x.accountId===a.id&&x.type==='expense'&&!x.preOpen&&Math.abs(x.amount-o)<0.01&&(!st||x.date>=st)});
       if(t)add('op:'+a.id+':'+t.id,'yellow','🪞','Kart borcu iki kez sayılmış olabilir',accLabel(a)+' eklenirken girilen borç şu kayıtla aynı: '+row(t)+'. Harcama o borcun içindeyse borç fazla görünür; bankadaki borcu girin.',['Bankayla karşılaştır',"App.Accounts.reconcile('"+jsAttr(a.id)+"')"])});
     App.Recurring.missing(m).forEach(function(x){add('rec:'+x.r.id+':'+x.key,'yellow','🔁',(x.r.note||x.r.category)+' kaydı yok',fd(x.date)+' vadesi · '+fmt(x.r.amount)+'. Ödendiyse kaydedin; bu ay yapılmadıysa "Sorun yok" deyin.',['Kaydet',"App.Recurring.logMissing('"+jsAttr(x.r.id)+"','"+jsAttr(x.key)+"')"])});
