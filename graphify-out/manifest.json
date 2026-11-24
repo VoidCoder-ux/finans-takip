@@ -12,9 +12,9 @@
     "semantic_hash": ""
   },
   "sw.js": {
-    "mtime": 1795106778.1784184,
-    "seen": 1795107395.2728493,
-    "ast_hash": "c95cb175b8d54311fdeb1dfdeb0741e8",
+    "mtime": 1795535987.9498212,
+    "seen": 1795541296.144846,
+    "ast_hash": "4f15216d5f7c369add6161612b004753",
     "semantic_hash": ""
   },
   "tests/bank-sms.test.js": {
@@ -30,9 +30,9 @@
     "semantic_hash": ""
   },
   "tests/cards.test.js": {
-    "mtime": 1792358735.1027052,
-    "seen": 1792685983.0401404,
-    "ast_hash": "b77b302236a0d027c2e50b0821da80b4",
+    "mtime": 1795536020.6771576,
+    "seen": 1795541296.145097,
+    "ast_hash": "1a6b76d08b6aae8740bed89088e0cf33",
     "semantic_hash": ""
   },
   "tests/date-math.test.js": {
@@ -132,9 +132,9 @@
     "semantic_hash": ""
   },
   "tests/qc-dupes.test.js": {
-    "mtime": 1792358735.118072,
-    "seen": 1792685983.0401666,
-    "ast_hash": "66106261286753d32c56da086dc7c941",
+    "mtime": 1795535987.9498212,
+    "seen": 1795541296.1471958,
+    "ast_hash": "6981fc5f1f58a0a547733bfb272be0e7",
     "semantic_hash": ""
   },
   "tests/qc-files.test.js": {
@@ -282,9 +282,9 @@
     "semantic_hash": ""
   },
   "tests/receipt-camera.test.js": {
-    "mtime": 1792358735.13973,
-    "seen": 1792685983.040203,
-    "ast_hash": "68c8935553b7b90ef1053f7b850a56b2",
+    "mtime": 1795285571.288947,
+    "seen": 1795285643.0926626,
+    "ast_hash": "1ec306999336c29123bc356fee2d8124",
     "semantic_hash": ""
   },
   "tests/receipt-e2e.test.js": {
@@ -438,9 +438,9 @@
     "semantic_hash": ""
   },
   "index.html": {
-    "mtime": 1795106777.8284168,
-    "seen": 1795107395.2811613,
-    "ast_hash": "9a1eceebfc38081f72097f648af97ae4",
+    "mtime": 1795535987.9423282,
+    "seen": 1795541296.1543586,
+    "ast_hash": "863bbdc3b37eeca87d08ba26e657c3f4",
     "semantic_hash": ""
   },
   "tests/fixtures/earsiv-qr.txt": {
@@ -549,6 +549,84 @@
     "mtime": 1795106345.8431697,
     "seen": 1795107395.2732115,
     "ast_hash": "b7a7b2028f366b8276b5941d7d3583c5",
+    "semantic_hash": ""
+  },
+  "tests/qc-ios.test.js": {
+    "mtime": 1795286506.9080482,
+    "seen": 1795287260.62872,
+    "ast_hash": "f9b25d9739301d28eea07cc296904a0d",
+    "semantic_hash": ""
+  },
+  "icons/splash/splash-1125x2436.png": {
+    "mtime": 1795284815.9441707,
+    "seen": 1795285643.0995584,
+    "ast_hash": "6722bd1e6e2b2d710d45071b83e8106d",
+    "semantic_hash": ""
+  },
+  "icons/splash/splash-1170x2532.png": {
+    "mtime": 1795284815.9465659,
+    "seen": 1795285643.099562,
+    "ast_hash": "26273b04f5b45c4770c7fe959ac791fc",
+    "semantic_hash": ""
+  },
+  "icons/splash/splash-1179x2556.png": {
+    "mtime": 1795284815.9485729,
+    "seen": 1795285643.099565,
+    "ast_hash": "c1865ac14dce3daea37dffd41ab5b150",
+    "semantic_hash": ""
+  },
+  "icons/splash/splash-1206x2622.png": {
+    "mtime": 1795284815.9505734,
+    "seen": 1795285643.0995677,
+    "ast_hash": "29dcb3c67bb1629860cb01adfd626232",
+    "semantic_hash": ""
+  },
+  "icons/splash/splash-1242x2208.png": {
+    "mtime": 1795284815.9536018,
+    "seen": 1795285643.0995703,
+    "ast_hash": "0755ca09f135d410e8430f8e204d4b69",
+    "semantic_hash": ""
+  },
+  "icons/splash/splash-1242x2688.png": {
+    "mtime": 1795284815.9546044,
+    "seen": 1795285643.099573,
+    "ast_hash": "c8c24b27771b354036fdabf9211d9b96",
+    "semantic_hash": ""
+  },
+  "icons/splash/splash-1260x2736.png": {
+    "mtime": 1795284815.956844,
+    "seen": 1795285643.0995755,
+    "ast_hash": "61448a3ab0eab7eddce5128f85920846",
+    "semantic_hash": ""
+  },
+  "icons/splash/splash-1284x2778.png": {
+    "mtime": 1795284815.957922,
+    "seen": 1795285643.0995781,
+    "ast_hash": "264a240b4823b3a51e784507152cb3fd",
+    "semantic_hash": ""
+  },
+  "icons/splash/splash-1290x2796.png": {
+    "mtime": 1795284815.9590566,
+    "seen": 1795285643.099581,
+    "ast_hash": "0a29587dd2582e9a42bbe75b14e7c410",
+    "semantic_hash": ""
+  },
+  "icons/splash/splash-1320x2868.png": {
+    "mtime": 1795284815.9605546,
+    "seen": 1795285643.099583,
+    "ast_hash": "d913f230632b485395347b8213088351",
+    "semantic_hash": ""
+  },
+  "icons/splash/splash-750x1334.png": {
+    "mtime": 1795284815.962908,
+    "seen": 1795285643.0995853,
+    "ast_hash": "e8dc2b29bdda8ab444531a7a0315af3e",
+    "semantic_hash": ""
+  },
+  "icons/splash/splash-828x1792.png": {
+    "mtime": 1795284815.9639065,
+    "seen": 1795285643.099588,
+    "ast_hash": "cbcdc6a236f6a0192e46ebce9354719c",
     "semantic_hash": ""
   }
 }
